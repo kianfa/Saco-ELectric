@@ -1,0 +1,49 @@
+import type { Metadata } from 'next'
+import { Vazirmatn } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
+import './globals.css'
+import { Toaster } from '@/components/ui/sonner'
+
+const vazirmatn = Vazirmatn({ 
+  subsets: ['arabic'],
+  variable: '--font-vazirmatn',
+})
+
+export const metadata: Metadata = {
+  title: 'صنعت الکتریک | فروشگاه تخصصی تجهیزات برق صنعتی',
+  description: 'فروشگاه تخصصی تجهیزات برق صنعتی - ارائه محصولات اصل، قیمت رقابتی و پشتیبانی فنی',
+  generator: 'v0.app',
+  icons: {
+    icon: [
+      {
+        url: '/icon-light-32x32.png',
+        media: '(prefers-color-scheme: light)',
+      },
+      {
+        url: '/icon-dark-32x32.png',
+        media: '(prefers-color-scheme: dark)',
+      },
+      {
+        url: '/icon.svg',
+        type: 'image/svg+xml',
+      },
+    ],
+    apple: '/apple-icon.png',
+  },
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
+  return (
+    <html lang="fa" dir="rtl" className="bg-background">
+      <body className={`${vazirmatn.className} font-sans antialiased`}>
+        {children}
+        <Toaster richColors position="top-center" />
+        {process.env.NODE_ENV === 'production' && <Analytics />}
+      </body>
+    </html>
+  )
+}

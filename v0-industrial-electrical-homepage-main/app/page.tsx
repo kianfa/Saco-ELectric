@@ -1,0 +1,60 @@
+import { TopBar } from "@/components/top-bar"
+import { Header } from "@/components/header"
+import { HeroSection } from "@/components/hero-section"
+import { CategorySection } from "@/components/category-section"
+import { FeaturedProducts } from "@/components/featured-products"
+import { PromoBanner } from "@/components/promo-banner"
+import { BrandStrip } from "@/components/brand-strip"
+import { TrustFeatures } from "@/components/trust-features"
+import { Footer } from "@/components/footer"
+import { getBrands } from "@/lib/services/brands-service"
+import { getCategories } from "@/lib/services/categories-service"
+import { getFeaturedProducts } from "@/lib/services/products-service"
+import type { Brand } from "@/types/brand"
+import type { Category } from "@/types/category"
+import type { Product } from "@/types/product"
+
+type SettledHomeData<T> = {
+  data: T
+  error: string | null
+}
+
+function normalizeSettledResult<T>(
+  result: PromiseSettledResult<T>,
+  fallback: T
+): SettledHomeData<T> {
+  if (result.status === "fulfilled") {
+    return { data: result.value, error: null }
+  }
+
+  const message = result.reason instanceof Error ? result.reason.message : "Unknown homepage data error"
+  return { data: fallback, error: message }
+}
+
+export default async function HomePage() {
+  const [featuredProductsResult, categoriesResult, brandsResult] = await Promise.allSettled([
+    getFeaturedProducts(),
+    getCategories(),
+    getBrands(),
+  ])
+
+  const featuredProducts = normalizeSettledResult<Product[]>(featuredProductsResult, [])
+  const categories = normalizeSettledResult<Category[]>(categoriesResult, [])
+  const brands = normalizeSettledResult<Brand[]>(brandsResult, [])
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <TopBar />
+      <Header />
+      <main className="flex-1">
+        <HeroSection />
+        <CategorySection categories={categories.data} error={categories.error} />
+        <FeaturedProducts products={featuredProducts.data} error={featuredProducts.error} />
+        <PromoBanner />
+        <BrandStrip brands={brands.data} error={brands.error} />
+        <TrustFeatures />
+      </main>
+      <Footer />
+    </div>
+  )
+}

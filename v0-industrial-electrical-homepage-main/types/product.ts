@@ -1,0 +1,68 @@
+export interface Product {
+  id: string
+  name: string
+  slug: string
+  model: string | null
+  sku: string | null
+  price: number
+  oldPrice: number | null
+  discountPercent: number
+  brandName: string | null
+  categoryName: string | null
+  stockQuantity: number
+  mainImageUrl: string | null
+  mainImageAlt: string | null
+  isFeatured: boolean
+  isActive?: boolean
+
+  // UI-friendly fields. These keep the current product listing design intact
+  // while still receiving normalized product data from the service layer.
+  rating: number
+  reviewCount: number
+  hasWarranty: boolean
+  specs: string[]
+}
+
+export interface ProductDetailImage {
+  imageUrl: string
+  altText: string | null
+  isMain: boolean
+  sortOrder: number
+}
+
+export interface ProductDetailSpec {
+  name: string
+  value: string
+  sortOrder: number
+}
+
+export interface ProductDetail {
+  id: string
+  name: string
+  slug: string
+  model: string | null
+  sku: string | null
+  shortDescription: string | null
+  description: string | null
+  price: number
+  oldPrice: number | null
+  discountPercent: number
+  warranty: string | null
+  originCountry: string | null
+  brandName: string | null
+  categoryName: string | null
+  stockQuantity: number
+  images: ProductDetailImage[]
+  specs: ProductDetailSpec[]
+
+  // UI-only compatibility fields for the existing product detail components.
+  rating: number
+  reviewCount: number
+  hasWarranty: boolean
+}
+
+export interface ProductQueryOptions {
+  featured?: boolean
+  active?: boolean
+  limit?: number
+}
