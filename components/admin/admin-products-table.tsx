@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { Eye, Pencil, Plus, Search, Trash2, ToggleRight } from "lucide-react"
+import { Eye, Pencil, Percent, Plus, Search, Trash2, ToggleRight } from "lucide-react"
 import type { Brand } from "@/types/brand"
 import type { Category } from "@/types/category"
 import type { Product } from "@/types/product"
@@ -38,7 +38,7 @@ export function AdminProductsTable({ products, brands, categories }: { products:
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_160px_auto]">
+        <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_160px_auto_auto]">
           <div className="relative">
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="جستجو نام، مدل یا SKU" className="h-11 rounded-xl pr-10" />
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -65,6 +65,9 @@ export function AdminProductsTable({ products, brands, categories }: { products:
               <SelectItem value="inactive">غیرفعال</SelectItem>
             </SelectContent>
           </Select>
+          <Button asChild variant="outline" className="h-11 rounded-xl">
+            <Link href="/admin/products/bulk-price-update" className="gap-2"><Percent className="h-4 w-4" /> تغییر گروهی قیمت‌ها</Link>
+          </Button>
           <Button asChild className="h-11 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90">
             <Link href="/admin/products/new" className="gap-2"><Plus className="h-4 w-4" /> افزودن محصول جدید</Link>
           </Button>
