@@ -34,7 +34,7 @@ export function CustomerInfoForm({ showErrors = false }: CustomerInfoFormProps) 
         </div>
         <div>
           <Label htmlFor="mobile">شماره موبایل</Label>
-          <Input id="mobile" placeholder="۰۹۱۲۳۴۵۶۷۸۹" className="mt-2 h-12 rounded-xl" aria-invalid={showErrors} />
+          <Input id="mobile" placeholder="۰۹xxxxxxxxx" className="mt-2 h-12 rounded-xl" aria-invalid={showErrors} />
           {showErrors && <FieldError>شماره موبایل معتبر نیست.</FieldError>}
         </div>
         <div className="md:col-span-2">

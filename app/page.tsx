@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { TopBar } from "@/components/top-bar"
 import { Header } from "@/components/header"
 import { HeroSection } from "@/components/hero-section"
@@ -8,11 +10,11 @@ import { BrandStrip } from "@/components/brand-strip"
 import { TrustFeatures } from "@/components/trust-features"
 import { Footer } from "@/components/footer"
 import { getBrands } from "@/lib/services/brands-service"
-import { getCategories } from "@/lib/services/categories-service"
+import { getHomepageCategories, getHomepageCategorySectionSettings } from "@/lib/services/categories-service"
 import { getFeaturedProducts } from "@/lib/services/products-service"
 import { getActiveBannersByPlacement, getHomepageSection, getSiteSettings } from "@/lib/services/site-content-service"
 import type { Brand } from "@/types/brand"
-import type { Category } from "@/types/category"
+import type { Category, HomepageCategorySectionSettings } from "@/types/category"
 import type { Product } from "@/types/product"
 import type { HomepageSection, SiteBanner, SiteSettingsBundle } from "@/types/site-content"
 
@@ -31,10 +33,11 @@ function normalizeSettledResult<T>(result: PromiseSettledResult<T>, fallback: T)
 }
 
 export default async function HomePage() {
-  const [featuredProductsResult, categoriesResult, brandsResult, heroResult, promoResult, promoBannersResult, settingsResult] =
+  const [featuredProductsResult, categoriesResult, categorySettingsResult, brandsResult, heroResult, promoResult, promoBannersResult, settingsResult] =
     await Promise.allSettled([
       getFeaturedProducts(),
-      getCategories(),
+      getHomepageCategories(),
+      getHomepageCategorySectionSettings(),
       getBrands(),
       getHomepageSection("hero"),
       getHomepageSection("promo_banner"),
@@ -44,6 +47,11 @@ export default async function HomePage() {
 
   const featuredProducts = normalizeSettledResult<Product[]>(featuredProductsResult, [])
   const categories = normalizeSettledResult<Category[]>(categoriesResult, [])
+  const categorySettings = normalizeSettledResult<HomepageCategorySectionSettings>(categorySettingsResult, {
+    title: "دسته‌بندی تجهیزات",
+    subtitle: "انتخاب سریع تجهیزات برق صنعتی بر اساس دسته‌بندی",
+    isActive: true,
+  })
   const brands = normalizeSettledResult<Brand[]>(brandsResult, [])
   const hero = normalizeSettledResult<HomepageSection | null>(heroResult, null)
   const promo = normalizeSettledResult<HomepageSection | null>(promoResult, null)
@@ -60,7 +68,7 @@ export default async function HomePage() {
       <Header />
       <main className="flex-1">
         <HeroSection section={hero.data} />
-        <CategorySection categories={categories.data} error={categories.error} />
+        <CategorySection categories={categories.data} settings={categorySettings.data} error={categories.error} />
         <FeaturedProducts products={featuredProducts.data} error={featuredProducts.error} />
         <PromoBanner section={promo.data} banners={promoBanners.data} />
         <BrandStrip brands={brands.data} error={brands.error} />

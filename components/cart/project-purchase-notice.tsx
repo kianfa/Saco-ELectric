@@ -1,5 +1,6 @@
 import { FileText, PhoneCall } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { storeContactConfig } from "@/lib/store-contact-config"
 
 export function ProjectPurchaseNotice() {
   return (
@@ -16,9 +17,11 @@ export function ProjectPurchaseNotice() {
             </p>
           </div>
         </div>
-        <Button className="shrink-0 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90">
-          <PhoneCall className="ml-2 h-4 w-4" />
-          درخواست پیش‌فاکتور
+        <Button asChild className="shrink-0 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90">
+          <a href={`tel:${storeContactConfig.mobile}`}>
+            <PhoneCall className="ml-2 h-4 w-4" />
+            درخواست پیش‌فاکتور
+          </a>
         </Button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { Headphones, PhoneCall } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { storeContactConfig } from "@/lib/store-contact-config"
 
 export function ProjectOrderNotice() {
   return (
@@ -13,9 +14,11 @@ export function ProjectOrderNotice() {
           <p className="mt-2 text-sm leading-7 text-primary-foreground/85">
             برای سفارش تعداد بالا، دریافت پیش‌فاکتور رسمی، هماهنگی ارسال باربری یا مشاوره فنی با کارشناسان ما در ارتباط باشید.
           </p>
-          <Button className="mt-4 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            <PhoneCall className="h-4 w-4" />
-            درخواست تماس کارشناس
+          <Button asChild className="mt-4 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90">
+            <a href={`tel:${storeContactConfig.mobile}`}>
+              <PhoneCall className="h-4 w-4" />
+              درخواست تماس کارشناس
+            </a>
           </Button>
         </div>
       </div>

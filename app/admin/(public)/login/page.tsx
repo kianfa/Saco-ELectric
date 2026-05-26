@@ -24,7 +24,7 @@ export default async function AdminLoginPage({
               <Zap className="h-6 w-6" />
             </div>
             <div>
-              <div className="font-bold text-primary">صنعت الکتریک</div>
+              <div className="font-bold text-primary">ساکو الکتریک</div>
               <div className="text-xs text-muted-foreground">فروشگاه تجهیزات برق صنعتی</div>
             </div>
           </Link>

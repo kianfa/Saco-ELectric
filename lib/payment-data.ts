@@ -31,8 +31,8 @@ export const mockPaymentResult: PaymentResultData = {
   paymentMethod: "پرداخت آنلاین",
   paidAmount: 26450000,
   failureReason: "انصراف از پرداخت، خطای بانکی، یا عدم تایید تراکنش",
-  supportPhone: "۰۲۱-۹۱۰۰۱۲۳۴",
-  supportMessenger: "واتساپ / پیام‌رسان: ۰۹۱۲۱۲۳۴۵۶۷",
+  supportPhone: "04135578876",
+  supportMessenger: "واتساپ، بله، روبیکا، تلگرام: 09382073007",
   supportHours: "شنبه تا چهارشنبه، ۹ تا ۱۷",
   items: [
     {

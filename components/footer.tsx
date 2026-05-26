@@ -2,61 +2,63 @@
 
 import { footerLinks } from "@/lib/data"
 import type { SiteSettingsBundle } from "@/types/site-content"
-import { Zap, Instagram, Send, MessageCircle, Linkedin } from "lucide-react"
+import { Zap, Instagram, Send, MessageCircle, Linkedin, Phone, MapPin, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { storeContactConfig } from "@/lib/store-contact-config"
 
 export function Footer({ settings }: { settings?: SiteSettingsBundle }) {
-  const description = settings?.footerInfo.description || "مرجع تخصصی تجهیزات برق صنعتی با ارائه محصولات اصل، قیمت رقابتی و پشتیبانی فنی"
-  const copyright = settings?.footerInfo.copyright || "© صنعت الکتریک. تمامی حقوق این سایت محفوظ است."
-  const trustBadgeImageUrl = settings?.footerInfo.trustBadgeImageUrl
-  const social = settings?.footerInfo || {}
+  const contact = settings?.contactInfo ?? {}
+  const footer = settings?.footerInfo ?? {}
+  const description = footer.description || storeContactConfig.defaultFooterDescription
+  const copyright = footer.copyright || storeContactConfig.defaultCopyright
+  const trustBadgeImageUrl = footer.trustBadgeImageUrl
+  const landline = contact.phone || storeContactConfig.landline
+  const supportPhone = contact.supportPhone || contact.telegramPhone || storeContactConfig.mobile
+  const telegramUsername = contact.telegramUsername || storeContactConfig.telegram.username
+  const telegramUrl = footer.telegramUrl || storeContactConfig.telegram.url
+  const workingHours = contact.workingHours || storeContactConfig.workingHours
+  const address = contact.address
+
   return (
     <footer className="bg-primary text-primary-foreground">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-6">
           {/* Logo & Description */}
           <div className="lg:col-span-2">
-            <a href="/" className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-primary-foreground/10 rounded-full flex items-center justify-center">
-                <Zap className="w-7 h-7 text-accent" />
+            <a href="/" className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-foreground/10">
+                <Zap className="h-7 w-7 text-accent" />
               </div>
               <div>
-                <h3 className="text-xl font-bold">صنعت الکتریک</h3>
-                <p className="text-xs text-primary-foreground/70">فروشگاه تخصصی تجهیزات برق صنعتی</p>
+                <h3 className="text-xl font-bold">{storeContactConfig.brandName}</h3>
+                <p className="text-xs text-primary-foreground/70">{storeContactConfig.tagline}</p>
               </div>
             </a>
-            <p className="text-primary-foreground/80 text-sm leading-relaxed mb-6">
-              {description}
-            </p>
+            <p className="mb-6 text-sm leading-relaxed text-primary-foreground/80">{description}</p>
 
-            {/* Trust Badge Placeholder */}
             <div className="flex items-center gap-3">
               {trustBadgeImageUrl ? (
-                <div className="w-16 h-20 overflow-hidden rounded-lg bg-primary-foreground/10">
+                <div className="h-20 w-16 overflow-hidden rounded-lg bg-primary-foreground/10">
                   <img src={trustBadgeImageUrl} alt="نماد اعتماد" className="h-full w-full object-cover" />
                 </div>
               ) : (
-                <div className="w-16 h-20 bg-primary-foreground/10 rounded-lg flex items-center justify-center">
+                <div className="flex h-20 w-16 items-center justify-center rounded-lg bg-primary-foreground/10">
                   <span className="text-xs text-primary-foreground/60">نماد اعتماد</span>
                 </div>
               )}
-              <div className="w-16 h-20 bg-primary-foreground/10 rounded-lg flex items-center justify-center">
+              <div className="flex h-20 w-16 items-center justify-center rounded-lg bg-primary-foreground/10">
                 <span className="text-xs text-primary-foreground/60">ساماندهی</span>
               </div>
             </div>
           </div>
 
-          {/* Quick Access */}
           <div>
-            <h4 className="font-bold mb-4">دسترسی سریع</h4>
+            <h4 className="mb-4 font-bold">دسترسی سریع</h4>
             <ul className="space-y-2">
               {footerLinks.quickAccess.map((link) => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-primary-foreground/70 hover:text-accent transition-colors text-sm"
-                  >
+                  <a href={link.href} className="text-sm text-primary-foreground/70 transition-colors hover:text-accent">
                     {link.name}
                   </a>
                 </li>
@@ -64,16 +66,12 @@ export function Footer({ settings }: { settings?: SiteSettingsBundle }) {
             </ul>
           </div>
 
-          {/* Services */}
           <div>
-            <h4 className="font-bold mb-4">خدمات ما</h4>
+            <h4 className="mb-4 font-bold">خدمات ما</h4>
             <ul className="space-y-2">
               {footerLinks.services.map((link) => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-primary-foreground/70 hover:text-accent transition-colors text-sm"
-                  >
+                  <a href={link.href} className="text-sm text-primary-foreground/70 transition-colors hover:text-accent">
                     {link.name}
                   </a>
                 </li>
@@ -81,76 +79,90 @@ export function Footer({ settings }: { settings?: SiteSettingsBundle }) {
             </ul>
           </div>
 
-          {/* Customer Guide */}
           <div>
-            <h4 className="font-bold mb-4">راهنمای مشتریان</h4>
+            <h4 className="mb-4 font-bold">راهنمای مشتریان</h4>
             <ul className="space-y-2">
               {footerLinks.customerGuide.map((link) => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-primary-foreground/70 hover:text-accent transition-colors text-sm"
-                  >
+                  <a href={link.href} className="text-sm text-primary-foreground/70 transition-colors hover:text-accent">
                     {link.name}
                   </a>
                 </li>
               ))}
             </ul>
           </div>
-        </div>
 
-        {/* Newsletter */}
-        <div className="border-t border-primary-foreground/10 mt-8 pt-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-              <h4 className="font-bold mb-1">خبرنامه صنعت الکتریک</h4>
-              <p className="text-sm text-primary-foreground/70">
-                جدیدترین محصولات، مقالات فنی و تخفیف‌های ویژه را دریافت کنید.
-              </p>
-            </div>
-            <div className="flex gap-2 w-full md:w-auto">
-              <Input
-                type="email"
-                placeholder="ایمیل خود را وارد کنید..."
-                className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 rounded-xl min-w-[250px]"
-              />
-              <Button className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl px-6">
-                عضویت
-              </Button>
+          <div>
+            <h4 className="mb-4 font-bold">ارتباط با {storeContactConfig.brandName}</h4>
+            <ul className="space-y-3 text-sm text-primary-foreground/75">
+              <li className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-accent" />
+                <span>تلفن ثابت:</span>
+                <a href={`tel:${landline}`} dir="ltr" className="font-bold text-primary-foreground hover:text-accent">{landline}</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4 text-accent" />
+                <span>موبایل / پشتیبانی:</span>
+                <a href={`tel:${supportPhone}`} dir="ltr" className="font-bold text-primary-foreground hover:text-accent">{supportPhone}</a>
+              </li>
+              <li className="flex items-center gap-2">
+                <Send className="h-4 w-4 text-accent" />
+                <span>تلگرام:</span>
+                <a href={telegramUrl} target="_blank" rel="noreferrer" dir="ltr" className="font-bold text-primary-foreground hover:text-accent">{telegramUsername}</a>
+              </li>
+              {address && (
+                <li className="flex items-start gap-2">
+                  <MapPin className="mt-0.5 h-4 w-4 text-accent" />
+                  <span>{address}</span>
+                </li>
+              )}
+              <li className="flex items-start gap-2">
+                <Clock className="mt-0.5 h-4 w-4 text-accent" />
+                <span>{workingHours}</span>
+              </li>
+            </ul>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {storeContactConfig.channels.map((channel) => (
+                <span key={channel} className="rounded-full bg-primary-foreground/10 px-3 py-1 text-xs font-semibold text-primary-foreground/80">
+                  {channel}
+                </span>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Social & Copyright */}
-        <div className="border-t border-primary-foreground/10 mt-8 pt-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-primary-foreground/70">
-              {copyright}
-            </p>
+        <div className="mt-8 border-t border-primary-foreground/10 pt-8">
+          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
+            <div>
+              <h4 className="mb-1 font-bold">خبرنامه {storeContactConfig.brandName}</h4>
+              <p className="text-sm text-primary-foreground/70">جدیدترین محصولات، مقالات فنی و تخفیف‌های ویژه را دریافت کنید.</p>
+            </div>
+            <div className="flex w-full gap-2 md:w-auto">
+              <Input
+                type="email"
+                placeholder="ایمیل خود را وارد کنید..."
+                className="min-w-[250px] rounded-xl border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground placeholder:text-primary-foreground/50"
+              />
+              <Button className="rounded-xl bg-accent px-6 text-accent-foreground hover:bg-accent/90">عضویت</Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 border-t border-primary-foreground/10 pt-8">
+          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+            <p className="text-sm text-primary-foreground/70">{copyright}</p>
             <div className="flex items-center gap-3">
-              <a
-                href={social.instagramUrl || "#"}
-                className="w-10 h-10 bg-primary-foreground/10 rounded-full flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                <Instagram className="w-5 h-5" />
+              <a href={footer.instagramUrl || "#"} className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/10 transition-colors hover:bg-accent hover:text-accent-foreground" aria-label="Instagram">
+                <Instagram className="h-5 w-5" />
               </a>
-              <a
-                href={social.telegramUrl || "#"}
-                className="w-10 h-10 bg-primary-foreground/10 rounded-full flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                <Send className="w-5 h-5" />
+              <a href={telegramUrl} target="_blank" rel="noreferrer" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/10 transition-colors hover:bg-accent hover:text-accent-foreground" aria-label="Telegram">
+                <Send className="h-5 w-5" />
               </a>
-              <a
-                href={social.baleUrl || "#"}
-                className="w-10 h-10 bg-primary-foreground/10 rounded-full flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                <MessageCircle className="w-5 h-5" />
+              <a href={`tel:${supportPhone}`} className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/10 transition-colors hover:bg-accent hover:text-accent-foreground" aria-label="Messaging apps">
+                <MessageCircle className="h-5 w-5" />
               </a>
-              <a
-                href={social.linkedinUrl || "#"}
-                className="w-10 h-10 bg-primary-foreground/10 rounded-full flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                <Linkedin className="w-5 h-5" />
+              <a href={footer.linkedinUrl || "#"} className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/10 transition-colors hover:bg-accent hover:text-accent-foreground" aria-label="LinkedIn">
+                <Linkedin className="h-5 w-5" />
               </a>
             </div>
           </div>

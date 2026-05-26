@@ -198,7 +198,7 @@ export function CheckoutPage() {
                 </a>
               </Button>
               <Button asChild onClick={handleManualCheckoutClick} variant="outline" className="h-12 rounded-xl bg-transparent px-4 text-xs font-extrabold">
-                <a href={manualCheckoutConfig.bale.url} target="_blank" rel="noreferrer">
+                <a href={manualCheckoutConfig.bale.url ?? `tel:${manualCheckoutConfig.bale.phone}`} target="_blank" rel="noreferrer">
                   <MessageCircle className="h-4 w-4" />
                   بله
                 </a>

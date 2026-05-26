@@ -2,6 +2,7 @@
 
 import { Building2, Phone, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { storeContactConfig } from "@/lib/store-contact-config"
 
 export function ProjectPurchaseBox() {
   return (
@@ -29,12 +30,15 @@ export function ProjectPurchaseBox() {
             <span>دریافت پیش‌فاکتور</span>
           </Button>
           <Button
+            asChild
             variant="outline"
             size="lg"
             className="gap-2 rounded-xl border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
           >
-            <Phone className="w-5 h-5" />
-            <span>تماس با کارشناس</span>
+            <a href={`tel:${storeContactConfig.mobile}`}>
+              <Phone className="w-5 h-5" />
+              <span>تماس با کارشناس</span>
+            </a>
           </Button>
         </div>
       </div>

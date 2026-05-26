@@ -22,7 +22,7 @@ export function Header() {
               <Zap className="w-7 h-7 text-accent" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-primary">صنعت الکتریک</h1>
+              <h1 className="text-xl font-bold text-primary">ساکو الکتریک</h1>
               <p className="text-xs text-muted-foreground">فروشگاه تخصصی تجهیزات برق صنعتی</p>
             </div>
           </Link>

@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator"
 import { ProductImageWithFallback } from "@/components/product-image-with-fallback"
 import { formatPrice } from "@/lib/data"
 import type { CartItem } from "@/lib/cart/cart-store"
+import { manualCheckoutConfig } from "@/lib/manual-checkout-config"
 
 interface CheckoutOrderSummaryProps {
   items: CartItem[]
@@ -16,7 +17,7 @@ interface CheckoutOrderSummaryProps {
   shippingLabel: string
   itemCount: number
   telegramUrl: string
-  baleUrl: string
+  baleUrl: string | null
 }
 
 function PriceRow({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
@@ -52,7 +53,7 @@ export function CheckoutOrderSummary({
 
       <div className="mb-4 flex items-start gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-3 text-xs font-semibold leading-6 text-orange-800">
         <Camera className="mt-0.5 h-4 w-4 shrink-0" />
-        <span>برای نهایی‌سازی سفارش، لطفاً از سبد خرید یا خلاصه سفارش خود اسکرین‌شات تهیه کرده و از طریق تلگرام یا بله برای پشتیبانی ارسال کنید. کارشناسان فروش پس از بررسی موجودی کالا، تأیید قیمت نهایی و هماهنگی شرایط ارسال، اطلاعات پرداخت کارت‌به‌کارت را در اختیار شما قرار می‌دهند. پس از پرداخت، سفارش شما در سریع‌ترین زمان ممکن آماده پردازش و ارسال خواهد شد.</span>
+        <span>برای نهایی‌سازی سفارش، لطفاً از سبد خرید یا خلاصه سفارش خود اسکرین‌شات تهیه کرده و از طریق تلگرام، واتساپ، بله یا روبیکا برای پشتیبانی ارسال کنید. کارشناسان فروش پس از بررسی موجودی کالا، تأیید قیمت نهایی و هماهنگی شرایط ارسال، اطلاعات پرداخت کارت‌به‌کارت را در اختیار شما قرار می‌دهند. پس از پرداخت، سفارش شما در سریع‌ترین زمان ممکن آماده پردازش و ارسال خواهد شد.</span>
       </div>
 
       <div className="space-y-3 rounded-2xl bg-muted/35 p-3">
@@ -100,7 +101,7 @@ export function CheckoutOrderSummary({
 
       <div className="mt-3 flex items-start gap-2 rounded-xl bg-muted/50 px-3 py-3 text-xs font-semibold leading-6 text-muted-foreground">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
-        <span>اسکرین‌شات سبد خرید خود را از طریق تلگرام یا بله ارسال کنید تا موجودی، قیمت نهایی و شرایط ارسال توسط کارشناسان ما تأیید شود. پس از تأیید، اطلاعات کارت‌به‌کارت برای تکمیل خرید ارسال خواهد شد.</span>
+        <span>اسکرین‌شات سبد خرید خود را از طریق تلگرام، واتساپ، بله یا روبیکا ارسال کنید تا موجودی، قیمت نهایی و شرایط ارسال توسط کارشناسان ما تأیید شود. پس از تأیید، اطلاعات کارت‌به‌کارت برای تکمیل خرید ارسال خواهد شد.</span>
       </div>
 
       <div className="mt-5 space-y-3">
@@ -111,7 +112,7 @@ export function CheckoutOrderSummary({
           </a>
         </Button>
         <Button asChild variant="outline" className="h-11 w-full rounded-xl bg-transparent">
-          <a href={baleUrl} target="_blank" rel="noreferrer">
+          <a href={baleUrl ?? `tel:${manualCheckoutConfig.bale.phone}`} target="_blank" rel="noreferrer">
             ارسال سفارش در بله
             <MessageCircle className="h-4 w-4" />
             <ExternalLink className="h-4 w-4" />

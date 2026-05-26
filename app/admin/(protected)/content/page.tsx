@@ -2,11 +2,12 @@ import Link from "next/link"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ImagePlus, LayoutTemplate, Megaphone, Settings, ArrowLeft } from "lucide-react"
+import { ImagePlus, LayoutTemplate, Megaphone, Settings, ArrowLeft, Grid3X3 } from "lucide-react"
 
 const cards = [
   { href: "/admin/content/homepage", title: "مدیریت صفحه اصلی", text: "ویرایش hero، بنر تبلیغاتی، نکات اعتماد و تصاویر اصلی سایت", icon: LayoutTemplate },
   { href: "/admin/content/banners", title: "مدیریت بنرها", text: "افزودن و ویرایش بنرهای تبلیغاتی برای صفحه اصلی، محصولات و checkout", icon: Megaphone },
+  { href: "/admin/content/homepage-categories", title: "دسته‌بندی‌های صفحه اصلی", text: "مدیریت عنوان بخش، تصاویر، ترتیب و نمایش کارت‌های دسته‌بندی زیر هیرو", icon: Grid3X3 },
   { href: "/admin/content/settings", title: "تنظیمات تماس و فوتر", text: "اطلاعات تماس، شبکه‌های اجتماعی، فوتر و متن پرداخت دستی", icon: Settings },
   { href: "/admin/content/homepage", title: "مدیریت عکس‌های سایت", text: "آپلود تصاویر عمومی سایت در bucket جداگانه site-media", icon: ImagePlus },
 ]

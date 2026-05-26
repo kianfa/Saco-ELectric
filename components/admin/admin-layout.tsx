@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { LayoutDashboard, Package, Tags, Building2, ShoppingCart, Settings, Zap, LogOut, UserRound, ImagePlus, Percent } from "lucide-react"
+import { LayoutDashboard, Package, Tags, Building2, ShoppingCart, Settings, Zap, LogOut, UserRound, ImagePlus, Percent, Grid3X3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getCurrentAdminUser } from "@/lib/auth/admin-auth"
 import { logoutAdminAction } from "@/lib/actions/auth-actions"
@@ -10,6 +10,7 @@ const links = [
   { href: "/admin/products", label: "محصولات", icon: Package },
   { href: "/admin/products/bulk-price-update", label: "تغییر گروهی قیمت‌ها", icon: Percent },
   { href: "/admin/content", label: "محتوای سایت", icon: ImagePlus },
+  { href: "/admin/content/homepage-categories", label: "دسته‌بندی‌های صفحه اصلی", icon: Grid3X3 },
   { href: "/admin/content/banners", label: "بنرها", icon: Tags },
   { href: "#", label: "برندها", icon: Building2 },
   { href: "#", label: "سفارش‌ها", icon: ShoppingCart },
@@ -28,7 +29,7 @@ export async function AdminLayout({ children, title, subtitle }: { children: Rea
               <Zap className="h-6 w-6" />
             </div>
             <div>
-              <div className="font-bold text-primary">پنل مدیریت صنعت الکتریک</div>
+              <div className="font-bold text-primary">پنل مدیریت ساکو الکتریک</div>
               <div className="text-xs text-muted-foreground">مدیریت فروشگاه تجهیزات برق صنعتی</div>
             </div>
           </Link>

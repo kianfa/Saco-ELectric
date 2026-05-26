@@ -2,6 +2,7 @@ import { Clock, Headphones, MessageCircle, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PaymentResultData } from "@/lib/payment-data"
+import { storeContactConfig } from "@/lib/store-contact-config"
 
 interface PaymentSupportBoxProps {
   data: PaymentResultData
@@ -38,8 +39,8 @@ export function PaymentSupportBox({ data, compact = false }: PaymentSupportBoxPr
         </div>
 
         {!compact && (
-          <Button className="h-11 w-full rounded-xl bg-secondary font-extrabold text-secondary-foreground hover:bg-secondary/90">
-            تماس با پشتیبانی فروش
+          <Button asChild className="h-11 w-full rounded-xl bg-secondary font-extrabold text-secondary-foreground hover:bg-secondary/90">
+            <a href={`tel:${storeContactConfig.mobile}`}>تماس با پشتیبانی فروش</a>
           </Button>
         )}
       </CardContent>
