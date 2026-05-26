@@ -15,6 +15,7 @@ import {
   upsertSiteSetting,
 } from "@/lib/repositories/site-content-repository"
 import type { BannerFormInput, HomepageSection, SiteSettingsBundle } from "@/types/site-content"
+import { assertSafeImageFile, buildSafeStoragePath, getSafeImageExtension, toSafePathSegment } from "@/lib/security/file-upload"
 
 export const getHomepageSection = fetchHomepageSection
 export const getHomepageSections = fetchHomepageSections
@@ -54,7 +55,13 @@ export async function removeBanner(id: string) {
 }
 
 export async function uploadWebsiteMedia(file: File, folder: string, fileName: string) {
-  const ext = file.name.split(".").pop()?.toLowerCase() || "webp"
-  const safeName = fileName.includes(".") ? fileName : `${fileName}.${ext}`
-  return uploadSiteMedia(file, `${folder}/${safeName}`)
+  assertSafeImageFile(file)
+
+  const extension = getSafeImageExtension(file)
+  const baseFileName = fileName.replace(/\.[^.]+$/, "")
+  const safeName = `${toSafePathSegment(baseFileName, "site-media")}.${extension}`
+  const safeFolderParts = folder.split("/").filter(Boolean)
+  const safePath = buildSafeStoragePath([...safeFolderParts, safeName])
+
+  return uploadSiteMedia(file, safePath)
 }

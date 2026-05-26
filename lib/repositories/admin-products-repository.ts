@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { assertSafeImageFile, buildSafeStoragePath, getSafeImageExtension, toSafePathSegment } from "@/lib/security/file-upload"
 import type { AdminProduct, AdminProductFormInput, AdminProductImage, AdminProductSpec } from "@/types/admin-product"
 import type { Product } from "@/types/product"
 import { fetchProducts } from "@/lib/repositories/products-repository"
@@ -338,14 +339,17 @@ export async function replaceProductSpecs(productId: string, specs: AdminProduct
 }
 
 export async function uploadProductImage(file: File, productSlug: string, fileName: string): Promise<string> {
+  assertSafeImageFile(file)
+
   const supabase = await getSupabaseServerClient()
-  const extension = file.name.split(".").pop()?.toLowerCase() || "webp"
-  const safeFileName = fileName.endsWith(`.${extension}`) ? fileName : `${fileName}.${extension}`
-  const path = `products/${productSlug}/${safeFileName}`
+  const extension = getSafeImageExtension(file)
+  const baseFileName = fileName.replace(/\.[^.]+$/, "")
+  const safeFileName = `${toSafePathSegment(baseFileName, "product-image")}.${extension}`
+  const path = buildSafeStoragePath(["products", productSlug, safeFileName])
 
   const upload = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(path, file, {
     upsert: true,
-    contentType: file.type || "image/webp",
+    contentType: file.type,
   })
 
   if (upload.error) throw new Error(`Failed to upload image: ${upload.error.message}`)
