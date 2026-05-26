@@ -4,6 +4,7 @@ import {
   fetchAdminBanners,
   fetchAdminHomepageSections,
   fetchAdminSiteSettings,
+  fetchActiveBannersByPlacement,
   fetchBanners,
   fetchHomepageSection,
   fetchHomepageSections,
@@ -18,6 +19,7 @@ import type { BannerFormInput, HomepageSection, SiteSettingsBundle } from "@/typ
 export const getHomepageSection = fetchHomepageSection
 export const getHomepageSections = fetchHomepageSections
 export const getSiteBanners = fetchBanners
+export const getActiveBannersByPlacement = fetchActiveBannersByPlacement
 export const getSiteSettings = fetchSiteSettings
 export const getAdminHomepageSections = fetchAdminHomepageSections
 export const getAdminSiteBanners = fetchAdminBanners

@@ -91,3 +91,16 @@ with check (exists (select 1 from profiles where profiles.id = auth.uid() and pr
 -- create policy "Public read site media" on storage.objects for select to public using (bucket_id = 'site-media');
 -- create policy "Admins upload site media" on storage.objects for insert to authenticated with check (bucket_id = 'site-media' and exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role = 'admin'));
 -- create policy "Admins update site media" on storage.objects for update to authenticated using (bucket_id = 'site-media' and exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role = 'admin')) with check (bucket_id = 'site-media' and exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role = 'admin'));
+
+-- Normalize older homepage banner placement names so public homepage and admin use one value.
+update site_banners
+set placement = 'homepage_promo'
+where placement in ('promo_banner', 'homepage_banner', 'home_promo', 'homepage-promo');
+
+create index if not exists idx_site_banners_public_lookup
+on site_banners (placement, is_active, sort_order, created_at desc);
+
+-- Optional: use this if you want SQL to create the bucket instead of the dashboard.
+-- insert into storage.buckets (id, name, public)
+-- values ('site-media', 'site-media', true)
+-- on conflict (id) do update set public = true;

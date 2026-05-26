@@ -10,6 +10,7 @@ import type {
 } from "@/types/site-content"
 
 const SITE_MEDIA_BUCKET = "site-media"
+export const HOMEPAGE_PROMO_PLACEMENT = "homepage_promo"
 
 type RawSection = {
   id: string | number
@@ -42,6 +43,7 @@ type RawBanner = {
   starts_at?: string | null
   ends_at?: string | null
   sort_order?: number | string | null
+  created_at?: string | null
 }
 
 type RawSetting = { id: string | number; key: string | null; value?: JsonRecord | null }
@@ -56,6 +58,27 @@ function isMissingTableOrColumn(message: string) {
   return lower.includes("does not exist") || lower.includes("schema cache")
 }
 
+function normalizePlacement(value: string | null | undefined) {
+  const raw = (value || HOMEPAGE_PROMO_PLACEMENT).trim()
+  if (["promo_banner", "homepage_banner", "home_promo", "homepage-promo"].includes(raw)) return HOMEPAGE_PROMO_PLACEMENT
+  return raw || HOMEPAGE_PROMO_PLACEMENT
+}
+
+function normalizePublicMediaUrl(value: string | null | undefined) {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("/")) return trimmed
+
+  // Backward-compatible fallback: if an older row stored only the Storage path
+  // such as "banners/promo.webp", convert it to the public URL here. UI components
+  // still receive a clean URL and remain independent from Supabase.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "")
+  if (!supabaseUrl) return trimmed
+  const path = trimmed.startsWith(`${SITE_MEDIA_BUCKET}/`) ? trimmed.slice(`${SITE_MEDIA_BUCKET}/`.length) : trimmed
+  return `${supabaseUrl}/storage/v1/object/public/${SITE_MEDIA_BUCKET}/${path.replace(/^\/+/, "")}`
+}
+
 function mapSection(row: RawSection): HomepageSection {
   return {
     id: String(row.id),
@@ -63,8 +86,8 @@ function mapSection(row: RawSection): HomepageSection {
     title: row.title ?? null,
     subtitle: row.subtitle ?? null,
     description: row.description ?? null,
-    imageUrl: row.image_url ?? null,
-    mobileImageUrl: row.mobile_image_url ?? null,
+    imageUrl: normalizePublicMediaUrl(row.image_url),
+    mobileImageUrl: normalizePublicMediaUrl(row.mobile_image_url),
     primaryButtonText: row.primary_button_text ?? null,
     primaryButtonUrl: row.primary_button_url ?? null,
     secondaryButtonText: row.secondary_button_text ?? null,
@@ -81,11 +104,11 @@ function mapBanner(row: RawBanner): SiteBanner {
     title: row.title ?? "بنر بدون عنوان",
     subtitle: row.subtitle ?? null,
     description: row.description ?? null,
-    imageUrl: row.image_url ?? null,
+    imageUrl: normalizePublicMediaUrl(row.image_url),
     buttonText: row.button_text ?? null,
     buttonUrl: row.button_url ?? null,
     badgeText: row.badge_text ?? null,
-    placement: row.placement ?? "homepage_promo",
+    placement: normalizePlacement(row.placement),
     isActive: Boolean(row.is_active ?? true),
     startsAt: row.starts_at ?? null,
     endsAt: row.ends_at ?? null,
@@ -95,6 +118,12 @@ function mapBanner(row: RawBanner): SiteBanner {
 
 function mapSetting(row: RawSetting): SiteSetting {
   return { id: String(row.id), key: row.key ?? "", value: row.value ?? {} }
+}
+
+function logDev(message: string, payload: unknown) {
+  if (process.env.NODE_ENV === "development") {
+    console.log(message, payload)
+  }
 }
 
 // Public read repository. Supabase is isolated here so the provider can be replaced later.
@@ -125,8 +154,8 @@ export async function fetchHomepageSections(includeInactive = false): Promise<Ho
 
 export async function fetchBanners(placement?: string, includeInactive = false): Promise<SiteBanner[]> {
   const supabase = getSupabaseClient()
-  let query = supabase.from("site_banners").select("*").order("sort_order", { ascending: true })
-  if (placement) query = query.eq("placement", placement)
+  let query = supabase.from("site_banners").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false })
+  if (placement) query = query.eq("placement", normalizePlacement(placement))
   if (!includeInactive) query = query.eq("is_active", true)
   const { data, error } = await query
   if (error) {
@@ -134,6 +163,31 @@ export async function fetchBanners(placement?: string, includeInactive = false):
     throw new Error(`Failed to fetch banners: ${error.message}`)
   }
   return ((data ?? []) as RawBanner[]).map(mapBanner)
+}
+
+export async function fetchActiveBannersByPlacement(placement: string): Promise<SiteBanner[]> {
+  const now = new Date().toISOString()
+  const normalizedPlacement = normalizePlacement(placement)
+  const supabase = getSupabaseClient()
+
+  const { data, error } = await supabase
+    .from("site_banners")
+    .select("*")
+    .eq("placement", normalizedPlacement)
+    .eq("is_active", true)
+    .or(`starts_at.is.null,starts_at.lte.${now}`)
+    .or(`ends_at.is.null,ends_at.gte.${now}`)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    if (isMissingTableOrColumn(error.message)) return []
+    throw new Error(`Failed to fetch active banners: ${error.message}`)
+  }
+
+  const banners = ((data ?? []) as RawBanner[]).map(mapBanner)
+  logDev("Fetched homepage promo banners:", banners)
+  return banners
 }
 
 export async function fetchSiteSettings(): Promise<SiteSettingsBundle> {
@@ -165,7 +219,7 @@ export async function fetchAdminHomepageSections(): Promise<HomepageSection[]> {
 
 export async function fetchAdminBanners(): Promise<SiteBanner[]> {
   const supabase = await getSupabaseServerClient()
-  const { data, error } = await supabase.from("site_banners").select("*").order("sort_order", { ascending: true })
+  const { data, error } = await supabase.from("site_banners").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false })
   if (error) {
     if (isMissingTableOrColumn(error.message)) return []
     throw new Error(`Failed to fetch banners: ${error.message}`)
@@ -222,20 +276,19 @@ export async function upsertSiteSetting(key: string, value: JsonRecord): Promise
 
 export async function createBanner(input: BannerFormInput): Promise<void> {
   const supabase = await getSupabaseServerClient()
-  const { id, ...rest } = input
   const { error } = await supabase.from("site_banners").insert({
-    title: rest.title,
-    subtitle: rest.subtitle,
-    description: rest.description,
-    image_url: rest.imageUrl,
-    button_text: rest.buttonText,
-    button_url: rest.buttonUrl,
-    badge_text: rest.badgeText,
-    placement: rest.placement,
-    is_active: rest.isActive,
-    starts_at: rest.startsAt || null,
-    ends_at: rest.endsAt || null,
-    sort_order: rest.sortOrder,
+    title: input.title,
+    subtitle: input.subtitle,
+    description: input.description,
+    image_url: normalizePublicMediaUrl(input.imageUrl),
+    button_text: input.buttonText,
+    button_url: input.buttonUrl,
+    badge_text: input.badgeText,
+    placement: normalizePlacement(input.placement),
+    is_active: input.isActive,
+    starts_at: input.startsAt || null,
+    ends_at: input.endsAt || null,
+    sort_order: input.sortOrder,
   })
   if (error) throw new Error(`Failed to create banner: ${error.message}`)
 }
@@ -246,11 +299,11 @@ export async function updateBanner(input: BannerFormInput & { id: string }): Pro
     title: input.title,
     subtitle: input.subtitle,
     description: input.description,
-    image_url: input.imageUrl,
+    image_url: normalizePublicMediaUrl(input.imageUrl),
     button_text: input.buttonText,
     button_url: input.buttonUrl,
     badge_text: input.badgeText,
-    placement: input.placement,
+    placement: normalizePlacement(input.placement),
     is_active: input.isActive,
     starts_at: input.startsAt || null,
     ends_at: input.endsAt || null,

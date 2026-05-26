@@ -10,7 +10,7 @@ import { Footer } from "@/components/footer"
 import { getBrands } from "@/lib/services/brands-service"
 import { getCategories } from "@/lib/services/categories-service"
 import { getFeaturedProducts } from "@/lib/services/products-service"
-import { getHomepageSection, getSiteBanners, getSiteSettings } from "@/lib/services/site-content-service"
+import { getActiveBannersByPlacement, getHomepageSection, getSiteSettings } from "@/lib/services/site-content-service"
 import type { Brand } from "@/types/brand"
 import type { Category } from "@/types/category"
 import type { Product } from "@/types/product"
@@ -21,10 +21,7 @@ type SettledHomeData<T> = {
   error: string | null
 }
 
-function normalizeSettledResult<T>(
-  result: PromiseSettledResult<T>,
-  fallback: T
-): SettledHomeData<T> {
+function normalizeSettledResult<T>(result: PromiseSettledResult<T>, fallback: T): SettledHomeData<T> {
   if (result.status === "fulfilled") {
     return { data: result.value, error: null }
   }
@@ -34,15 +31,16 @@ function normalizeSettledResult<T>(
 }
 
 export default async function HomePage() {
-  const [featuredProductsResult, categoriesResult, brandsResult, heroResult, promoResult, promoBannersResult, settingsResult] = await Promise.allSettled([
-    getFeaturedProducts(),
-    getCategories(),
-    getBrands(),
-    getHomepageSection("hero"),
-    getHomepageSection("promo_banner"),
-    getSiteBanners("homepage_promo"),
-    getSiteSettings(),
-  ])
+  const [featuredProductsResult, categoriesResult, brandsResult, heroResult, promoResult, promoBannersResult, settingsResult] =
+    await Promise.allSettled([
+      getFeaturedProducts(),
+      getCategories(),
+      getBrands(),
+      getHomepageSection("hero"),
+      getHomepageSection("promo_banner"),
+      getActiveBannersByPlacement("homepage_promo"),
+      getSiteSettings(),
+    ])
 
   const featuredProducts = normalizeSettledResult<Product[]>(featuredProductsResult, [])
   const categories = normalizeSettledResult<Category[]>(categoriesResult, [])
@@ -50,10 +48,14 @@ export default async function HomePage() {
   const hero = normalizeSettledResult<HomepageSection | null>(heroResult, null)
   const promo = normalizeSettledResult<HomepageSection | null>(promoResult, null)
   const promoBanners = normalizeSettledResult<SiteBanner[]>(promoBannersResult, [])
-  const settings = normalizeSettledResult<SiteSettingsBundle>(settingsResult, { contactInfo: {}, footerInfo: {}, manualCheckout: {} })
+  const settings = normalizeSettledResult<SiteSettingsBundle>(settingsResult, {
+    contactInfo: {},
+    footerInfo: {},
+    manualCheckout: {},
+  })
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col">
       <TopBar />
       <Header />
       <main className="flex-1">
