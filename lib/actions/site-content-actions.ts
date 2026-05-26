@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { requireAdminAccess } from "@/lib/auth/admin-auth"
 import { removeBanner, saveBanner, saveHomepageSection, saveSiteSettings, uploadWebsiteMedia } from "@/lib/services/site-content-service"
-import type { BannerFormInput, SiteContentActionState, SiteSettingsBundle } from "@/types/site-content"
+import type { BannerFormInput, HeroSliderImage, SiteContentActionState, SiteSettingsBundle } from "@/types/site-content"
 
 const emptyState: SiteContentActionState = { ok: false, message: "" }
 
@@ -32,6 +32,43 @@ async function uploadIfPresent(formData: FormData, key: string, folder: string, 
   return uploadWebsiteMedia(file, folder, fileName)
 }
 
+async function buildHeroSliderImages(formData: FormData): Promise<HeroSliderImage[]> {
+  const images: HeroSliderImage[] = []
+
+  for (let index = 0; index < 4; index += 1) {
+    const slideNumber = index + 1
+    const currentDesktopUrl = bool(formData, `heroSlide${slideNumber}ClearDesktop`) ? null : text(formData, `heroSlide${slideNumber}DesktopUrl`)
+    const currentMobileUrl = bool(formData, `heroSlide${slideNumber}ClearMobile`) ? null : text(formData, `heroSlide${slideNumber}MobileUrl`)
+
+    const desktopUrl = await uploadIfPresent(
+      formData,
+      `heroSlide${slideNumber}Desktop`,
+      "homepage/hero",
+      `slide-${slideNumber}-desktop.webp`,
+      currentDesktopUrl,
+    )
+    const mobileUrl = await uploadIfPresent(
+      formData,
+      `heroSlide${slideNumber}Mobile`,
+      "homepage/hero",
+      `slide-${slideNumber}-mobile.webp`,
+      currentMobileUrl,
+    )
+
+    if (desktopUrl) {
+      images.push({
+        desktopUrl,
+        mobileUrl,
+        altText: text(formData, `heroSlide${slideNumber}AltText`) || `تصویر تجهیزات برق صنعتی ${slideNumber}`,
+        sortOrder: numberValue(formData, `heroSlide${slideNumber}SortOrder`, index),
+        isActive: bool(formData, `heroSlide${slideNumber}IsActive`),
+      })
+    }
+  }
+
+  return images.sort((a, b) => a.sortOrder - b.sortOrder)
+}
+
 export async function saveHomepageContentAction(
   _prevState: SiteContentActionState = emptyState,
   formData: FormData
@@ -47,6 +84,7 @@ export async function saveHomepageContentAction(
       .split("\n")
       .map((item) => item.trim())
       .filter(Boolean)
+    const heroImages = await buildHeroSliderImages(formData)
 
     let result = await saveHomepageSection({
       sectionKey: "hero",
@@ -59,7 +97,7 @@ export async function saveHomepageContentAction(
       primaryButtonUrl: text(formData, "heroPrimaryButtonUrl"),
       secondaryButtonText: text(formData, "heroSecondaryButtonText"),
       secondaryButtonUrl: text(formData, "heroSecondaryButtonUrl"),
-      metadata: { trustPoints },
+      metadata: { trustPoints, heroImages },
       isActive: bool(formData, "heroIsActive"),
       sortOrder: 1,
     })

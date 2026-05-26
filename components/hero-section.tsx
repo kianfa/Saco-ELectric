@@ -1,15 +1,33 @@
-"use client"
-
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
-import type { HomepageSection } from "@/types/site-content"
+import { HeroImageSlider } from "@/components/hero-image-slider"
+import type { HeroSliderImage, HomepageSection } from "@/types/site-content"
 
 const defaultTrustPoints = ["کیفیت برتر", "برندهای معتبر", "قیمت رقابتی", "پشتیبانی فنی تخصصی"]
 
 function getTrustPoints(section?: HomepageSection | null): string[] {
   const points = section?.metadata?.trustPoints
   return Array.isArray(points) && points.length ? points.map(String) : defaultTrustPoints
+}
+
+function getHeroImages(section?: HomepageSection | null): HeroSliderImage[] {
+  const rawImages = section?.metadata?.heroImages
+  if (!Array.isArray(rawImages)) return []
+
+  return rawImages
+    .map((item, index) => {
+      const image = item as Partial<HeroSliderImage>
+      return {
+        desktopUrl: typeof image.desktopUrl === "string" ? image.desktopUrl : "",
+        mobileUrl: typeof image.mobileUrl === "string" ? image.mobileUrl : null,
+        altText: typeof image.altText === "string" ? image.altText : `تصویر تجهیزات برق صنعتی ${index + 1}`,
+        sortOrder: Number.isFinite(Number(image.sortOrder)) ? Number(image.sortOrder) : index,
+        isActive: image.isActive !== false,
+      }
+    })
+    .filter((image) => image.desktopUrl)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
 }
 
 export function HeroSection({ section }: { section?: HomepageSection | null }) {
@@ -21,23 +39,27 @@ export function HeroSection({ section }: { section?: HomepageSection | null }) {
   const primaryUrl = section?.primaryButtonUrl || "/products"
   const secondaryText = section?.secondaryButtonText || "استعلام قیمت"
   const secondaryUrl = section?.secondaryButtonUrl || "/checkout"
-  const imageUrl = section?.imageUrl || section?.mobileImageUrl || null
+  const heroImages = getHeroImages(section)
+  const fallbackImageUrl = section?.imageUrl || null
+  const fallbackMobileImageUrl = section?.mobileImageUrl || null
+  const firstImage = heroImages[0]?.desktopUrl || fallbackImageUrl
 
   return (
     <section className="container mx-auto px-4 py-6">
-      <div className="relative min-h-[400px] overflow-hidden rounded-3xl bg-gradient-to-l from-primary via-primary to-primary/90 lg:min-h-[450px]">
+      <div className="relative min-h-[520px] overflow-hidden rounded-3xl bg-gradient-to-l from-primary via-primary to-primary/90 lg:min-h-[500px]">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute right-10 top-10 h-64 w-64 rounded-full bg-accent blur-3xl" />
           <div className="absolute bottom-10 left-20 h-48 w-48 rounded-full bg-accent/50 blur-2xl" />
         </div>
 
-        {imageUrl ? (
-          <div className="absolute inset-0 opacity-20 lg:opacity-25">
-            <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
+        {firstImage ? (
+          <div className="absolute inset-0 opacity-15 lg:opacity-20">
+            <img src={firstImage} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-l from-primary via-primary/95 to-primary/70" />
           </div>
         ) : null}
 
-        <div className="relative grid gap-8 p-8 lg:grid-cols-2 lg:p-12">
+        <div className="relative grid min-h-[520px] gap-8 p-6 md:p-8 lg:min-h-[500px] lg:grid-cols-2 lg:p-12">
           <div className="flex flex-col justify-center text-primary-foreground">
             <h2 className="mb-4 text-3xl font-bold leading-tight md:text-4xl lg:text-5xl">{title}</h2>
             <p className="mb-4 text-xl text-primary-foreground/90 md:text-2xl">{subtitle}</p>
@@ -60,30 +82,14 @@ export function HeroSection({ section }: { section?: HomepageSection | null }) {
             </div>
           </div>
 
-          <div className="hidden items-center justify-center lg:flex">
-            {imageUrl ? (
-              <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-white/10 p-3 shadow-2xl backdrop-blur-sm">
-                <img src={imageUrl} alt={title} className="aspect-[4/3] w-full rounded-2xl object-cover" />
-              </div>
-            ) : (
-              <div className="relative w-full max-w-md">
-                <div className="grid grid-cols-2 gap-4">
-                  {[["⚡", "تابلو برق"], ["🔧", "PLC"], ["⚙️", "موتور"], ["📡", "سنسور"]].map(([icon, label]) => (
-                    <div key={label} className="flex aspect-square items-center justify-center rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
-                      <div className="text-center"><div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-xl bg-accent/20"><span className="text-2xl">{icon}</span></div><span className="text-sm text-primary-foreground/80">{label}</span></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="flex items-center justify-center">
+            <HeroImageSlider
+              images={heroImages}
+              fallbackImageUrl={fallbackImageUrl}
+              fallbackMobileImageUrl={fallbackMobileImageUrl}
+              fallbackAlt={title}
+            />
           </div>
-        </div>
-
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
-          <span className="h-3 w-3 rounded-full bg-accent" />
-          <span className="h-3 w-3 rounded-full bg-primary-foreground/30" />
-          <span className="h-3 w-3 rounded-full bg-primary-foreground/30" />
-          <span className="h-3 w-3 rounded-full bg-primary-foreground/30" />
         </div>
       </div>
     </section>

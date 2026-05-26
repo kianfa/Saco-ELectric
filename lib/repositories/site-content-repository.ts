@@ -79,6 +79,28 @@ function normalizePublicMediaUrl(value: string | null | undefined) {
   return `${supabaseUrl}/storage/v1/object/public/${SITE_MEDIA_BUCKET}/${path.replace(/^\/+/, "")}`
 }
 
+
+function normalizeHomepageMetadata(metadata: JsonRecord | null | undefined): JsonRecord {
+  const base = metadata ?? {}
+  const rawImages = base.heroImages
+
+  if (!Array.isArray(rawImages)) return base
+
+  return {
+    ...base,
+    heroImages: rawImages.map((item, index) => {
+      const image = item as Record<string, unknown>
+      return {
+        desktopUrl: normalizePublicMediaUrl(typeof image.desktopUrl === "string" ? image.desktopUrl : null) ?? "",
+        mobileUrl: normalizePublicMediaUrl(typeof image.mobileUrl === "string" ? image.mobileUrl : null),
+        altText: typeof image.altText === "string" ? image.altText : `تصویر تجهیزات برق صنعتی ${index + 1}`,
+        sortOrder: toNumber(image.sortOrder as number | string | null | undefined, index),
+        isActive: image.isActive !== false,
+      }
+    }),
+  }
+}
+
 function mapSection(row: RawSection): HomepageSection {
   return {
     id: String(row.id),
@@ -92,7 +114,7 @@ function mapSection(row: RawSection): HomepageSection {
     primaryButtonUrl: row.primary_button_url ?? null,
     secondaryButtonText: row.secondary_button_text ?? null,
     secondaryButtonUrl: row.secondary_button_url ?? null,
-    metadata: row.metadata ?? {},
+    metadata: normalizeHomepageMetadata(row.metadata),
     isActive: Boolean(row.is_active ?? true),
     sortOrder: toNumber(row.sort_order),
   }

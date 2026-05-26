@@ -1,13 +1,16 @@
 "use client"
 
 import { useActionState } from "react"
+import { ImageIcon } from "lucide-react"
 import { saveHomepageContentAction } from "@/lib/actions/site-content-actions"
-import type { HomepageSection, SiteContentActionState } from "@/types/site-content"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { HeroSliderImage, HomepageSection, SiteContentActionState } from "@/types/site-content"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import { AdminSubmitButton } from "@/components/admin/content/admin-submit-button"
 import { ContentActionMessage } from "@/components/admin/content/content-action-message"
 
@@ -22,18 +25,58 @@ function trustPointsText(section?: HomepageSection) {
   return Array.isArray(points) ? points.join("\n") : "کیفیت برتر\nبرندهای معتبر\nقیمت رقابتی\nپشتیبانی فنی تخصصی"
 }
 
+function getHeroSlides(section?: HomepageSection): HeroSliderImage[] {
+  const rawSlides = section?.metadata?.heroImages
+  const slides = Array.isArray(rawSlides) ? rawSlides : []
+
+  return Array.from({ length: 4 }).map((_, index) => {
+    const raw = slides.find((item) => Number((item as Partial<HeroSliderImage>).sortOrder) === index) ?? slides[index]
+    const slide = raw as Partial<HeroSliderImage> | undefined
+    return {
+      desktopUrl: typeof slide?.desktopUrl === "string" ? slide.desktopUrl : "",
+      mobileUrl: typeof slide?.mobileUrl === "string" ? slide.mobileUrl : "",
+      altText: typeof slide?.altText === "string" ? slide.altText : `تصویر تجهیزات برق صنعتی ${index + 1}`,
+      sortOrder: index,
+      isActive: slide?.isActive !== false,
+    }
+  })
+}
+
+function ImagePreview({ url, label }: { url?: string | null; label: string }) {
+  if (!url) {
+    return (
+      <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed bg-muted/40 text-muted-foreground">
+        <div className="text-center text-xs">
+          <ImageIcon className="mx-auto mb-2 h-7 w-7" />
+          <span>{label}</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border bg-muted">
+      <img src={url} alt={label} className="aspect-video w-full object-cover" />
+    </div>
+  )
+}
+
 export function HomepageContentForm({ sections }: { sections: HomepageSection[] }) {
   const [state, formAction] = useActionState(saveHomepageContentAction, initialState)
   const hero = findSection(sections, "hero")
   const promo = findSection(sections, "promo_banner")
   const notice = findSection(sections, "homepage_notice")
+  const heroSlides = getHeroSlides(hero)
 
   return (
     <form action={formAction} className="space-y-6">
       <ContentActionMessage state={state} />
 
       <Card className="rounded-2xl shadow-sm">
-        <CardHeader><CardTitle>Hero صفحه اصلی</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Hero صفحه اصلی</CardTitle>
+          <CardDescription>متن، دکمه‌ها، نکات اعتماد و تصاویر اسلایدر هیرو را مدیریت کنید.</CardDescription>
+        </CardHeader>
         <CardContent className="grid gap-5 md:grid-cols-2">
           <input type="hidden" name="heroImageUrl" defaultValue={hero?.imageUrl ?? ""} />
           <input type="hidden" name="heroMobileImageUrl" defaultValue={hero?.mobileImageUrl ?? ""} />
@@ -74,15 +117,67 @@ export function HomepageContentForm({ sections }: { sections: HomepageSection[] 
             <Textarea name="heroTrustPoints" defaultValue={trustPointsText(hero)} className="min-h-28 rounded-xl" />
           </div>
           <div className="space-y-2">
-            <Label>تصویر دسکتاپ hero</Label>
+            <Label>تصویر قدیمی دسکتاپ hero، برای سازگاری</Label>
             <Input name="heroImage" type="file" accept="image/*" className="rounded-xl" />
-            {hero?.imageUrl ? <p className="text-xs text-muted-foreground" dir="ltr">{hero.imageUrl}</p> : null}
+            {hero?.imageUrl ? <p className="break-all text-xs text-muted-foreground" dir="ltr">{hero.imageUrl}</p> : null}
           </div>
           <div className="space-y-2">
-            <Label>تصویر موبایل hero</Label>
+            <Label>تصویر قدیمی موبایل hero، برای سازگاری</Label>
             <Input name="heroMobileImage" type="file" accept="image/*" className="rounded-xl" />
-            {hero?.mobileImageUrl ? <p className="text-xs text-muted-foreground" dir="ltr">{hero.mobileImageUrl}</p> : null}
+            {hero?.mobileImageUrl ? <p className="break-all text-xs text-muted-foreground" dir="ltr">{hero.mobileImageUrl}</p> : null}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-2xl shadow-sm">
+        <CardHeader>
+          <CardTitle>تصاویر اسلایدر هیرو</CardTitle>
+          <CardDescription>تا ۴ تصویر برای هیرو آپلود کنید. اگر فقط یک تصویر فعال باشد، اسلایدر ثابت نمایش داده می‌شود.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {heroSlides.map((slide, index) => {
+            const slideNumber = index + 1
+            return (
+              <div key={slideNumber} className="space-y-4 rounded-2xl border bg-muted/20 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <Badge variant="secondary" className="rounded-full">تصویر {slideNumber}</Badge>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Switch name={`heroSlide${slideNumber}IsActive`} defaultChecked={slide.isActive} />
+                    فعال
+                  </div>
+                </div>
+
+                <input type="hidden" name={`heroSlide${slideNumber}DesktopUrl`} defaultValue={slide.desktopUrl} />
+                <input type="hidden" name={`heroSlide${slideNumber}MobileUrl`} defaultValue={slide.mobileUrl ?? ""} />
+                <input type="hidden" name={`heroSlide${slideNumber}SortOrder`} defaultValue={index} />
+
+                <div className="space-y-2">
+                  <Label>پیش‌نمایش دسکتاپ</Label>
+                  <ImagePreview url={slide.desktopUrl} label={`تصویر دسکتاپ ${slideNumber}`} />
+                  <Input name={`heroSlide${slideNumber}Desktop`} type="file" accept="image/*" className="rounded-xl" />
+                  {slide.desktopUrl ? <p className="break-all text-[10px] text-muted-foreground" dir="ltr">{slide.desktopUrl}</p> : null}
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Checkbox name={`heroSlide${slideNumber}ClearDesktop`} /> حذف تصویر دسکتاپ
+                  </label>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>پیش‌نمایش موبایل</Label>
+                  <ImagePreview url={slide.mobileUrl} label={`تصویر موبایل ${slideNumber}`} />
+                  <Input name={`heroSlide${slideNumber}Mobile`} type="file" accept="image/*" className="rounded-xl" />
+                  {slide.mobileUrl ? <p className="break-all text-[10px] text-muted-foreground" dir="ltr">{slide.mobileUrl}</p> : null}
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Checkbox name={`heroSlide${slideNumber}ClearMobile`} /> حذف تصویر موبایل
+                  </label>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>متن جایگزین تصویر</Label>
+                  <Input name={`heroSlide${slideNumber}AltText`} defaultValue={slide.altText ?? `تصویر تجهیزات برق صنعتی ${slideNumber}`} className="rounded-xl" />
+                </div>
+              </div>
+            )
+          })}
         </CardContent>
       </Card>
 

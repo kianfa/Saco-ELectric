@@ -14,7 +14,6 @@ export function PromoBanner({ section, banners = [] }: { section?: HomepageSecti
   const buttonText = banner?.buttonText || section?.primaryButtonText || "مشاهده پیشنهادها"
   const buttonUrl = banner?.buttonUrl || section?.primaryButtonUrl || "/products"
   const imageUrl = banner?.imageUrl || section?.imageUrl || null
-  const hasDynamicBanner = Boolean(banner)
 
   return (
     <section className="container mx-auto px-4 py-8" data-homepage-promo-banner={banner?.id ?? "fallback"}>
@@ -42,11 +41,6 @@ export function PromoBanner({ section, banners = [] }: { section?: HomepageSecti
 
         <div className="relative flex flex-col items-center justify-between gap-6 md:flex-row">
           <div className="text-center md:text-right">
-            {hasDynamicBanner ? (
-              <span className="mb-3 inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/20">
-                بنر فعال سایت
-              </span>
-            ) : null}
             <h3 className="mb-2 text-2xl font-bold text-primary-foreground md:text-3xl">{title}</h3>
             <p className="text-lg text-primary-foreground/85">{subtitle}</p>
             {description ? <p className="mt-2 max-w-2xl text-sm leading-7 text-primary-foreground/75">{description}</p> : null}

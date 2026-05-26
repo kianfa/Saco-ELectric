@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr"
 
 // Lightweight admin gate for /admin routes.
 // The protected admin route layout still performs the authoritative server-side role check.
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (!pathname.startsWith("/admin") || pathname.startsWith("/admin/login")) {

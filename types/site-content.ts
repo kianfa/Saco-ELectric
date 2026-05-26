@@ -2,6 +2,14 @@ export type JsonRecord = Record<string, unknown>
 
 export type HomepageSectionKey = "hero" | "promo_banner" | "trust_features" | "project_purchase" | "homepage_notice"
 
+export type HeroSliderImage = {
+  desktopUrl: string
+  mobileUrl?: string | null
+  altText?: string | null
+  sortOrder: number
+  isActive: boolean
+}
+
 export type HomepageSection = {
   id: string
   sectionKey: string
@@ -76,7 +84,7 @@ export type SiteSettingsBundle = {
 }
 
 export type HomepageContentInput = {
-  hero: Partial<HomepageSection> & { trustPoints: string[] }
+  hero: Partial<HomepageSection> & { trustPoints: string[]; heroImages?: HeroSliderImage[] }
   promoBanner: Partial<HomepageSection> & { badgeText?: string | null }
   homepageNotice: Partial<HomepageSection>
 }
