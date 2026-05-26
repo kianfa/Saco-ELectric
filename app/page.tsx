@@ -10,9 +10,11 @@ import { Footer } from "@/components/footer"
 import { getBrands } from "@/lib/services/brands-service"
 import { getCategories } from "@/lib/services/categories-service"
 import { getFeaturedProducts } from "@/lib/services/products-service"
+import { getHomepageSection, getSiteBanners, getSiteSettings } from "@/lib/services/site-content-service"
 import type { Brand } from "@/types/brand"
 import type { Category } from "@/types/category"
 import type { Product } from "@/types/product"
+import type { HomepageSection, SiteBanner, SiteSettingsBundle } from "@/types/site-content"
 
 type SettledHomeData<T> = {
   data: T
@@ -32,29 +34,37 @@ function normalizeSettledResult<T>(
 }
 
 export default async function HomePage() {
-  const [featuredProductsResult, categoriesResult, brandsResult] = await Promise.allSettled([
+  const [featuredProductsResult, categoriesResult, brandsResult, heroResult, promoResult, promoBannersResult, settingsResult] = await Promise.allSettled([
     getFeaturedProducts(),
     getCategories(),
     getBrands(),
+    getHomepageSection("hero"),
+    getHomepageSection("promo_banner"),
+    getSiteBanners("homepage_promo"),
+    getSiteSettings(),
   ])
 
   const featuredProducts = normalizeSettledResult<Product[]>(featuredProductsResult, [])
   const categories = normalizeSettledResult<Category[]>(categoriesResult, [])
   const brands = normalizeSettledResult<Brand[]>(brandsResult, [])
+  const hero = normalizeSettledResult<HomepageSection | null>(heroResult, null)
+  const promo = normalizeSettledResult<HomepageSection | null>(promoResult, null)
+  const promoBanners = normalizeSettledResult<SiteBanner[]>(promoBannersResult, [])
+  const settings = normalizeSettledResult<SiteSettingsBundle>(settingsResult, { contactInfo: {}, footerInfo: {}, manualCheckout: {} })
 
   return (
     <div className="min-h-screen flex flex-col">
       <TopBar />
       <Header />
       <main className="flex-1">
-        <HeroSection />
+        <HeroSection section={hero.data} />
         <CategorySection categories={categories.data} error={categories.error} />
         <FeaturedProducts products={featuredProducts.data} error={featuredProducts.error} />
-        <PromoBanner />
+        <PromoBanner section={promo.data} banners={promoBanners.data} />
         <BrandStrip brands={brands.data} error={brands.error} />
         <TrustFeatures />
       </main>
-      <Footer />
+      <Footer settings={settings.data} />
     </div>
   )
 }

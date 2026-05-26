@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { LayoutDashboard, Package, Tags, Building2, ShoppingCart, Settings, Zap, LogOut, UserRound } from "lucide-react"
+import { LayoutDashboard, Package, Tags, Building2, ShoppingCart, Settings, Zap, LogOut, UserRound, ImagePlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getCurrentAdminUser } from "@/lib/auth/admin-auth"
 import { logoutAdminAction } from "@/lib/actions/auth-actions"
@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button"
 
 const links = [
   { href: "/admin/products", label: "محصولات", icon: Package },
-  { href: "#", label: "دسته‌بندی‌ها", icon: Tags },
+  { href: "/admin/content", label: "محتوای سایت", icon: ImagePlus },
+  { href: "/admin/content/banners", label: "بنرها", icon: Tags },
   { href: "#", label: "برندها", icon: Building2 },
   { href: "#", label: "سفارش‌ها", icon: ShoppingCart },
-  { href: "#", label: "تنظیمات", icon: Settings },
+  { href: "/admin/content/settings", label: "تنظیمات سایت", icon: Settings },
 ]
 
 export async function AdminLayout({ children, title, subtitle }: { children: ReactNode; title: string; subtitle?: string }) {
@@ -63,7 +64,7 @@ export async function AdminLayout({ children, title, subtitle }: { children: Rea
                   href={link.href}
                   className={cn(
                     "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary",
-                    link.href === "/admin/products" && "bg-primary/10 text-primary"
+                    (link.href === "/admin/products" || link.href.startsWith("/admin/content")) && "bg-primary/10 text-primary"
                   )}
                 >
                   <Icon className="h-4 w-4" />

@@ -1,0 +1,116 @@
+"use client"
+
+import { useActionState, useState } from "react"
+import { deleteBannerAction, saveBannerAction } from "@/lib/actions/site-content-actions"
+import type { SiteBanner, SiteContentActionState } from "@/types/site-content"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { ContentActionMessage } from "@/components/admin/content/content-action-message"
+import { AdminSubmitButton } from "@/components/admin/content/admin-submit-button"
+import { Edit, Trash2 } from "lucide-react"
+
+const initialState: SiteContentActionState = { ok: false, message: "" }
+const placements = ["homepage_promo", "products_top", "checkout_notice"]
+
+function emptyBanner(): SiteBanner {
+  return {
+    id: "",
+    title: "",
+    subtitle: null,
+    description: null,
+    imageUrl: null,
+    buttonText: null,
+    buttonUrl: null,
+    badgeText: null,
+    placement: "homepage_promo",
+    isActive: true,
+    startsAt: null,
+    endsAt: null,
+    sortOrder: 0,
+  }
+}
+
+export function BannerManagement({ banners }: { banners: SiteBanner[] }) {
+  const [state, formAction] = useActionState(saveBannerAction, initialState)
+  const [editing, setEditing] = useState<SiteBanner>(emptyBanner())
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
+      <Card className="rounded-2xl shadow-sm">
+        <CardHeader><CardTitle>لیست بنرها</CardTitle></CardHeader>
+        <CardContent>
+          {banners.length ? (
+            <div className="overflow-hidden rounded-xl border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">عنوان</TableHead>
+                    <TableHead className="text-right">محل نمایش</TableHead>
+                    <TableHead className="text-right">وضعیت</TableHead>
+                    <TableHead className="text-right">ترتیب</TableHead>
+                    <TableHead className="text-right">عملیات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {banners.map((banner) => (
+                    <TableRow key={banner.id}>
+                      <TableCell className="font-medium">{banner.title}</TableCell>
+                      <TableCell dir="ltr">{banner.placement}</TableCell>
+                      <TableCell><Badge variant={banner.isActive ? "default" : "secondary"}>{banner.isActive ? "فعال" : "غیرفعال"}</Badge></TableCell>
+                      <TableCell>{banner.sortOrder}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button type="button" size="sm" variant="outline" className="rounded-xl" onClick={() => setEditing(banner)}><Edit className="h-4 w-4" /></Button>
+                          <form action={deleteBannerAction}>
+                            <input type="hidden" name="id" value={banner.id} />
+                            <Button type="submit" size="sm" variant="outline" className="rounded-xl text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                          </form>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed p-8 text-center text-muted-foreground">هنوز بنری ثبت نشده است.</div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="h-fit rounded-2xl shadow-sm xl:sticky xl:top-6">
+        <CardHeader><CardTitle>{editing.id ? "ویرایش بنر" : "افزودن بنر جدید"}</CardTitle></CardHeader>
+        <CardContent>
+          <form action={formAction} className="space-y-4">
+            <ContentActionMessage state={state} />
+            <input type="hidden" name="id" value={editing.id} />
+            <input type="hidden" name="imageUrl" value={editing.imageUrl ?? ""} />
+            <div className="space-y-2"><Label>عنوان</Label><Input name="title" required value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className="rounded-xl" /></div>
+            <div className="space-y-2"><Label>زیرعنوان</Label><Input name="subtitle" value={editing.subtitle ?? ""} onChange={(e) => setEditing({ ...editing, subtitle: e.target.value })} className="rounded-xl" /></div>
+            <div className="space-y-2"><Label>توضیح</Label><Textarea name="description" value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="rounded-xl" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>متن دکمه</Label><Input name="buttonText" value={editing.buttonText ?? ""} onChange={(e) => setEditing({ ...editing, buttonText: e.target.value })} className="rounded-xl" /></div>
+              <div className="space-y-2"><Label>متن Badge</Label><Input name="badgeText" value={editing.badgeText ?? ""} onChange={(e) => setEditing({ ...editing, badgeText: e.target.value })} className="rounded-xl" /></div>
+            </div>
+            <div className="space-y-2"><Label>لینک دکمه</Label><Input name="buttonUrl" dir="ltr" value={editing.buttonUrl ?? ""} onChange={(e) => setEditing({ ...editing, buttonUrl: e.target.value })} className="rounded-xl" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>محل نمایش</Label><Select name="placement" value={editing.placement} onValueChange={(value) => setEditing({ ...editing, placement: value })}><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{placements.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>ترتیب</Label><Input name="sortOrder" type="number" value={editing.sortOrder} onChange={(e) => setEditing({ ...editing, sortOrder: Number(e.target.value) })} className="rounded-xl" /></div>
+            </div>
+            <div className="space-y-2"><Label>تصویر بنر</Label><Input name="image" type="file" accept="image/*" className="rounded-xl" />{editing.imageUrl ? <p className="text-xs text-muted-foreground" dir="ltr">{editing.imageUrl}</p> : null}</div>
+            <div className="flex items-center justify-between rounded-xl border p-3"><span className="text-sm font-medium">فعال</span><Switch name="isActive" checked={editing.isActive} onCheckedChange={(value) => setEditing({ ...editing, isActive: value })} /></div>
+            <div className="grid grid-cols-2 gap-3"><div className="space-y-2"><Label>شروع</Label><Input name="startsAt" type="datetime-local" className="rounded-xl" /></div><div className="space-y-2"><Label>پایان</Label><Input name="endsAt" type="datetime-local" className="rounded-xl" /></div></div>
+            <div className="flex gap-2"><AdminSubmitButton>{editing.id ? "ذخیره تغییرات" : "افزودن بنر"}</AdminSubmitButton><Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditing(emptyBanner())}>فرم جدید</Button></div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

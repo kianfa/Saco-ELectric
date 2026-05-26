@@ -1,0 +1,195 @@
+"use server"
+
+import { revalidatePath } from "next/cache"
+import { requireAdminAccess } from "@/lib/auth/admin-auth"
+import { removeBanner, saveBanner, saveHomepageSection, saveSiteSettings, uploadWebsiteMedia } from "@/lib/services/site-content-service"
+import type { BannerFormInput, SiteContentActionState, SiteSettingsBundle } from "@/types/site-content"
+
+const emptyState: SiteContentActionState = { ok: false, message: "" }
+
+function text(formData: FormData, key: string): string | null {
+  const value = String(formData.get(key) ?? "").trim()
+  return value || null
+}
+
+function bool(formData: FormData, key: string): boolean {
+  return formData.get(key) === "on"
+}
+
+function numberValue(formData: FormData, key: string, fallback = 0): number {
+  const parsed = Number(formData.get(key) ?? fallback)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function fileValue(formData: FormData, key: string): File | null {
+  const value = formData.get(key)
+  return value instanceof File && value.size > 0 ? value : null
+}
+
+async function uploadIfPresent(formData: FormData, key: string, folder: string, fileName: string, currentUrl: string | null) {
+  const file = fileValue(formData, key)
+  if (!file) return currentUrl
+  return uploadWebsiteMedia(file, folder, fileName)
+}
+
+export async function saveHomepageContentAction(
+  _prevState: SiteContentActionState = emptyState,
+  formData: FormData
+): Promise<SiteContentActionState> {
+  await requireAdminAccess()
+  try {
+    const heroImageUrl = await uploadIfPresent(formData, "heroImage", "homepage/hero", "hero-main.webp", text(formData, "heroImageUrl"))
+    const heroMobileImageUrl = await uploadIfPresent(formData, "heroMobileImage", "homepage/hero", "hero-mobile.webp", text(formData, "heroMobileImageUrl"))
+    const promoImageUrl = await uploadIfPresent(formData, "promoImage", "banners", "promo-main.webp", text(formData, "promoImageUrl"))
+    const noticeImageUrl = await uploadIfPresent(formData, "noticeImage", "homepage/notice", "notice.webp", text(formData, "noticeImageUrl"))
+
+    const trustPoints = String(formData.get("heroTrustPoints") ?? "")
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean)
+
+    let result = await saveHomepageSection({
+      sectionKey: "hero",
+      title: text(formData, "heroTitle"),
+      subtitle: text(formData, "heroSubtitle"),
+      description: text(formData, "heroDescription"),
+      imageUrl: heroImageUrl,
+      mobileImageUrl: heroMobileImageUrl,
+      primaryButtonText: text(formData, "heroPrimaryButtonText"),
+      primaryButtonUrl: text(formData, "heroPrimaryButtonUrl"),
+      secondaryButtonText: text(formData, "heroSecondaryButtonText"),
+      secondaryButtonUrl: text(formData, "heroSecondaryButtonUrl"),
+      metadata: { trustPoints },
+      isActive: bool(formData, "heroIsActive"),
+      sortOrder: 1,
+    })
+    if (!result.ok) return result
+
+    result = await saveHomepageSection({
+      sectionKey: "promo_banner",
+      title: text(formData, "promoTitle"),
+      subtitle: text(formData, "promoSubtitle"),
+      description: text(formData, "promoDescription"),
+      imageUrl: promoImageUrl,
+      primaryButtonText: text(formData, "promoButtonText"),
+      primaryButtonUrl: text(formData, "promoButtonUrl"),
+      metadata: { badgeText: text(formData, "promoBadgeText") },
+      isActive: bool(formData, "promoIsActive"),
+      sortOrder: 2,
+    })
+    if (!result.ok) return result
+
+    result = await saveHomepageSection({
+      sectionKey: "homepage_notice",
+      title: text(formData, "noticeTitle"),
+      description: text(formData, "noticeDescription"),
+      imageUrl: noticeImageUrl,
+      primaryButtonText: text(formData, "noticeButtonText"),
+      primaryButtonUrl: text(formData, "noticeButtonUrl"),
+      isActive: bool(formData, "noticeIsActive"),
+      sortOrder: 3,
+    })
+    if (!result.ok) return result
+
+    revalidatePath("/")
+    revalidatePath("/admin/content/homepage")
+    return { ok: true, message: "محتوای صفحه اصلی با موفقیت ذخیره شد" }
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "خطا در ذخیره محتوای صفحه اصلی" }
+  }
+}
+
+export async function saveBannerAction(
+  _prevState: SiteContentActionState = emptyState,
+  formData: FormData
+): Promise<SiteContentActionState> {
+  await requireAdminAccess()
+  try {
+    const id = text(formData, "id") ?? undefined
+    const imageUrl = await uploadIfPresent(
+      formData,
+      "image",
+      "banners",
+      id ? `banner-${id}.webp` : `banner-${Date.now()}.webp`,
+      text(formData, "imageUrl")
+    )
+
+    const input: BannerFormInput = {
+      id,
+      title: text(formData, "title") ?? "",
+      subtitle: text(formData, "subtitle"),
+      description: text(formData, "description"),
+      imageUrl,
+      buttonText: text(formData, "buttonText"),
+      buttonUrl: text(formData, "buttonUrl"),
+      badgeText: text(formData, "badgeText"),
+      placement: text(formData, "placement") ?? "homepage_promo",
+      isActive: bool(formData, "isActive"),
+      startsAt: text(formData, "startsAt"),
+      endsAt: text(formData, "endsAt"),
+      sortOrder: numberValue(formData, "sortOrder", 0),
+    }
+
+    const result = await saveBanner(input)
+    if (!result.ok) return result
+    revalidatePath("/")
+    revalidatePath("/products")
+    revalidatePath("/checkout")
+    revalidatePath("/admin/content/banners")
+    return result
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "خطا در ذخیره بنر" }
+  }
+}
+
+export async function deleteBannerAction(formData: FormData) {
+  await requireAdminAccess()
+  const id = text(formData, "id")
+  if (id) await removeBanner(id)
+  revalidatePath("/")
+  revalidatePath("/admin/content/banners")
+}
+
+export async function saveSiteSettingsAction(
+  _prevState: SiteContentActionState = emptyState,
+  formData: FormData
+): Promise<SiteContentActionState> {
+  await requireAdminAccess()
+  try {
+    const trustBadgeImageUrl = await uploadIfPresent(formData, "trustBadgeImage", "footer", "trust-badge.webp", text(formData, "trustBadgeImageUrl"))
+    const settings: SiteSettingsBundle = {
+      contactInfo: {
+        phone: text(formData, "phone") ?? undefined,
+        supportPhone: text(formData, "supportPhone") ?? undefined,
+        telegramUsername: text(formData, "telegramUsername") ?? undefined,
+        telegramPhone: text(formData, "telegramPhone") ?? undefined,
+        baleUsername: text(formData, "baleUsername") ?? undefined,
+        balePhone: text(formData, "balePhone") ?? undefined,
+        address: text(formData, "address") ?? undefined,
+        workingHours: text(formData, "workingHours") ?? undefined,
+      },
+      footerInfo: {
+        description: text(formData, "footerDescription") ?? undefined,
+        copyright: text(formData, "copyright") ?? undefined,
+        trustBadgeImageUrl: trustBadgeImageUrl ?? undefined,
+        instagramUrl: text(formData, "instagramUrl") ?? undefined,
+        telegramUrl: text(formData, "telegramUrl") ?? undefined,
+        baleUrl: text(formData, "baleUrl") ?? undefined,
+        linkedinUrl: text(formData, "linkedinUrl") ?? undefined,
+      },
+      manualCheckout: {
+        explanationText: text(formData, "manualExplanationText") ?? undefined,
+        helperText: text(formData, "manualHelperText") ?? undefined,
+        cardToCardInstructionText: text(formData, "cardToCardInstructionText") ?? undefined,
+        onlinePaymentDisabledText: text(formData, "onlinePaymentDisabledText") ?? undefined,
+      },
+    }
+    const result = await saveSiteSettings(settings)
+    revalidatePath("/")
+    revalidatePath("/checkout")
+    revalidatePath("/admin/content/settings")
+    return result
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "خطا در ذخیره تنظیمات" }
+  }
+}

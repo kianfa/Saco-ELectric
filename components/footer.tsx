@@ -1,11 +1,16 @@
 "use client"
 
 import { footerLinks } from "@/lib/data"
+import type { SiteSettingsBundle } from "@/types/site-content"
 import { Zap, Instagram, Send, MessageCircle, Linkedin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-export function Footer() {
+export function Footer({ settings }: { settings?: SiteSettingsBundle }) {
+  const description = settings?.footerInfo.description || "مرجع تخصصی تجهیزات برق صنعتی با ارائه محصولات اصل، قیمت رقابتی و پشتیبانی فنی"
+  const copyright = settings?.footerInfo.copyright || "© صنعت الکتریک. تمامی حقوق این سایت محفوظ است."
+  const trustBadgeImageUrl = settings?.footerInfo.trustBadgeImageUrl
+  const social = settings?.footerInfo || {}
   return (
     <footer className="bg-primary text-primary-foreground">
       <div className="container mx-auto px-4 py-12">
@@ -22,14 +27,20 @@ export function Footer() {
               </div>
             </a>
             <p className="text-primary-foreground/80 text-sm leading-relaxed mb-6">
-              مرجع تخصصی تجهیزات برق صنعتی با ارائه محصولات اصل، قیمت رقابتی و پشتیبانی فنی
+              {description}
             </p>
 
             {/* Trust Badge Placeholder */}
             <div className="flex items-center gap-3">
-              <div className="w-16 h-20 bg-primary-foreground/10 rounded-lg flex items-center justify-center">
-                <span className="text-xs text-primary-foreground/60">نماد اعتماد</span>
-              </div>
+              {trustBadgeImageUrl ? (
+                <div className="w-16 h-20 overflow-hidden rounded-lg bg-primary-foreground/10">
+                  <img src={trustBadgeImageUrl} alt="نماد اعتماد" className="h-full w-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-16 h-20 bg-primary-foreground/10 rounded-lg flex items-center justify-center">
+                  <span className="text-xs text-primary-foreground/60">نماد اعتماد</span>
+                </div>
+              )}
               <div className="w-16 h-20 bg-primary-foreground/10 rounded-lg flex items-center justify-center">
                 <span className="text-xs text-primary-foreground/60">ساماندهی</span>
               </div>
@@ -114,29 +125,29 @@ export function Footer() {
         <div className="border-t border-primary-foreground/10 mt-8 pt-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-primary-foreground/70">
-              © صنعت الکتریک. تمامی حقوق این سایت محفوظ است.
+              {copyright}
             </p>
             <div className="flex items-center gap-3">
               <a
-                href="#"
+                href={social.instagramUrl || "#"}
                 className="w-10 h-10 bg-primary-foreground/10 rounded-full flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <Instagram className="w-5 h-5" />
               </a>
               <a
-                href="#"
+                href={social.telegramUrl || "#"}
                 className="w-10 h-10 bg-primary-foreground/10 rounded-full flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <Send className="w-5 h-5" />
               </a>
               <a
-                href="#"
+                href={social.baleUrl || "#"}
                 className="w-10 h-10 bg-primary-foreground/10 rounded-full flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <MessageCircle className="w-5 h-5" />
               </a>
               <a
-                href="#"
+                href={social.linkedinUrl || "#"}
                 className="w-10 h-10 bg-primary-foreground/10 rounded-full flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <Linkedin className="w-5 h-5" />
