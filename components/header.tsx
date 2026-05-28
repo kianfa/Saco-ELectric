@@ -1,13 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { Search, Zap, Menu, X } from "lucide-react"
+import { Zap, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { navLinks } from "@/lib/data"
 import { useState } from "react"
 import { CartDrawer } from "@/components/cart/cart-drawer"
 import { CustomerAuthButton } from "@/components/auth/customer-auth-button"
+import { HeaderSearch } from "@/components/layout/header-search"
 import { useContactInfo } from "@/components/site-settings-provider"
 import { storeContactConfig } from "@/lib/store-contact-config"
 
@@ -34,19 +34,7 @@ export function Header() {
 
           {/* Search Bar */}
           <div className="hidden md:flex flex-1 max-w-2xl">
-            <div className="relative w-full">
-              <Input
-                type="search"
-                placeholder="جستجو برای محصولات، برندها، کد فنی و ..."
-                className="w-full pr-4 pl-12 py-6 rounded-xl border-2 border-border focus:border-primary text-base"
-              />
-              <Button
-                size="icon"
-                className="absolute left-1.5 top-1/2 -translate-y-1/2 bg-primary hover:bg-primary/90 rounded-lg"
-              >
-                <Search className="w-5 h-5" />
-              </Button>
-            </div>
+            <HeaderSearch />
           </div>
 
           {/* Actions */}
@@ -61,19 +49,7 @@ export function Header() {
 
         {/* Mobile Search */}
         <div className="md:hidden mt-3">
-          <div className="relative w-full">
-            <Input
-              type="search"
-              placeholder="جستجو برای محصولات..."
-              className="w-full pr-4 pl-12 py-5 rounded-xl border-2 border-border"
-            />
-            <Button
-              size="icon"
-              className="absolute left-1.5 top-1/2 -translate-y-1/2 bg-primary hover:bg-primary/90 rounded-lg"
-            >
-              <Search className="w-5 h-5" />
-            </Button>
-          </div>
+          <HeaderSearch compact placeholder="جستجو برای محصولات..." />
         </div>
       </div>
 

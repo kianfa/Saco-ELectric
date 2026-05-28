@@ -1,5 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/client"
-import type { Product, ProductDetail, ProductQueryOptions } from "@/types/product"
+import type { Product, ProductDetail, ProductQueryOptions, ProductSearchSuggestion } from "@/types/product"
 
 type SupabaseRelation<T> = T | T[] | null
 
@@ -24,10 +24,10 @@ type RawProductRow = {
   description?: string | null
   warranty?: string | null
   origin_country?: string | null
-  brands?: SupabaseRelation<{ name: string | null }>
-  brand?: SupabaseRelation<{ name: string | null }>
-  categories?: SupabaseRelation<{ name: string | null }>
-  category?: SupabaseRelation<{ name: string | null }>
+  brands?: SupabaseRelation<{ name: string | null; slug?: string | null }>
+  brand?: SupabaseRelation<{ name: string | null; slug?: string | null }>
+  categories?: SupabaseRelation<{ name: string | null; slug?: string | null }>
+  category?: SupabaseRelation<{ name: string | null; slug?: string | null }>
   inventory?: SupabaseRelation<{
     stock_quantity?: number | string | null
     quantity?: number | string | null
@@ -54,6 +54,8 @@ const PRODUCTS_SELECT = `
   slug,
   model,
   sku,
+  short_description,
+  description,
   price,
   old_price,
   discount_percent,
@@ -62,8 +64,30 @@ const PRODUCTS_SELECT = `
   has_warranty,
   rating,
   review_count,
-  brands(name),
-  categories(name),
+  brands(name, slug),
+  categories(name, slug),
+  inventory(stock_quantity, quantity),
+  product_images(image_url, alt_text, is_main, sort_order),
+  product_specs(label, name, value, sort_order)
+`
+
+
+const PRODUCTS_SELECT_FALLBACK = `
+  id,
+  name,
+  slug,
+  model,
+  sku,
+  price,
+  old_price,
+  discount_percent,
+  is_featured,
+  is_active,
+  has_warranty,
+  rating,
+  review_count,
+  brands(name, slug),
+  categories(name, slug),
   inventory(stock_quantity, quantity),
   product_images(image_url, alt_text, is_main, sort_order),
   product_specs(label, name, value, sort_order)
@@ -87,8 +111,8 @@ const PRODUCT_DETAIL_SELECT = `
   description,
   warranty,
   origin_country,
-  brands(name),
-  categories(name),
+  brands(name, slug),
+  categories(name, slug),
   inventory(stock_quantity, quantity),
   product_images(image_url, alt_text, is_main, sort_order),
   product_specs(spec_name, spec_value, label, name, value, sort_order)
@@ -110,8 +134,8 @@ const PRODUCT_DETAIL_SELECT_FALLBACK = `
   has_warranty,
   rating,
   review_count,
-  brands(name),
-  categories(name),
+  brands(name, slug),
+  categories(name, slug),
   inventory(stock_quantity, quantity),
   product_images(image_url, alt_text, is_main, sort_order),
   product_specs(spec_name, spec_value, label, name, value, sort_order)
@@ -128,8 +152,12 @@ function toNumber(value: number | string | null | undefined, fallback = 0): numb
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
-function firstRelationName(value: SupabaseRelation<{ name: string | null }> | undefined): string | null {
+function firstRelationName(value: SupabaseRelation<{ name: string | null; slug?: string | null }> | undefined): string | null {
   return toArray(value ?? null)[0]?.name ?? null
+}
+
+function firstRelationSlug(value: SupabaseRelation<{ name: string | null; slug?: string | null }> | undefined): string | null {
+  return toArray(value ?? null)[0]?.slug ?? null
 }
 
 function createFallbackSlug(name: string, model: string | null): string {
@@ -187,11 +215,15 @@ function mapProduct(row: RawProductRow): Product {
     slug: row.slug || createFallbackSlug(name, model),
     model,
     sku: row.sku ?? null,
+    shortDescription: row.short_description ?? null,
+    description: row.description ?? null,
     price: toNumber(row.price),
     oldPrice: toNumber(row.old_price ?? row.oldPrice, 0) || null,
     discountPercent: toNumber(row.discount_percent ?? row.discountPercent, 0),
     brandName: firstRelationName(row.brands ?? row.brand),
+    brandSlug: firstRelationSlug(row.brands ?? row.brand),
     categoryName: firstRelationName(row.categories ?? row.category),
+    categorySlug: firstRelationSlug(row.categories ?? row.category),
     stockQuantity: toNumber(inventory?.stock_quantity ?? inventory?.quantity, 0),
     mainImageUrl: mainImage.url,
     mainImageAlt: mainImage.alt,
@@ -256,11 +288,39 @@ function mapProductDetail(row: RawProductRow): ProductDetail {
 // Repository boundary: Supabase-specific query syntax belongs here only.
 // To migrate to self-hosted PostgreSQL, a REST API, or another provider, replace the
 // methods in this file and keep the Product/ProductDetail types and service API unchanged.
-export async function fetchProducts(options: ProductQueryOptions = {}): Promise<Product[]> {
+function normalizeSearchValue(value: string | null | undefined): string {
+  return (value ?? "")
+    .toString()
+    .trim()
+    .toLowerCase()
+}
+
+function matchesSearch(product: Product, search: string): boolean {
+  const normalizedSearch = normalizeSearchValue(search)
+  if (!normalizedSearch) return true
+
+  const searchableText = [
+    product.name,
+    product.model,
+    product.sku,
+    product.shortDescription,
+    product.description,
+    product.brandName,
+    product.categoryName,
+    ...(product.specs ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+
+  return searchableText.includes(normalizedSearch)
+}
+
+async function runProductsQuery(selectStatement: string, options: ProductQueryOptions) {
   const supabase = getSupabaseClient()
   let query = supabase
     .from("products")
-    .select(PRODUCTS_SELECT)
+    .select(selectStatement)
     .order("id", { ascending: false })
 
   if (options.active !== undefined) {
@@ -271,17 +331,47 @@ export async function fetchProducts(options: ProductQueryOptions = {}): Promise<
     query = query.eq("is_featured", options.featured)
   }
 
-  if (options.limit) {
-    query = query.limit(options.limit)
-  }
+  return query
+}
 
-  const { data, error } = await query
+export async function fetchProducts(options: ProductQueryOptions = {}): Promise<Product[]> {
+  // Keep provider-specific query code inside the repository. Brand/category/search are
+  // normalized after fetching so the UI receives clean Product objects and this layer can
+  // later be replaced with a custom API or another database provider.
+  let { data, error } = await runProductsQuery(PRODUCTS_SELECT, options)
+
+  if (error && isMissingColumnError(error.message)) {
+    const fallbackResult = await runProductsQuery(PRODUCTS_SELECT_FALLBACK, options)
+    data = fallbackResult.data
+    error = fallbackResult.error
+  }
 
   if (error) {
     throw new Error(`Failed to fetch products: ${error.message}`)
   }
 
-  return ((data ?? []) as RawProductRow[]).map(mapProduct)
+  let products = ((data ?? []) as RawProductRow[]).map(mapProduct)
+
+  const brandFilter = normalizeSearchValue(options.brand)
+  if (brandFilter) {
+    products = products.filter((product) => normalizeSearchValue(product.brandSlug) === brandFilter)
+  }
+
+  const categoryFilter = normalizeSearchValue(options.category)
+  if (categoryFilter) {
+    products = products.filter((product) => normalizeSearchValue(product.categorySlug) === categoryFilter)
+  }
+
+  const searchFilter = normalizeSearchValue(options.search)
+  if (searchFilter) {
+    products = products.filter((product) => matchesSearch(product, searchFilter))
+  }
+
+  if (options.limit) {
+    products = products.slice(0, options.limit)
+  }
+
+  return products
 }
 
 function isMissingColumnError(message: string): boolean {
@@ -318,4 +408,36 @@ export async function fetchProductBySlug(slug: string): Promise<ProductDetail | 
   }
 
   return fallbackResult.data ? mapProductDetail(fallbackResult.data as RawProductRow) : null
+}
+
+export async function fetchProductSearchSuggestions(
+  query: string,
+  limit = 6
+): Promise<ProductSearchSuggestion[]> {
+  const normalizedQuery = query.trim()
+
+  if (normalizedQuery.length < 2) {
+    return []
+  }
+
+  // Keep suggestion fetching behind the repository boundary so the UI and API route
+  // remain independent of Supabase. This can later be replaced by a custom search
+  // API, PostgreSQL full-text search, or another provider without changing the header.
+  const products = await fetchProducts({
+    active: true,
+    search: normalizedQuery,
+    limit,
+  })
+
+  return products.slice(0, limit).map((product) => ({
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    model: product.model,
+    sku: product.sku,
+    price: product.price,
+    brandName: product.brandName,
+    categoryName: product.categoryName,
+    mainImageUrl: product.mainImageUrl,
+  }))
 }

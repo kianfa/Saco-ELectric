@@ -1,7 +1,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ChevronLeft, RefreshCw } from "lucide-react"
+import Link from "next/link"
+import { ChevronLeft, RefreshCw, SearchX, X } from "lucide-react"
 import { TopBar } from "@/components/top-bar"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -49,13 +50,21 @@ const initialFilters: FilterState = {
 
 interface ProductsPageClientProps {
   products: Product[]
+  initialSearchQuery?: string
+  activeBrandSlug?: string
+  activeCategorySlug?: string
 }
 
-export function ProductsPageClient({ products }: ProductsPageClientProps) {
+export function ProductsPageClient({
+  products,
+  initialSearchQuery = "",
+  activeBrandSlug = "",
+  activeCategorySlug = "",
+}: ProductsPageClientProps) {
   const [filters, setFilters] = useState<FilterState>(initialFilters)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [sortBy, setSortBy] = useState("bestselling")
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
   const [currentPage, setCurrentPage] = useState(1)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
@@ -171,6 +180,9 @@ export function ProductsPageClient({ products }: ProductsPageClientProps) {
     setCurrentPage(1)
   }
 
+  const hasUrlSearch = Boolean(initialSearchQuery)
+  const hasUrlFilters = Boolean(activeBrandSlug || activeCategorySlug)
+
   const handleFilterChange = (nextFilters: FilterState) => {
     setFilters(nextFilters)
     setCurrentPage(1)
@@ -210,6 +222,23 @@ export function ProductsPageClient({ products }: ProductsPageClientProps) {
           <p className="text-sm text-primary font-medium">
             {totalProducts.toLocaleString("fa-IR")} کالا
           </p>
+
+          {hasUrlSearch && (
+            <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm text-foreground">
+                <SearchX className="h-4 w-4 text-primary" />
+                <span>
+                  نتایج جستجو برای: <strong>«{initialSearchQuery}»</strong>
+                </span>
+              </div>
+              <Button asChild variant="outline" size="sm" className="rounded-xl gap-2">
+                <Link href="/products">
+                  <X className="h-4 w-4" />
+                  پاک کردن جستجو
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
@@ -281,6 +310,21 @@ export function ProductsPageClient({ products }: ProductsPageClientProps) {
                   />
                 )}
               </>
+            ) : hasUrlSearch ? (
+              <div className="bg-card border border-border rounded-2xl p-12 text-center">
+                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                  <SearchX className="w-10 h-10 text-muted-foreground" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">
+                  محصولی برای جستجوی شما پیدا نشد
+                </h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  عبارت جستجو را تغییر دهید یا با پشتیبانی تماس بگیرید.
+                </p>
+                <Button asChild className="rounded-xl bg-primary hover:bg-primary/90">
+                  <Link href="/products">مشاهده همه محصولات</Link>
+                </Button>
+              </div>
             ) : (
               <EmptyProductState onClearFilters={handleClearFilters} />
             )}

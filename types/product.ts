@@ -4,11 +4,15 @@ export interface Product {
   slug: string
   model: string | null
   sku: string | null
+  shortDescription?: string | null
+  description?: string | null
   price: number
   oldPrice: number | null
   discountPercent: number
   brandName: string | null
+  brandSlug?: string | null
   categoryName: string | null
+  categorySlug?: string | null
   stockQuantity: number
   mainImageUrl: string | null
   mainImageAlt: string | null
@@ -50,7 +54,9 @@ export interface ProductDetail {
   warranty: string | null
   originCountry: string | null
   brandName: string | null
+  brandSlug?: string | null
   categoryName: string | null
+  categorySlug?: string | null
   stockQuantity: number
   images: ProductDetailImage[]
   specs: ProductDetailSpec[]
@@ -65,4 +71,20 @@ export interface ProductQueryOptions {
   featured?: boolean
   active?: boolean
   limit?: number
+  search?: string
+  brand?: string
+  category?: string
+}
+
+
+export interface ProductSearchSuggestion {
+  id: string
+  name: string
+  slug: string
+  model: string | null
+  sku: string | null
+  price: number
+  brandName: string | null
+  categoryName: string | null
+  mainImageUrl: string | null
 }

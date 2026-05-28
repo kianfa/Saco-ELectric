@@ -1,8 +1,9 @@
 import {
   fetchProductBySlug,
+  fetchProductSearchSuggestions,
   fetchProducts,
 } from "@/lib/repositories/products-repository"
-import type { Product, ProductDetail, ProductQueryOptions } from "@/types/product"
+import type { Product, ProductDetail, ProductQueryOptions, ProductSearchSuggestion } from "@/types/product"
 
 // Application service API used by pages/components.
 // Keep this file provider-agnostic. Business rules, caching decisions, and future
@@ -17,4 +18,11 @@ export async function getFeaturedProducts(limit = 6): Promise<Product[]> {
 
 export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
   return fetchProductBySlug(slug)
+}
+
+export async function searchProductSuggestions(
+  query: string,
+  limit = 6
+): Promise<ProductSearchSuggestion[]> {
+  return fetchProductSearchSuggestions(query, limit)
 }
