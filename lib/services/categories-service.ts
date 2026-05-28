@@ -1,6 +1,8 @@
 import {
   fetchAllCategoriesForAdmin,
   fetchCategories,
+  fetchCategoriesWithProductCounts,
+  fetchCategoryProductCounts,
   fetchHomepageCategories,
   updateCategoryHomepageSettings as updateCategoryHomepageSettingsInRepository,
 } from "@/lib/repositories/categories-repository"
@@ -20,6 +22,14 @@ const DEFAULT_HOMEPAGE_CATEGORY_SETTINGS: HomepageCategorySectionSettings = {
 // the repository without changing homepage or admin UI.
 export async function getCategories(): Promise<Category[]> {
   return fetchCategories()
+}
+
+export async function getCategoriesWithProductCounts(): Promise<Category[]> {
+  return fetchCategoriesWithProductCounts()
+}
+
+export async function getCategoryProductCounts(): Promise<Record<string, number>> {
+  return fetchCategoryProductCounts()
 }
 
 export async function getHomepageCategories(): Promise<Category[]> {

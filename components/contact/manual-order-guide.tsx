@@ -1,6 +1,8 @@
+"use client"
+
 import type { ReactNode } from "react"
 import { Camera, CheckCircle2, CreditCard, MessageCircle, PackageCheck } from "lucide-react"
-import { manualCheckoutExplanation } from "@/lib/store-contact-config"
+import { useManualCheckoutSettings } from "@/components/site-settings-provider"
 
 const steps = [
   "محصولات مورد نیاز خود را به سبد خرید اضافه کنید.",
@@ -13,6 +15,7 @@ const steps = [
 const icons = [PackageCheck, Camera, MessageCircle, CheckCircle2, CreditCard]
 
 export function ManualOrderGuide() {
+  const manual = useManualCheckoutSettings()
   return (
     <section className="rounded-3xl bg-primary p-1 shadow-xl shadow-primary/10">
       <div className="overflow-hidden rounded-[1.35rem] bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.22),transparent_34%),linear-gradient(135deg,hsl(var(--primary)),hsl(var(--primary))/0.92)] p-6 text-primary-foreground md:p-8">
@@ -20,7 +23,7 @@ export function ManualOrderGuide() {
           <div>
             <BadgeLike>پرداخت دستی و هماهنگی سفارش</BadgeLike>
             <h2 className="mt-4 text-2xl font-black md:text-3xl">راهنمای ثبت سفارش از طریق پیام‌رسان</h2>
-            <p className="mt-4 text-sm leading-8 text-primary-foreground/82 md:text-base">{manualCheckoutExplanation}</p>
+            <p className="mt-4 text-sm leading-8 text-primary-foreground/82 md:text-base">{manual.explanationText}</p>
           </div>
 
           <ol className="grid gap-3">

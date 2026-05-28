@@ -23,7 +23,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { ManualCheckoutContactSection } from "@/components/checkout/manual-checkout-contact-section"
 import { CardToCardInstructions } from "@/components/checkout/card-to-card-instructions"
-import { manualCheckoutConfig } from "@/lib/manual-checkout-config"
+import { useContactInfo } from "@/components/site-settings-provider"
+import { storeContactConfig } from "@/lib/store-contact-config"
 import { useCart } from "@/lib/cart/cart-store"
 import { formatPrice } from "@/lib/data"
 
@@ -76,6 +77,9 @@ function EmptyCheckoutState() {
 
 export function CheckoutPage() {
   const { items, totals, isHydrated } = useCart()
+  const contact = useContactInfo()
+  const telegramUrl = contact.telegramUrl || storeContactConfig.telegram.url
+  const supportPhone = contact.supportPhone || contact.mobile || storeContactConfig.mobile
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("manual")
   const [submitted, setSubmitted] = useState(false)
 
@@ -174,8 +178,8 @@ export function CheckoutPage() {
                   payable={totals.payable}
                   shippingLabel={shippingLabel}
                   itemCount={totals.totalQuantity}
-                  telegramUrl={manualCheckoutConfig.telegram.url}
-                  baleUrl={manualCheckoutConfig.bale.url}
+                  telegramUrl={telegramUrl}
+                  baleUrl={null}
                 />
               </aside>
             </div>
@@ -192,13 +196,13 @@ export function CheckoutPage() {
             </div>
             <div className="flex shrink-0 gap-2">
               <Button asChild onClick={handleManualCheckoutClick} className="h-12 rounded-xl bg-secondary px-4 text-xs font-extrabold text-secondary-foreground hover:bg-secondary/90">
-                <a href={manualCheckoutConfig.telegram.url} target="_blank" rel="noreferrer">
+                <a href={telegramUrl} target="_blank" rel="noreferrer">
                   <Send className="h-4 w-4" />
                   تلگرام
                 </a>
               </Button>
               <Button asChild onClick={handleManualCheckoutClick} variant="outline" className="h-12 rounded-xl bg-transparent px-4 text-xs font-extrabold">
-                <a href={manualCheckoutConfig.bale.url ?? `tel:${manualCheckoutConfig.bale.phone}`} target="_blank" rel="noreferrer">
+                <a href={`tel:${supportPhone}`} target="_blank" rel="noreferrer">
                   <MessageCircle className="h-4 w-4" />
                   بله
                 </a>

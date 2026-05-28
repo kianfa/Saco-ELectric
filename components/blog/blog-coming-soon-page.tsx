@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import {
   ArrowLeft,
@@ -31,6 +33,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { storeContactConfig } from "@/lib/store-contact-config"
+import { useContactInfo } from "@/components/site-settings-provider"
 
 const upcomingTopics = [
   {
@@ -66,6 +69,9 @@ const upcomingTopics = [
 ]
 
 export function BlogComingSoonPage() {
+  const contact = useContactInfo()
+  const telegramUrl = contact.telegramUrl || storeContactConfig.telegram.url
+  const supportPhone = contact.supportPhone || contact.mobile || storeContactConfig.mobile
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <TopBar />
@@ -181,13 +187,13 @@ export function BlogComingSoonPage() {
               </div>
               <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
                 <Button asChild size="lg" className="rounded-xl bg-accent text-accent-foreground hover:bg-accent/90">
-                  <Link href={storeContactConfig.telegram.url} target="_blank" rel="noreferrer">
+                  <Link href={telegramUrl} target="_blank" rel="noreferrer">
                     <Send className="ml-2 h-5 w-5" />
                     ارسال پیام در تلگرام
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="rounded-xl border-white/25 bg-white/5 text-primary-foreground hover:bg-white/10 hover:text-primary-foreground">
-                  <Link href={`tel:${storeContactConfig.mobile}`}>
+                  <Link href={`tel:${supportPhone}`}>
                     <Phone className="ml-2 h-5 w-5" />
                     تماس با پشتیبانی
                   </Link>

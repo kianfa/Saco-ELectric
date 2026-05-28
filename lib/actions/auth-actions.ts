@@ -1,10 +1,22 @@
 "use server"
 
 import { redirect } from "next/navigation"
-import { loginAdminWithEmailPassword } from "@/lib/services/auth-service"
+import {
+  loginAdminWithEmailPassword,
+  loginCustomerWithEmailPassword,
+  registerCustomerWithEmailPassword,
+  sendCustomerPasswordResetEmail,
+} from "@/lib/services/auth-service"
 import { signOutAdmin } from "@/lib/auth/admin-auth"
+import { signOutCustomer } from "@/lib/auth/customer-auth"
+import { verifyTurnstileToken } from "@/lib/auth/turnstile"
 
 export type LoginActionState = {
+  ok: boolean
+  message: string
+}
+
+export type AuthActionState = {
   ok: boolean
   message: string
 }
@@ -12,10 +24,14 @@ export type LoginActionState = {
 export async function loginAdminAction(_prevState: LoginActionState, formData: FormData): Promise<LoginActionState> {
   const email = String(formData.get("email") ?? "").trim()
   const password = String(formData.get("password") ?? "")
+  const captchaToken = String(formData.get("turnstileToken") ?? "")
 
   if (!email || !password) {
     return { ok: false, message: "ایمیل و رمز عبور الزامی است" }
   }
+
+  const captcha = await verifyTurnstileToken(captchaToken)
+  if (!captcha.ok) return { ok: false, message: captcha.message }
 
   const result = await loginAdminWithEmailPassword(email, password)
   if (!result.ok) return { ok: false, message: result.message }
@@ -26,4 +42,66 @@ export async function loginAdminAction(_prevState: LoginActionState, formData: F
 export async function logoutAdminAction() {
   await signOutAdmin()
   redirect("/admin/login")
+}
+
+export async function loginCustomerAction(_prevState: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const email = String(formData.get("email") ?? "").trim()
+  const password = String(formData.get("password") ?? "")
+  const captchaToken = String(formData.get("turnstileToken") ?? "")
+
+  if (!email || !password) {
+    return { ok: false, message: "ایمیل و رمز عبور الزامی است" }
+  }
+
+  const captcha = await verifyTurnstileToken(captchaToken)
+  if (!captcha.ok) return { ok: false, message: captcha.message }
+
+  const result = await loginCustomerWithEmailPassword(email, password)
+  if (!result.ok) return { ok: false, message: result.message }
+
+  redirect("/account")
+}
+
+export async function registerCustomerAction(_prevState: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const fullName = String(formData.get("fullName") ?? "").trim()
+  const phone = String(formData.get("phone") ?? "").trim()
+  const email = String(formData.get("email") ?? "").trim()
+  const password = String(formData.get("password") ?? "")
+  const confirmPassword = String(formData.get("confirmPassword") ?? "")
+  const captchaToken = String(formData.get("turnstileToken") ?? "")
+
+  if (!fullName || !phone || !email || !password || !confirmPassword) {
+    return { ok: false, message: "همه فیلدهای الزامی را تکمیل کنید" }
+  }
+
+  if (password.length < 8) {
+    return { ok: false, message: "رمز عبور باید حداقل ۸ کاراکتر باشد" }
+  }
+
+  if (password !== confirmPassword) {
+    return { ok: false, message: "رمز عبور و تکرار آن یکسان نیستند" }
+  }
+
+  const captcha = await verifyTurnstileToken(captchaToken)
+  if (!captcha.ok) return { ok: false, message: captcha.message }
+
+  const result = await registerCustomerWithEmailPassword({ fullName, phone, email, password })
+  if (!result.ok) return { ok: false, message: result.message }
+
+  redirect("/account")
+}
+
+export async function forgotPasswordAction(_prevState: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const email = String(formData.get("email") ?? "").trim()
+  if (!email) return { ok: false, message: "ایمیل الزامی است" }
+
+  const result = await sendCustomerPasswordResetEmail(email)
+  if (!result.ok) return { ok: false, message: result.message }
+
+  return { ok: true, message: "اگر حسابی با این ایمیل وجود داشته باشد، لینک بازیابی ارسال می‌شود." }
+}
+
+export async function logoutCustomerAction() {
+  await signOutCustomer()
+  redirect("/")
 }

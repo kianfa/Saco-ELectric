@@ -7,7 +7,8 @@ import { Separator } from "@/components/ui/separator"
 import { ProductImageWithFallback } from "@/components/product-image-with-fallback"
 import { formatPrice } from "@/lib/data"
 import type { CartItem } from "@/lib/cart/cart-store"
-import { manualCheckoutConfig } from "@/lib/manual-checkout-config"
+import { useContactInfo, useManualCheckoutSettings } from "@/components/site-settings-provider"
+import { storeContactConfig } from "@/lib/store-contact-config"
 
 interface CheckoutOrderSummaryProps {
   items: CartItem[]
@@ -16,8 +17,8 @@ interface CheckoutOrderSummaryProps {
   payable: number
   shippingLabel: string
   itemCount: number
-  telegramUrl: string
-  baleUrl: string | null
+  telegramUrl?: string
+  baleUrl?: string | null
 }
 
 function PriceRow({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
@@ -39,6 +40,11 @@ export function CheckoutOrderSummary({
   telegramUrl,
   baleUrl,
 }: CheckoutOrderSummaryProps) {
+  const contact = useContactInfo()
+  const manual = useManualCheckoutSettings()
+  const supportPhone = contact.supportPhone || contact.mobile || storeContactConfig.mobile
+  const resolvedTelegramUrl = telegramUrl || contact.telegramUrl || storeContactConfig.telegram.url
+  const resolvedBaleUrl = baleUrl || null
   return (
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm md:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -53,7 +59,7 @@ export function CheckoutOrderSummary({
 
       <div className="mb-4 flex items-start gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-3 text-xs font-semibold leading-6 text-orange-800">
         <Camera className="mt-0.5 h-4 w-4 shrink-0" />
-        <span>برای نهایی‌سازی سفارش، لطفاً از سبد خرید یا خلاصه سفارش خود اسکرین‌شات تهیه کرده و از طریق تلگرام، واتساپ، بله یا روبیکا برای پشتیبانی ارسال کنید. کارشناسان فروش پس از بررسی موجودی کالا، تأیید قیمت نهایی و هماهنگی شرایط ارسال، اطلاعات پرداخت کارت‌به‌کارت را در اختیار شما قرار می‌دهند. پس از پرداخت، سفارش شما در سریع‌ترین زمان ممکن آماده پردازش و ارسال خواهد شد.</span>
+        <span>{manual.explanationText}</span>
       </div>
 
       <div className="space-y-3 rounded-2xl bg-muted/35 p-3">
@@ -101,18 +107,18 @@ export function CheckoutOrderSummary({
 
       <div className="mt-3 flex items-start gap-2 rounded-xl bg-muted/50 px-3 py-3 text-xs font-semibold leading-6 text-muted-foreground">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
-        <span>اسکرین‌شات سبد خرید خود را از طریق تلگرام، واتساپ، بله یا روبیکا ارسال کنید تا موجودی، قیمت نهایی و شرایط ارسال توسط کارشناسان ما تأیید شود. پس از تأیید، اطلاعات کارت‌به‌کارت برای تکمیل خرید ارسال خواهد شد.</span>
+        <span>{manual.helperText}</span>
       </div>
 
       <div className="mt-5 space-y-3">
         <Button asChild className="h-12 w-full rounded-xl bg-secondary text-base font-extrabold text-secondary-foreground hover:bg-secondary/90">
-          <a href={telegramUrl} target="_blank" rel="noreferrer">
+          <a href={resolvedTelegramUrl} target="_blank" rel="noreferrer">
             ارسال سفارش در تلگرام
             <Send className="h-4 w-4" />
           </a>
         </Button>
         <Button asChild variant="outline" className="h-11 w-full rounded-xl bg-transparent">
-          <a href={baleUrl ?? `tel:${manualCheckoutConfig.bale.phone}`} target="_blank" rel="noreferrer">
+          <a href={resolvedBaleUrl ?? `tel:${supportPhone}`} target="_blank" rel="noreferrer">
             ارسال سفارش در بله
             <MessageCircle className="h-4 w-4" />
             <ExternalLink className="h-4 w-4" />

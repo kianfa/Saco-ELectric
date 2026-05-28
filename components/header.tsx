@@ -1,15 +1,20 @@
 "use client"
 
 import Link from "next/link"
-import { Search, User, Zap, Menu, X } from "lucide-react"
+import { Search, Zap, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { navLinks } from "@/lib/data"
 import { useState } from "react"
 import { CartDrawer } from "@/components/cart/cart-drawer"
+import { CustomerAuthButton } from "@/components/auth/customer-auth-button"
+import { useContactInfo } from "@/components/site-settings-provider"
+import { storeContactConfig } from "@/lib/store-contact-config"
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const contact = useContactInfo()
+  const brandName = contact.brandName || storeContactConfig.brandName
 
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50">
@@ -22,7 +27,7 @@ export function Header() {
               <Zap className="w-7 h-7 text-accent" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-primary">ساکو الکتریک</h1>
+              <h1 className="text-xl font-bold text-primary">{brandName}</h1>
               <p className="text-xs text-muted-foreground">فروشگاه تخصصی تجهیزات برق صنعتی</p>
             </div>
           </Link>
@@ -49,13 +54,7 @@ export function Header() {
             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </Button>
-            <Button variant="outline" className="hidden sm:flex items-center gap-2 rounded-xl">
-              <User className="w-5 h-5" />
-              <span className="hidden lg:inline">ورود / ثبت‌نام</span>
-            </Button>
-            <Button variant="outline" size="icon" className="rounded-xl relative sm:hidden">
-              <User className="w-5 h-5" />
-            </Button>
+            <CustomerAuthButton />
             <CartDrawer />
           </div>
         </div>
@@ -82,9 +81,11 @@ export function Header() {
       <nav className="hidden md:block bg-card border-t border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-1">
-            <Button className="flex items-center gap-2 bg-primary hover:bg-primary/90 rounded-xl my-2 px-4">
-              <Menu className="w-5 h-5" />
-              <span>دسته‌بندی کالاها</span>
+            <Button asChild className="flex items-center gap-2 bg-primary hover:bg-primary/90 rounded-xl my-2 px-4">
+              <Link href="/categories">
+                <Menu className="w-5 h-5" />
+                <span>دسته‌بندی کالاها</span>
+              </Link>
             </Button>
             <div className="flex items-center">
               {navLinks.map((link) => (
@@ -105,9 +106,11 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="md:hidden bg-card border-t border-border">
           <div className="container mx-auto px-4 py-2">
-            <Button className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 rounded-xl mb-2">
-              <Menu className="w-5 h-5" />
-              <span>دسته‌بندی کالاها</span>
+            <Button asChild className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 rounded-xl mb-2">
+              <Link href="/categories" onClick={() => setMobileMenuOpen(false)}>
+                <Menu className="w-5 h-5" />
+                <span>دسته‌بندی کالاها</span>
+              </Link>
             </Button>
             {navLinks.map((link) => (
               <Link

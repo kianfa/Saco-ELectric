@@ -43,7 +43,7 @@ export function BrandStrip({ brands, error }: BrandStripProps) {
             {brands.map((brand) => (
               <a
                 key={brand.id}
-                href={`/brands/${brand.slug}`}
+                href={`/products?brand=${encodeURIComponent(brand.slug)}`}
                 className="flex-shrink-0 bg-card border border-border rounded-xl px-6 py-4 hover:border-primary hover:shadow-md transition-all flex items-center justify-center min-w-[140px]"
               >
                 {brand.logoUrl ? (

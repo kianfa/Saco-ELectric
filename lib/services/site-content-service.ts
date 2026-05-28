@@ -38,7 +38,7 @@ export async function saveSiteSettings(settings: SiteSettingsBundle) {
   await upsertSiteSetting("contact_info", settings.contactInfo)
   await upsertSiteSetting("footer_info", settings.footerInfo)
   await upsertSiteSetting("manual_checkout", settings.manualCheckout)
-  return { ok: true, message: "تنظیمات سایت ذخیره شد" }
+  return { ok: true, message: "تنظیمات سایت با موفقیت ذخیره شد" }
 }
 
 export async function saveBanner(input: BannerFormInput) {

@@ -4,6 +4,11 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { CartProvider } from '@/lib/cart/cart-store'
+import { SiteSettingsProvider } from '@/components/site-settings-provider'
+import { getPublicSiteSettings } from '@/lib/services/site-settings-service'
+import { publicSiteSettingsFallback } from '@/lib/site-settings-defaults'
+
+export const dynamic = "force-dynamic"
 
 const vazirmatn = Vazirmatn({ 
   subsets: ['arabic'],
@@ -33,15 +38,24 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  let siteSettings = publicSiteSettingsFallback
+  try {
+    siteSettings = await getPublicSiteSettings()
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("Failed to load public site settings, using fallback:", error)
+    }
+  }
+
   return (
     <html lang="fa" dir="rtl" className="bg-background">
       <body className={`${vazirmatn.className} font-sans antialiased`}>
-        <CartProvider>{children}</CartProvider>
+        <SiteSettingsProvider settings={siteSettings}><CartProvider>{children}</CartProvider></SiteSettingsProvider>
         <Toaster richColors position="top-center" />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

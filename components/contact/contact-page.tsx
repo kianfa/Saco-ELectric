@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { ChevronLeft, Home, MessageCircle, Phone, Send, Smartphone, Zap } from "lucide-react"
 import { TopBar } from "@/components/top-bar"
@@ -17,9 +19,17 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { storeContactConfig } from "@/lib/store-contact-config"
+import { useContactInfo } from "@/components/site-settings-provider"
 
 export function ContactPage() {
-  const whatsappUrl = storeContactConfig.whatsapp.url
+  const contact = useContactInfo()
+  const brandName = contact.brandName || storeContactConfig.brandName
+  const landline = contact.landline || storeContactConfig.landline
+  const supportPhone = contact.supportPhone || contact.mobile || storeContactConfig.mobile
+  const telegramUsername = contact.telegramUsername || storeContactConfig.telegram.username
+  const telegramUrl = contact.telegramUrl || storeContactConfig.telegram.url
+  const whatsappUrl = contact.whatsappUrl || storeContactConfig.whatsapp.url
+  const channels = contact.messagingApps?.length ? contact.messagingApps : [...storeContactConfig.channels]
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,7 +66,7 @@ export function ContactPage() {
               <div>
                 <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-accent/10 px-4 py-2 text-sm font-bold text-accent-foreground">
                   <Zap className="h-4 w-4 text-accent" />
-                  ارتباط سریع با {storeContactConfig.brandName}
+                  ارتباط سریع با {brandName}
                 </div>
                 <h1 className="text-3xl font-black tracking-tight text-foreground md:text-5xl">تماس با ساکو الکتریک</h1>
                 <p className="mt-4 max-w-3xl text-base leading-8 text-muted-foreground md:text-lg">
@@ -64,13 +74,13 @@ export function ContactPage() {
                 </p>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <Button asChild size="lg" className="rounded-xl bg-primary px-7">
-                    <Link href={`tel:${storeContactConfig.mobile}`}>
+                    <Link href={`tel:${supportPhone}`}>
                       <Phone className="ml-2 h-5 w-5" />
                       تماس با پشتیبانی
                     </Link>
                   </Button>
                   <Button asChild size="lg" variant="outline" className="rounded-xl border-primary/20 px-7">
-                    <Link href={storeContactConfig.telegram.url} target="_blank" rel="noreferrer">
+                    <Link href={telegramUrl} target="_blank" rel="noreferrer">
                       <Send className="ml-2 h-5 w-5" />
                       ارسال پیام در تلگرام
                     </Link>
@@ -80,13 +90,13 @@ export function ContactPage() {
 
               <div className="rounded-3xl border border-border bg-card p-5 shadow-xl shadow-primary/5 md:p-7">
                 <div className="grid gap-4 text-sm">
-                  <InfoRow label="تلفن ثابت" value={storeContactConfig.landline} href={`tel:${storeContactConfig.landline}`} />
-                  <InfoRow label="موبایل / پشتیبانی" value={storeContactConfig.mobile} href={`tel:${storeContactConfig.mobile}`} />
-                  <InfoRow label="تلگرام" value={storeContactConfig.telegram.username} href={storeContactConfig.telegram.url} external />
+                  <InfoRow label="تلفن ثابت" value={landline} href={`tel:${landline}`} />
+                  <InfoRow label="موبایل / پشتیبانی" value={supportPhone} href={`tel:${supportPhone}`} />
+                  <InfoRow label="تلگرام" value={telegramUsername} href={telegramUrl} external />
                   <div className="rounded-2xl bg-muted/60 p-4">
                     <p className="mb-2 font-bold text-foreground">پیام‌رسان‌های قابل استفاده</p>
                     <div className="flex flex-wrap gap-2">
-                      {storeContactConfig.channels.map((channel) => (
+                      {channels.map((channel) => (
                         <span key={channel} className="rounded-full bg-background px-3 py-1 text-xs font-bold text-muted-foreground shadow-sm">
                           {channel}
                         </span>
@@ -108,34 +118,34 @@ export function ContactPage() {
             <ContactCard
               icon={Phone}
               title="تلفن ثابت"
-              value={storeContactConfig.landline}
+              value={landline}
               description="برای تماس مستقیم با فروشگاه"
-              actions={[{ label: "تماس", href: `tel:${storeContactConfig.landline}` }]}
+              actions={[{ label: "تماس", href: `tel:${landline}` }]}
             />
             <ContactCard
               icon={Smartphone}
               title="موبایل / پشتیبانی"
-              value={storeContactConfig.mobile}
+              value={supportPhone}
               description="برای پیگیری سفارش و هماهنگی خرید"
-              actions={[{ label: "تماس با پشتیبانی", href: `tel:${storeContactConfig.mobile}` }]}
+              actions={[{ label: "تماس با پشتیبانی", href: `tel:${supportPhone}` }]}
             />
             <ContactCard
               icon={Send}
               title="تلگرام"
-              value={storeContactConfig.telegram.username}
+              value={telegramUsername}
               description="ارسال تصویر سبد خرید، استعلام قیمت و هماهنگی پرداخت"
-              actions={[{ label: "ارسال پیام در تلگرام", href: storeContactConfig.telegram.url, external: true }]}
+              actions={[{ label: "ارسال پیام در تلگرام", href: telegramUrl, external: true }]}
             />
             <ContactCard
               icon={MessageCircle}
               title="پیام‌رسان‌ها"
-              value="واتساپ، بله، روبیکا، تلگرام"
+              value={channels.join("، ")}
               description="برای ثبت سفارش و ارسال اسکرین‌شات سبد خرید"
-              phone={storeContactConfig.mobile}
+              phone={supportPhone}
               badges={["بله", "روبیکا"]}
               actions={[
                 { label: "واتساپ", href: whatsappUrl, external: true },
-                { label: "تلگرام", href: storeContactConfig.telegram.url, external: true },
+                { label: "تلگرام", href: telegramUrl, external: true },
               ]}
             />
           </div>

@@ -3,8 +3,11 @@
 import { Building2, Phone, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { storeContactConfig } from "@/lib/store-contact-config"
+import { useContactInfo } from "@/components/site-settings-provider"
 
 export function ProjectPurchaseBox() {
+  const contact = useContactInfo()
+  const supportPhone = contact.supportPhone || contact.mobile || storeContactConfig.mobile
   return (
     <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 md:p-8 text-primary-foreground">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -35,7 +38,7 @@ export function ProjectPurchaseBox() {
             size="lg"
             className="gap-2 rounded-xl border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
           >
-            <a href={`tel:${storeContactConfig.mobile}`}>
+            <a href={`tel:${supportPhone}`}>
               <Phone className="w-5 h-5" />
               <span>تماس با کارشناس</span>
             </a>

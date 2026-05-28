@@ -1,8 +1,11 @@
+"use client"
+
 import { CreditCard, ShieldCheck } from "lucide-react"
 
-const manualPaymentExplanation = "برای نهایی‌سازی سفارش، لطفاً از سبد خرید یا خلاصه سفارش خود اسکرین‌شات تهیه کرده و از طریق تلگرام، واتساپ، بله یا روبیکا برای پشتیبانی ارسال کنید. کارشناسان فروش پس از بررسی موجودی کالا، تأیید قیمت نهایی و هماهنگی شرایط ارسال، اطلاعات پرداخت کارت‌به‌کارت را در اختیار شما قرار می‌دهند. پس از پرداخت، سفارش شما در سریع‌ترین زمان ممکن آماده پردازش و ارسال خواهد شد."
+import { useManualCheckoutSettings } from "@/components/site-settings-provider"
 
 export function CardToCardInstructions() {
+  const manual = useManualCheckoutSettings()
   return (
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm md:p-6">
       <div className="mb-4 flex items-center gap-3">
@@ -16,7 +19,7 @@ export function CardToCardInstructions() {
       </div>
 
       <div className="rounded-2xl bg-muted/35 p-4 text-sm font-medium leading-8 text-foreground">
-        {manualPaymentExplanation}
+        {manual.cardToCardInstructionText || manual.explanationText}
       </div>
 
       <div className="mt-5 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-xs font-semibold leading-6 text-emerald-700">

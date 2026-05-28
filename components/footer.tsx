@@ -1,24 +1,25 @@
 "use client"
 
 import { footerLinks } from "@/lib/data"
-import type { SiteSettingsBundle } from "@/types/site-content"
 import { Zap, Instagram, Send, MessageCircle, Linkedin, Phone, MapPin, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { storeContactConfig } from "@/lib/store-contact-config"
+import { useSiteSettings } from "@/components/site-settings-provider"
 
-export function Footer({ settings }: { settings?: SiteSettingsBundle }) {
-  const contact = settings?.contactInfo ?? {}
-  const footer = settings?.footerInfo ?? {}
+export function Footer(_props: { settings?: unknown } = {}) {
+  const { contactInfo: contact, footerInfo: footer } = useSiteSettings()
   const description = footer.description || storeContactConfig.defaultFooterDescription
   const copyright = footer.copyright || storeContactConfig.defaultCopyright
   const trustBadgeImageUrl = footer.trustBadgeImageUrl
-  const landline = contact.phone || storeContactConfig.landline
-  const supportPhone = contact.supportPhone || contact.telegramPhone || storeContactConfig.mobile
+  const landline = contact.landline || storeContactConfig.landline
+  const supportPhone = contact.supportPhone || contact.mobile || storeContactConfig.mobile
   const telegramUsername = contact.telegramUsername || storeContactConfig.telegram.username
-  const telegramUrl = footer.telegramUrl || storeContactConfig.telegram.url
+  const telegramUrl = footer.telegramUrl || contact.telegramUrl || storeContactConfig.telegram.url
   const workingHours = contact.workingHours || storeContactConfig.workingHours
   const address = contact.address
+  const brandName = contact.brandName || storeContactConfig.brandName
+  const channels = contact.messagingApps?.length ? contact.messagingApps : [...storeContactConfig.channels]
 
   return (
     <footer className="bg-primary text-primary-foreground">
@@ -31,7 +32,7 @@ export function Footer({ settings }: { settings?: SiteSettingsBundle }) {
                 <Zap className="h-7 w-7 text-accent" />
               </div>
               <div>
-                <h3 className="text-xl font-bold">{storeContactConfig.brandName}</h3>
+                <h3 className="text-xl font-bold">{brandName}</h3>
                 <p className="text-xs text-primary-foreground/70">{storeContactConfig.tagline}</p>
               </div>
             </a>
@@ -93,7 +94,7 @@ export function Footer({ settings }: { settings?: SiteSettingsBundle }) {
           </div>
 
           <div>
-            <h4 className="mb-4 font-bold">ارتباط با {storeContactConfig.brandName}</h4>
+            <h4 className="mb-4 font-bold">ارتباط با {brandName}</h4>
             <ul className="space-y-3 text-sm text-primary-foreground/75">
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-accent" />
@@ -122,7 +123,7 @@ export function Footer({ settings }: { settings?: SiteSettingsBundle }) {
               </li>
             </ul>
             <div className="mt-4 flex flex-wrap gap-2">
-              {storeContactConfig.channels.map((channel) => (
+              {channels.map((channel) => (
                 <span key={channel} className="rounded-full bg-primary-foreground/10 px-3 py-1 text-xs font-semibold text-primary-foreground/80">
                   {channel}
                 </span>
@@ -134,7 +135,7 @@ export function Footer({ settings }: { settings?: SiteSettingsBundle }) {
         <div className="mt-8 border-t border-primary-foreground/10 pt-8">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div>
-              <h4 className="mb-1 font-bold">خبرنامه {storeContactConfig.brandName}</h4>
+              <h4 className="mb-1 font-bold">خبرنامه {brandName}</h4>
               <p className="text-sm text-primary-foreground/70">جدیدترین محصولات، مقالات فنی و تخفیف‌های ویژه را دریافت کنید.</p>
             </div>
             <div className="flex w-full gap-2 md:w-auto">

@@ -4,4 +4,5 @@ export interface Brand {
   slug: string
   logoUrl: string | null
   description: string | null
+  productCount?: number
 }

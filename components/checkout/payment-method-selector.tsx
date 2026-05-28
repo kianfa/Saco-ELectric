@@ -1,6 +1,9 @@
+"use client"
+
 import { CheckCircle2, Headphones, LockKeyhole } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useManualCheckoutSettings } from "@/components/site-settings-provider"
 
 export type PaymentMethod = "manual" | ""
 
@@ -12,6 +15,7 @@ interface PaymentMethodSelectorProps {
 
 export function PaymentMethodSelector({ value, onChange, showWarning = false }: PaymentMethodSelectorProps) {
   const manualSelected = value === "manual"
+  const manual = useManualCheckoutSettings()
 
   return (
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm md:p-6">
@@ -42,7 +46,7 @@ export function PaymentMethodSelector({ value, onChange, showWarning = false }: 
                 </Badge>
               </div>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                در حال حاضر پرداخت مستقیم اینترنتی فعال نیست و به‌زودی اضافه خواهد شد.
+                {manual.onlinePaymentDisabledText}
               </p>
             </div>
           </div>
@@ -68,7 +72,7 @@ export function PaymentMethodSelector({ value, onChange, showWarning = false }: 
               {manualSelected && <CheckCircle2 className="h-5 w-5 shrink-0 text-secondary" />}
             </div>
             <p className="mt-1 text-sm leading-7 text-muted-foreground">
-برای نهایی‌سازی سفارش، لطفاً از سبد خرید یا خلاصه سفارش خود اسکرین‌شات تهیه کرده و از طریق تلگرام، واتساپ، بله یا روبیکا برای پشتیبانی ارسال کنید. کارشناسان فروش پس از بررسی موجودی کالا، تأیید قیمت نهایی و هماهنگی شرایط ارسال، اطلاعات پرداخت کارت‌به‌کارت را در اختیار شما قرار می‌دهند. پس از پرداخت، سفارش شما در سریع‌ترین زمان ممکن آماده پردازش و ارسال خواهد شد.
+{manual.explanationText}
             </p>
           </div>
         </button>

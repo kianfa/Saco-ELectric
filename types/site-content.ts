@@ -50,14 +50,21 @@ export type SiteSetting = {
 }
 
 export type ContactInfoSettings = {
+  brandName?: string
   phone?: string
+  landline?: string
+  mobile?: string
   supportPhone?: string
   telegramUsername?: string
+  telegramUrl?: string
   telegramPhone?: string
+  whatsappUrl?: string
   baleUsername?: string
   balePhone?: string
   address?: string
   workingHours?: string
+  email?: string
+  messagingApps?: string[]
 }
 
 export type FooterInfoSettings = {

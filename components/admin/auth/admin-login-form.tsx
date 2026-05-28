@@ -1,17 +1,23 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useEffect, useState } from "react"
 import { Loader2, LockKeyhole, Mail } from "lucide-react"
 import { loginAdminAction, type LoginActionState } from "@/lib/actions/auth-actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { TurnstileCaptcha } from "@/components/auth/turnstile-captcha"
 
 const initialState: LoginActionState = { ok: false, message: "" }
 
 export function AdminLoginForm() {
   const [state, formAction, isPending] = useActionState(loginAdminAction, initialState)
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0)
+
+  useEffect(() => {
+    if (state.message) setCaptchaResetSignal((value) => value + 1)
+  }, [state])
 
   return (
     <Card className="w-full max-w-md rounded-3xl border bg-card shadow-xl">
@@ -56,6 +62,8 @@ export function AdminLoginForm() {
               />
             </div>
           </div>
+
+          <TurnstileCaptcha resetSignal={captchaResetSignal} />
 
           {state.message ? (
             <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">

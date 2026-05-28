@@ -27,6 +27,10 @@ type RawCategoryRow = {
   is_active?: boolean | null
 }
 
+type ProductCategoryRow = {
+  category_id?: string | number | null
+}
+
 function isMissingColumnError(message: string): boolean {
   const lower = message.toLowerCase()
   return lower.includes("does not exist") || lower.includes("schema cache")
@@ -81,6 +85,7 @@ function mapCategory(row: RawCategoryRow): Category {
     showOnHomepage: row.show_on_homepage ?? true,
     homepageSortOrder: toNumber(row.homepage_sort_order),
     isActive: row.is_active ?? true,
+    productCount: 0,
   }
 }
 
@@ -119,6 +124,35 @@ export async function fetchCategories(): Promise<Category[]> {
   }
 
   return ((fallbackResult.data ?? []) as RawCategoryRow[]).map(mapCategory)
+}
+
+
+export async function fetchCategoryProductCounts(): Promise<Record<string, number>> {
+  const supabase = getSupabaseClient()
+
+  const activeResult = await supabase.from("products").select("category_id").eq("is_active", true)
+  const result = !activeResult.error
+    ? activeResult
+    : isMissingColumnError(activeResult.error.message)
+      ? await supabase.from("products").select("category_id")
+      : activeResult
+
+  if (result.error) {
+    if (isMissingColumnError(result.error.message)) return {}
+    throw new Error(`Failed to fetch category product counts: ${result.error.message}`)
+  }
+
+  return ((result.data ?? []) as ProductCategoryRow[]).reduce<Record<string, number>>((acc, row) => {
+    if (row.category_id == null) return acc
+    const key = String(row.category_id)
+    acc[key] = (acc[key] ?? 0) + 1
+    return acc
+  }, {})
+}
+
+export async function fetchCategoriesWithProductCounts(): Promise<Category[]> {
+  const [categories, counts] = await Promise.all([fetchCategories(), fetchCategoryProductCounts().catch(() => ({}))])
+  return categories.map((category) => ({ ...category, productCount: counts[category.id] ?? 0 }))
 }
 
 export async function fetchHomepageCategories(): Promise<Category[]> {

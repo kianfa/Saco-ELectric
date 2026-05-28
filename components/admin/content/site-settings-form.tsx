@@ -19,14 +19,25 @@ export function SiteSettingsForm({ settings }: { settings: SiteSettingsBundle })
     <form action={formAction} className="space-y-6">
       <ContentActionMessage state={state} />
       <Card className="rounded-2xl shadow-sm"><CardHeader><CardTitle>اطلاعات تماس</CardTitle></CardHeader><CardContent className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2"><Label>شماره تماس</Label><Input name="phone" defaultValue={settings.contactInfo.phone ?? storeContactConfig.landline} className="rounded-xl" /></div>
-        <div className="space-y-2"><Label>شماره پشتیبانی</Label><Input name="supportPhone" defaultValue={settings.contactInfo.supportPhone ?? storeContactConfig.mobile} className="rounded-xl" /></div>
+        <div className="space-y-2"><Label>نام فروشگاه</Label><Input name="brandName" defaultValue={settings.contactInfo.brandName ?? storeContactConfig.brandName} className="rounded-xl" /></div>
+        <div className="space-y-2"><Label>شماره تماس ثابت</Label><Input name="phone" defaultValue={settings.contactInfo.landline ?? settings.contactInfo.phone ?? storeContactConfig.landline} className="rounded-xl" /></div>
+        <div className="space-y-2"><Label>موبایل / پشتیبانی</Label><Input name="supportPhone" defaultValue={settings.contactInfo.supportPhone ?? settings.contactInfo.mobile ?? storeContactConfig.mobile} className="rounded-xl" /></div>
         <div className="space-y-2"><Label>آیدی تلگرام</Label><Input name="telegramUsername" dir="ltr" defaultValue={settings.contactInfo.telegramUsername ?? storeContactConfig.telegram.username} className="rounded-xl" /></div>
-        <div className="space-y-2"><Label>شماره تلگرام</Label><Input name="telegramPhone" defaultValue={settings.contactInfo.telegramPhone ?? storeContactConfig.mobile} className="rounded-xl" /></div>
+        <div className="space-y-2"><Label>لینک تلگرام</Label><Input name="telegramUrl" dir="ltr" defaultValue={settings.contactInfo.telegramUrl ?? storeContactConfig.telegram.url} className="rounded-xl" /></div>
+        <div className="space-y-2"><Label>شماره تلگرام</Label><Input name="telegramPhone" defaultValue={settings.contactInfo.telegramPhone ?? settings.contactInfo.supportPhone ?? storeContactConfig.mobile} className="rounded-xl" /></div>
+        <div className="space-y-2"><Label>لینک واتساپ</Label><Input name="whatsappUrl" dir="ltr" defaultValue={settings.contactInfo.whatsappUrl ?? storeContactConfig.whatsapp.url} className="rounded-xl" /></div>
+        <div className="space-y-2"><Label>ایمیل</Label><Input name="email" dir="ltr" defaultValue={settings.contactInfo.email ?? ""} className="rounded-xl" /></div>
         <div className="space-y-2"><Label>آیدی بله</Label><Input name="baleUsername" dir="ltr" defaultValue={settings.contactInfo.baleUsername ?? ""} className="rounded-xl" /></div>
         <div className="space-y-2"><Label>شماره بله</Label><Input name="balePhone" defaultValue={settings.contactInfo.balePhone ?? storeContactConfig.mobile} className="rounded-xl" /></div>
         <div className="space-y-2 md:col-span-2"><Label>آدرس</Label><Textarea name="address" defaultValue={settings.contactInfo.address ?? ""} className="rounded-xl" /></div>
         <div className="space-y-2 md:col-span-2"><Label>ساعات پاسخگویی</Label><Input name="workingHours" defaultValue={settings.contactInfo.workingHours ?? storeContactConfig.workingHours} className="rounded-xl" /></div>
+        <div className="rounded-2xl bg-muted/40 p-4 text-sm leading-7 md:col-span-2">
+          <p className="font-bold text-foreground">پیش‌نمایش داده ذخیره‌شده</p>
+          <p className="text-muted-foreground">تلفن: {settings.contactInfo.landline ?? settings.contactInfo.phone ?? storeContactConfig.landline}</p>
+          <p className="text-muted-foreground">پشتیبانی: {settings.contactInfo.supportPhone ?? settings.contactInfo.mobile ?? storeContactConfig.mobile}</p>
+          <p className="text-muted-foreground">تلگرام: {settings.contactInfo.telegramUsername ?? storeContactConfig.telegram.username}</p>
+          <p className="text-muted-foreground">آدرس: {settings.contactInfo.address ?? "هنوز ثبت نشده است"}</p>
+        </div>
       </CardContent></Card>
 
       <Card className="rounded-2xl shadow-sm"><CardHeader><CardTitle>فوتر و شبکه‌های اجتماعی</CardTitle></CardHeader><CardContent className="grid gap-4 md:grid-cols-2">

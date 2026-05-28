@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { requireAdminAccess } from "@/lib/auth/admin-auth"
 import { removeBanner, saveBanner, saveHomepageSection, saveSiteSettings, uploadWebsiteMedia } from "@/lib/services/site-content-service"
+import { storeContactConfig } from "@/lib/store-contact-config"
 import type { BannerFormInput, HeroSliderImage, SiteContentActionState, SiteSettingsBundle } from "@/types/site-content"
 
 const emptyState: SiteContentActionState = { ok: false, message: "" }
@@ -173,6 +174,10 @@ export async function saveBannerAction(
     revalidatePath("/")
     revalidatePath("/products")
     revalidatePath("/checkout")
+    revalidatePath("/contact")
+    revalidatePath("/products")
+    revalidatePath("/categories")
+    revalidatePath("/brands")
     revalidatePath("/admin/content/banners")
     return result
   } catch (error) {
@@ -197,14 +202,21 @@ export async function saveSiteSettingsAction(
     const trustBadgeImageUrl = await uploadIfPresent(formData, "trustBadgeImage", "footer", "trust-badge.webp", text(formData, "trustBadgeImageUrl"))
     const settings: SiteSettingsBundle = {
       contactInfo: {
+        brandName: text(formData, "brandName") ?? storeContactConfig.brandName,
         phone: text(formData, "phone") ?? undefined,
-        supportPhone: text(formData, "supportPhone") ?? undefined,
+        landline: text(formData, "phone") ?? undefined,
+        mobile: text(formData, "mobile") ?? text(formData, "supportPhone") ?? undefined,
+        supportPhone: text(formData, "supportPhone") ?? text(formData, "mobile") ?? undefined,
         telegramUsername: text(formData, "telegramUsername") ?? undefined,
-        telegramPhone: text(formData, "telegramPhone") ?? undefined,
+        telegramUrl: text(formData, "telegramUrl") ?? undefined,
+        telegramPhone: text(formData, "telegramPhone") ?? text(formData, "supportPhone") ?? undefined,
+        whatsappUrl: text(formData, "whatsappUrl") ?? undefined,
         baleUsername: text(formData, "baleUsername") ?? undefined,
-        balePhone: text(formData, "balePhone") ?? undefined,
+        balePhone: text(formData, "balePhone") ?? text(formData, "supportPhone") ?? undefined,
         address: text(formData, "address") ?? undefined,
         workingHours: text(formData, "workingHours") ?? undefined,
+        email: text(formData, "email") ?? undefined,
+        messagingApps: ["واتساپ", "بله", "روبیکا", "تلگرام"],
       },
       footerInfo: {
         description: text(formData, "footerDescription") ?? undefined,
@@ -225,6 +237,10 @@ export async function saveSiteSettingsAction(
     const result = await saveSiteSettings(settings)
     revalidatePath("/")
     revalidatePath("/checkout")
+    revalidatePath("/contact")
+    revalidatePath("/products")
+    revalidatePath("/categories")
+    revalidatePath("/brands")
     revalidatePath("/admin/content/settings")
     return result
   } catch (error) {

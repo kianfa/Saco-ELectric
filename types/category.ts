@@ -13,12 +13,14 @@ export interface Category {
   showOnHomepage: boolean
   homepageSortOrder: number
   isActive: boolean
+  productCount?: number
 }
 
 export interface HomepageCategorySectionSettings {
   title: string
   subtitle: string
   isActive: boolean
+  productCount?: number
 }
 
 export interface AdminCategoryHomepageSettingsInput {
@@ -32,6 +34,7 @@ export interface AdminCategoryHomepageSettingsInput {
   showOnHomepage: boolean
   homepageSortOrder: number
   isActive: boolean
+  productCount?: number
 }
 
 export interface CategoryActionState {
