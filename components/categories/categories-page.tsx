@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Boxes, CircuitBoard, Search, Send, Zap } from "lucide-react"
+import { ArrowLeft, Boxes, Search, Send, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { CategoryImage } from "@/components/common/category-image"
 import { Input } from "@/components/ui/input"
 import type { Category } from "@/types/category"
 import { storeContactConfig } from "@/lib/store-contact-config"
@@ -18,28 +19,17 @@ type CategoriesPageProps = {
 }
 
 function CategoryVisual({ category }: { category: Category }) {
-  const [image, setImage] = useState(category.displayImageUrl || category.homepageImageUrl || category.imageUrl || category.homepageIconUrl || null)
-  const fallback = image !== category.homepageIconUrl ? category.homepageIconUrl : null
-
-  if (image) {
-    return (
-      <div className="relative h-40 overflow-hidden rounded-2xl bg-muted">
-        <img
-          src={image}
-          alt={category.homepageTitle || category.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={() => (fallback ? setImage(fallback) : setImage(null))}
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/55 via-primary/10 to-transparent" />
-      </div>
-    )
-  }
+  const image = category.displayImageUrl || category.homepageImageUrl || category.imageUrl || null
+  const icon = category.homepageIconUrl || null
 
   return (
-    <div className="flex h-40 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 via-muted to-accent/10">
-      <CircuitBoard className="h-14 w-14 text-primary/70" />
-    </div>
+    <CategoryImage
+      src={image}
+      iconSrc={icon}
+      alt={category.homepageTitle || category.name}
+      size="large"
+      className="h-40 w-full"
+    />
   )
 }
 

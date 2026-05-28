@@ -4,7 +4,7 @@ import Link from "next/link"
 import { ArrowRight, Camera, ExternalLink, Info, LockKeyhole, MessageCircle, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { ProductImageWithFallback } from "@/components/product-image-with-fallback"
+import { ProductImage } from "@/components/common/product-image"
 import { formatPrice } from "@/lib/data"
 import type { CartItem } from "@/lib/cart/cart-store"
 import { useContactInfo, useManualCheckoutSettings } from "@/components/site-settings-provider"
@@ -66,14 +66,7 @@ export function CheckoutOrderSummary({
         {items.map((item) => (
           <div key={item.productId} className="flex items-start justify-between gap-3 text-sm">
             <div className="flex min-w-0 gap-3">
-              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted">
-                <ProductImageWithFallback
-                  imageUrl={item.mainImageUrl}
-                  alt={item.name}
-                  fallbackLabel={item.name}
-                  objectFit="cover"
-                />
-              </div>
+              <ProductImage src={item.mainImageUrl} alt={item.name} size="cart" className="h-14 w-14" />
               <div className="min-w-0">
                 <p className="line-clamp-2 font-bold leading-6 text-foreground">{item.name}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

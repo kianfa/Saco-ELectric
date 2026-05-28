@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Heart, Star, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { formatPrice } from "@/lib/data"
-import { ProductImageWithFallback } from "@/components/product-image-with-fallback"
+import { ProductImage } from "@/components/common/product-image"
 
 interface RelatedProduct {
   id: number | string
@@ -65,15 +65,12 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
               </button>
 
               {/* Product Image */}
-              <div className="aspect-square bg-muted rounded-xl overflow-hidden flex items-center justify-center">
-                <ProductImageWithFallback
-                  imageUrl={product.image}
-                  alt={product.imageAlt || product.name}
-                  fallbackLabel={product.name}
-                  className="group-hover:scale-105"
-                  objectFit="cover"
-                />
-              </div>
+              <ProductImage
+                src={product.image}
+                alt={product.imageAlt || product.name}
+                size="card"
+                className="w-full"
+              />
             </div>
 
             {/* Product Info */}

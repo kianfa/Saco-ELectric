@@ -202,6 +202,7 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
               <Label htmlFor="images" className="mb-3 flex items-center gap-2 font-bold"><ImagePlus className="h-4 w-4" /> آپلود تصویر اصلی و گالری</Label>
               <Input ref={fileInputRef} id="images" name="images" type="file" accept="image/*" multiple onChange={(event) => handleNewImagesChange(event.target.files)} className="rounded-xl bg-card" />
               <p className="mt-2 text-xs text-muted-foreground">مسیر ذخیره‌سازی: product-images/products/{slug || "product-slug"}/main.webp و gallery</p>
+              <p className="mt-1 text-xs font-medium text-primary">پیشنهاد: تصویر محصول با پس‌زمینه سفید یا روشن و نسبت ۱:۱ آپلود شود.</p>
             </div>
 
             {existingImages.length ? (
@@ -225,7 +226,7 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
               <div>
                 <div className="mb-2 flex items-center justify-between"><span className="text-sm font-bold">پیش‌نمایش تصاویر جدید</span><Button type="button" variant="ghost" size="sm" onClick={clearNewImages}><X className="h-4 w-4" /> حذف همه</Button></div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {newImagePreviews.map((url, index) => <img key={url} src={url} alt={`preview-${index + 1}`} className="aspect-square rounded-xl border object-contain p-2" />)}
+                  {newImagePreviews.map((url, index) => <img key={url} src={url} alt={`preview-${index + 1}`} className="aspect-square rounded-xl border bg-gradient-to-br from-slate-50 to-white object-contain p-4" />)}
                 </div>
               </div>
             ) : null}

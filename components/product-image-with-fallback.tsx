@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Zap } from "lucide-react"
+import { IndustrialImagePlaceholder } from "@/components/common/industrial-image-placeholder"
 import { cn } from "@/lib/utils"
 
 interface ProductImageWithFallbackProps {
@@ -21,7 +21,7 @@ export function ProductImageWithFallback({
   className,
   fallbackClassName,
   iconClassName,
-  objectFit = "cover",
+  objectFit = "contain",
 }: ProductImageWithFallbackProps) {
   const [hasError, setHasError] = useState(false)
   const normalizedUrl = imageUrl?.trim() || null
@@ -32,38 +32,28 @@ export function ProductImageWithFallback({
 
   if (normalizedUrl && !hasError) {
     return (
-      <img
-        src={normalizedUrl}
-        alt={alt || fallbackLabel}
-        loading="lazy"
-        onError={() => setHasError(true)}
-        className={cn(
-          "h-full w-full transition-transform duration-300",
-          objectFit === "contain" ? "object-contain" : "object-cover",
-          className
-        )}
-      />
+      <div className={cn("flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100 p-2", fallbackClassName)}>
+        <img
+          src={normalizedUrl}
+          alt={alt || fallbackLabel}
+          loading="lazy"
+          onError={() => setHasError(true)}
+          className={cn(
+            "h-full w-full transition-transform duration-300",
+            objectFit === "cover" ? "object-cover" : "object-contain",
+            className,
+          )}
+        />
+      </div>
     )
   }
 
   return (
-    <div
-      role="img"
-      aria-label={alt || fallbackLabel}
-      className={cn(
-        "h-full w-full bg-gradient-to-br from-primary/5 via-background to-primary/10 flex items-center justify-center",
-        fallbackClassName,
-        className
-      )}
-    >
-      <div className="text-center p-4">
-        <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary/45 shadow-sm ring-1 ring-primary/10">
-          <Zap className={cn("h-8 w-8", iconClassName)} strokeWidth={1.6} />
-        </div>
-        <div className="hidden sm:block text-[11px] font-medium text-muted-foreground">
-          تصویر محصول به‌زودی
-        </div>
-      </div>
-    </div>
+    <IndustrialImagePlaceholder
+      alt={alt || fallbackLabel}
+      label="تصویر محصول"
+      className={cn("h-full w-full", fallbackClassName, className)}
+      iconClassName={iconClassName}
+    />
   )
 }

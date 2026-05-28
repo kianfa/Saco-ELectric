@@ -124,7 +124,7 @@ export function HomepageCategoriesManagement({ categories, settings }: { categor
                         <TableRow key={category.id}>
                           <TableCell>
                             {preview ? (
-                              <img src={preview} alt={category.homepageTitle || category.name} className="h-14 w-20 rounded-lg object-cover" />
+                              <img src={preview} alt={category.homepageTitle || category.name} className="h-14 w-20 rounded-lg bg-gradient-to-br from-slate-50 to-white object-contain p-1" />
                             ) : (
                               <div className="flex h-14 w-20 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                                 <ImageIcon className="h-5 w-5" />
@@ -190,7 +190,7 @@ export function HomepageCategoriesManagement({ categories, settings }: { categor
 
                 {emptyPreview(editing) ? (
                   <div className="overflow-hidden rounded-2xl border bg-muted">
-                    <img src={emptyPreview(editing) ?? ""} alt={editing.homepageTitle || editing.name} className="h-40 w-full object-cover" />
+                    <img src={emptyPreview(editing) ?? ""} alt={editing.homepageTitle || editing.name} className="h-40 w-full bg-gradient-to-br from-slate-50 to-white object-contain p-4" />
                   </div>
                 ) : (
                   <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed bg-muted/50 text-muted-foreground">تصویری ثبت نشده است</div>
@@ -217,6 +217,7 @@ export function HomepageCategoriesManagement({ categories, settings }: { categor
                 <div className="space-y-2">
                   <Label>تصویر کارت صفحه اصلی</Label>
                   <Input name="homepageImage" type="file" accept="image/jpeg,image/png,image/webp" className="rounded-xl" />
+                  <p className="text-xs text-muted-foreground">پیشنهاد: تصویر دسته‌بندی با پس‌زمینه روشن و ابعاد مربعی آپلود شود.</p>
                   <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                     <input type="checkbox" name="clearHomepageImage" />
                     حذف تصویر کارت فعلی
@@ -226,6 +227,7 @@ export function HomepageCategoriesManagement({ categories, settings }: { categor
                 <div className="space-y-2">
                   <Label>آیکن کارت</Label>
                   <Input name="homepageIcon" type="file" accept="image/jpeg,image/png,image/webp" className="rounded-xl" />
+                  <p className="text-xs text-muted-foreground">پیشنهاد: آیکن ساده، خوانا و با نسبت ۱:۱ آپلود شود.</p>
                   <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                     <input type="checkbox" name="clearHomepageIcon" />
                     حذف آیکن فعلی

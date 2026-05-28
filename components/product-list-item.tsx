@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/cart/cart-store"
 import Link from "next/link"
 import { formatPrice } from "@/lib/data"
-import { ProductImageWithFallback } from "@/components/product-image-with-fallback"
+import { ProductImage } from "@/components/common/product-image"
 import type { Product } from "@/types/product"
 
 interface ProductListItemProps {
@@ -66,15 +66,12 @@ export function ProductListItem({ product }: ProductListItemProps) {
 
         {/* Product Image */}
         <Link href={`/products/${slug}`}>
-          <div className="aspect-square sm:aspect-auto sm:h-full bg-muted rounded-xl overflow-hidden flex items-center justify-center cursor-pointer">
-            <ProductImageWithFallback
-              imageUrl={mainImageUrl}
-              alt={mainImageAlt || name}
-              fallbackLabel={name}
-              className="min-h-[120px] group-hover:scale-105"
-              objectFit="cover"
-            />
-          </div>
+          <ProductImage
+            src={mainImageUrl}
+            alt={mainImageAlt || name}
+            size="card"
+            className="w-full cursor-pointer sm:h-full sm:min-h-[180px]"
+          />
         </Link>
       </div>
 

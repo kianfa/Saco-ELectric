@@ -3,10 +3,11 @@
 import { FormEvent, KeyboardEvent, Suspense, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ImageIcon, Loader2, Search, X, Zap } from "lucide-react"
+import { ImageIcon, Loader2, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { ProductSearchSuggestion } from "@/types/product"
+import { ProductImage } from "@/components/common/product-image"
 
 interface HeaderSearchProps {
   compact?: boolean
@@ -29,27 +30,7 @@ function getSuggestionMeta(product: ProductSearchSuggestion): string {
 }
 
 function ProductSuggestionImage({ product }: { product: ProductSearchSuggestion }) {
-  const [failed, setFailed] = useState(false)
-
-  if (!product.mainImageUrl || failed) {
-    return (
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary/10 bg-primary/5 text-primary">
-        <Zap className="h-5 w-5" />
-      </div>
-    )
-  }
-
-  return (
-    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-border bg-white">
-      <img
-        src={product.mainImageUrl}
-        alt={product.name}
-        className="h-full w-full object-contain p-1"
-        loading="lazy"
-        onError={() => setFailed(true)}
-      />
-    </div>
-  )
+  return <ProductImage src={product.mainImageUrl} alt={product.name} size="search" />
 }
 
 function HeaderSearchInner({

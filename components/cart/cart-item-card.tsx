@@ -4,7 +4,7 @@ import { Bookmark, CheckCircle2, Trash2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { QuantitySelector } from "@/components/cart/quantity-selector"
-import { ProductImageWithFallback } from "@/components/product-image-with-fallback"
+import { ProductImage } from "@/components/common/product-image"
 import { formatPrice } from "@/lib/data"
 import type { CartItem } from "@/lib/cart/cart-store"
 
@@ -29,9 +29,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove, compact = false
     return (
       <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
         <div className="flex gap-3">
-          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
-            <ProductImageWithFallback imageUrl={item.mainImageUrl} alt={item.name} fallbackLabel={item.name} objectFit="cover" />
-          </div>
+          <ProductImage src={item.mainImageUrl} alt={item.name} size="cart" className="h-20 w-20" />
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex items-start justify-between gap-2">
               <h3 className="line-clamp-2 text-sm font-bold leading-6 text-foreground">{item.name}</h3>
@@ -66,9 +64,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove, compact = false
   return (
     <article className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md">
       <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="aspect-square w-full overflow-hidden rounded-xl bg-muted sm:h-36 sm:w-36 sm:shrink-0">
-          <ProductImageWithFallback imageUrl={item.mainImageUrl} alt={item.name} fallbackLabel={item.name} objectFit="cover" />
-        </div>
+        <ProductImage src={item.mainImageUrl} alt={item.name} size="cart" className="w-full sm:h-36 sm:w-36 sm:shrink-0" />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">

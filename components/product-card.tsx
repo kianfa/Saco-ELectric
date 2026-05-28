@@ -5,7 +5,7 @@ import { Heart, Star, ShoppingCart } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { formatPrice } from "@/lib/data"
-import { ProductImageWithFallback } from "@/components/product-image-with-fallback"
+import { ProductImage } from "@/components/common/product-image"
 import { useCart } from "@/lib/cart/cart-store"
 
 interface ProductCardProps {
@@ -79,15 +79,12 @@ export function ProductCard({
         </button>
 
         <Link href={`/products/${slug}`} aria-label={name}>
-          <div className="aspect-square bg-muted rounded-xl overflow-hidden flex items-center justify-center">
-            <ProductImageWithFallback
-              imageUrl={image}
-              alt={imageAlt || name}
-              fallbackLabel={name}
-              className="group-hover:scale-105"
-              objectFit="cover"
-            />
-          </div>
+          <ProductImage
+            src={image}
+            alt={imageAlt || name}
+            size="card"
+            className="w-full"
+          />
         </Link>
       </div>
 
