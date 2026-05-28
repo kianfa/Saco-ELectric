@@ -43,7 +43,7 @@ function normalizeContactInfo(contact: JsonMap, footer: JsonMap): PublicContactI
 
   return {
     brandName,
-    address: str(contact.address) ?? "",
+    address: str(contact.address) ?? storeContactConfig.address,
     landline,
     mobile,
     supportPhone,

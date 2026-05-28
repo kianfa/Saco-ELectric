@@ -8,7 +8,7 @@ import type { PublicSiteSettings } from "@/types/site-settings"
 export const publicSiteSettingsFallback: PublicSiteSettings = {
   contactInfo: {
     brandName: storeContactConfig.brandName,
-    address: "",
+    address: storeContactConfig.address,
     landline: storeContactConfig.landline,
     mobile: storeContactConfig.mobile,
     supportPhone: storeContactConfig.mobile,
