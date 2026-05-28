@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
-import { filterCategories, filterBrands, filterApplications, formatPrice } from "@/lib/data"
+import { filterApplications, formatPrice } from "@/lib/data"
 
-interface FilterState {
+export interface ProductFilterState {
   categories: string[]
   brands: string[]
   priceRange: [number, number]
@@ -16,25 +16,37 @@ interface FilterState {
   applications: string[]
 }
 
+export interface FilterOption {
+  slug: string
+  name: string
+}
+
 interface FilterSidebarProps {
-  filters: FilterState
-  onFilterChange: (filters: FilterState) => void
+  filters: ProductFilterState
+  categories: FilterOption[]
+  brands: FilterOption[]
+  onFilterChange: (filters: ProductFilterState) => void
   onClearFilters: () => void
 }
 
-export function FilterSidebar({ filters, onFilterChange, onClearFilters }: FilterSidebarProps) {
-  const handleCategoryChange = (category: string, checked: boolean) => {
-    const newCategories = checked
-      ? [...filters.categories, category]
-      : filters.categories.filter((c) => c !== category)
-    onFilterChange({ ...filters, categories: newCategories })
+export function FilterSidebar({
+  filters,
+  categories,
+  brands,
+  onFilterChange,
+  onClearFilters,
+}: FilterSidebarProps) {
+  const handleCategoryChange = (categorySlug: string, checked: boolean) => {
+    // Products URL currently supports one category slug at a time:
+    // /products?category={slug}. Replacing the previous selected category keeps
+    // the sidebar, URL, and server-side product query in sync.
+    onFilterChange({ ...filters, categories: checked ? [categorySlug] : [] })
   }
 
-  const handleBrandChange = (brand: string, checked: boolean) => {
-    const newBrands = checked
-      ? [...filters.brands, brand]
-      : filters.brands.filter((b) => b !== brand)
-    onFilterChange({ ...filters, brands: newBrands })
+  const handleBrandChange = (brandSlug: string, checked: boolean) => {
+    // Same as category: one brand slug in the URL keeps links from the header,
+    // brand pages, and sidebar filters consistent.
+    onFilterChange({ ...filters, brands: checked ? [brandSlug] : [] })
   }
 
   const handleApplicationChange = (app: string, checked: boolean) => {
@@ -62,15 +74,15 @@ export function FilterSidebar({ filters, onFilterChange, onClearFilters }: Filte
       <div>
         <h3 className="font-bold text-foreground mb-4">دسته‌بندی</h3>
         <div className="space-y-3">
-          {filterCategories.map((category) => (
-            <div key={category} className="flex items-center gap-3">
+          {categories.map((category) => (
+            <div key={category.slug} className="flex items-center gap-3">
               <Checkbox
-                id={`cat-${category}`}
-                checked={filters.categories.includes(category)}
-                onCheckedChange={(checked) => handleCategoryChange(category, checked as boolean)}
+                id={`cat-${category.slug}`}
+                checked={filters.categories.includes(category.slug)}
+                onCheckedChange={(checked) => handleCategoryChange(category.slug, checked as boolean)}
               />
-              <Label htmlFor={`cat-${category}`} className="text-sm text-foreground cursor-pointer">
-                {category}
+              <Label htmlFor={`cat-${category.slug}`} className="text-sm text-foreground cursor-pointer">
+                {category.name}
               </Label>
             </div>
           ))}
@@ -81,15 +93,15 @@ export function FilterSidebar({ filters, onFilterChange, onClearFilters }: Filte
       <div className="border-t border-border pt-6">
         <h3 className="font-bold text-foreground mb-4">برند</h3>
         <div className="space-y-3">
-          {filterBrands.map((brand) => (
-            <div key={brand} className="flex items-center gap-3">
+          {brands.map((brand) => (
+            <div key={brand.slug} className="flex items-center gap-3">
               <Checkbox
-                id={`brand-${brand}`}
-                checked={filters.brands.includes(brand)}
-                onCheckedChange={(checked) => handleBrandChange(brand, checked as boolean)}
+                id={`brand-${brand.slug}`}
+                checked={filters.brands.includes(brand.slug)}
+                onCheckedChange={(checked) => handleBrandChange(brand.slug, checked as boolean)}
               />
-              <Label htmlFor={`brand-${brand}`} className="text-sm text-foreground cursor-pointer">
-                {brand}
+              <Label htmlFor={`brand-${brand.slug}`} className="text-sm text-foreground cursor-pointer">
+                {brand.name}
               </Label>
             </div>
           ))}
@@ -207,13 +219,14 @@ export function FilterSidebar({ filters, onFilterChange, onClearFilters }: Filte
 
       {/* Actions */}
       <div className="border-t border-border pt-6 space-y-3">
-        <Button className="w-full bg-primary hover:bg-primary/90 rounded-xl">
+        <Button className="w-full bg-primary hover:bg-primary/90 rounded-xl" type="button">
           اعمال فیلتر
         </Button>
         <Button
           variant="outline"
           className="w-full rounded-xl"
           onClick={onClearFilters}
+          type="button"
         >
           پاک کردن فیلترها
         </Button>

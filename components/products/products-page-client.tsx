@@ -1,12 +1,13 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { ChevronLeft, RefreshCw, SearchX, X } from "lucide-react"
 import { TopBar } from "@/components/top-bar"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { FilterSidebar } from "@/components/filter-sidebar"
+import { FilterSidebar, type FilterOption, type ProductFilterState } from "@/components/filter-sidebar"
 import { ProductToolbar } from "@/components/product-toolbar"
 import { ActiveFilters } from "@/components/active-filters"
 import { ProductListingCard } from "@/components/product-listing-card"
@@ -29,17 +30,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import type { Product } from "@/types/product"
+import type { Brand } from "@/types/brand"
+import type { Category } from "@/types/category"
 
-interface FilterState {
-  categories: string[]
-  brands: string[]
-  priceRange: [number, number]
-  inStock: boolean | null
-  hasWarranty: boolean | null
-  applications: string[]
-}
-
-const initialFilters: FilterState = {
+const emptyFilters: ProductFilterState = {
   categories: [],
   brands: [],
   priceRange: [0, 30000000],
@@ -48,25 +42,147 @@ const initialFilters: FilterState = {
   applications: [],
 }
 
+function normalize(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase()
+}
+
+function readAvailability(value?: string) {
+  if (value === "in-stock" || value === "available" || value === "true") return true
+  if (value === "out-of-stock" || value === "unavailable" || value === "false") return false
+  return null
+}
+
+function createFiltersFromUrl(params: {
+  category?: string
+  brand?: string
+  availability?: string
+  minPrice?: string
+  maxPrice?: string
+}): ProductFilterState {
+  const minPrice = Number(params.minPrice)
+  const maxPrice = Number(params.maxPrice)
+
+  return {
+    ...emptyFilters,
+    categories: params.category ? [params.category] : [],
+    brands: params.brand ? [params.brand] : [],
+    inStock: readAvailability(params.availability),
+    priceRange: [
+      Number.isFinite(minPrice) && minPrice >= 0 ? minPrice : 0,
+      Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : 30000000,
+    ],
+  }
+}
+
+function toOptions(items: Array<Category | Brand>): FilterOption[] {
+  return items
+    .filter((item) => item.slug && item.name)
+    .map((item) => ({ slug: item.slug, name: item.name }))
+}
+
 interface ProductsPageClientProps {
   products: Product[]
+  categories: Category[]
+  brands: Brand[]
   initialSearchQuery?: string
   activeBrandSlug?: string
   activeCategorySlug?: string
+  activeAvailability?: string
+  activeSort?: string
+  activeMinPrice?: string
+  activeMaxPrice?: string
 }
 
 export function ProductsPageClient({
   products,
+  categories,
+  brands,
   initialSearchQuery = "",
   activeBrandSlug = "",
   activeCategorySlug = "",
+  activeAvailability = "",
+  activeSort = "bestselling",
+  activeMinPrice = "",
+  activeMaxPrice = "",
 }: ProductsPageClientProps) {
-  const [filters, setFilters] = useState<FilterState>(initialFilters)
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const categoryOptions = useMemo(() => toOptions(categories), [categories])
+  const brandOptions = useMemo(() => toOptions(brands), [brands])
+  const [filters, setFilters] = useState<ProductFilterState>(() =>
+    createFiltersFromUrl({
+      category: activeCategorySlug,
+      brand: activeBrandSlug,
+      availability: activeAvailability,
+      minPrice: activeMinPrice,
+      maxPrice: activeMaxPrice,
+    })
+  )
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [sortBy, setSortBy] = useState("bestselling")
+  const [sortBy, setSortBy] = useState(activeSort || "bestselling")
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
   const [currentPage, setCurrentPage] = useState(1)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+
+  // Keep client-side filter controls in sync when navigation changes between
+  // /products?category=inverters and /products?category=contactors without a full reload.
+  useEffect(() => {
+    setFilters(
+      createFiltersFromUrl({
+        category: activeCategorySlug,
+        brand: activeBrandSlug,
+        availability: activeAvailability,
+        minPrice: activeMinPrice,
+        maxPrice: activeMaxPrice,
+      })
+    )
+    setSearchQuery(initialSearchQuery)
+    setSortBy(activeSort || "bestselling")
+    setCurrentPage(1)
+  }, [
+    activeCategorySlug,
+    activeBrandSlug,
+    activeAvailability,
+    activeMinPrice,
+    activeMaxPrice,
+    initialSearchQuery,
+    activeSort,
+  ])
+
+  const pushProductsUrl = (nextFilters: ProductFilterState, overrides?: { search?: string | null; sort?: string | null }) => {
+    const params = new URLSearchParams(searchParams.toString())
+    const nextSearch = overrides?.search ?? searchQuery
+    const nextSort = overrides?.sort ?? sortBy
+
+    const category = nextFilters.categories[0]
+    const brand = nextFilters.brands[0]
+
+    if (nextSearch?.trim()) params.set("search", nextSearch.trim())
+    else params.delete("search")
+
+    if (category) params.set("category", category)
+    else params.delete("category")
+
+    if (brand) params.set("brand", brand)
+    else params.delete("brand")
+
+    if (nextFilters.inStock === true) params.set("availability", "in-stock")
+    else if (nextFilters.inStock === false) params.set("availability", "out-of-stock")
+    else params.delete("availability")
+
+    if (nextFilters.priceRange[0] > 0) params.set("minPrice", String(nextFilters.priceRange[0]))
+    else params.delete("minPrice")
+
+    if (nextFilters.priceRange[1] < 30000000) params.set("maxPrice", String(nextFilters.priceRange[1]))
+    else params.delete("maxPrice")
+
+    if (nextSort && nextSort !== "bestselling") params.set("sort", nextSort)
+    else params.delete("sort")
+
+    const query = params.toString()
+    router.push(query ? `${pathname}?${query}` : pathname)
+  }
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -78,6 +194,8 @@ export function ProductsPageClient({
           product.sku,
           product.brandName,
           product.categoryName,
+          product.shortDescription,
+          product.description,
         ]
           .filter(Boolean)
           .join(" ")
@@ -88,18 +206,18 @@ export function ProductsPageClient({
         }
       }
 
-      if (
-        filters.categories.length > 0 &&
-        (!product.categoryName || !filters.categories.includes(product.categoryName))
-      ) {
-        return false
+      if (filters.categories.length > 0) {
+        const productCategoryKey = normalize(product.categorySlug) || normalize(product.categoryName)
+        if (!productCategoryKey || !filters.categories.map(normalize).includes(productCategoryKey)) {
+          return false
+        }
       }
 
-      if (
-        filters.brands.length > 0 &&
-        (!product.brandName || !filters.brands.includes(product.brandName))
-      ) {
-        return false
+      if (filters.brands.length > 0) {
+        const productBrandKey = normalize(product.brandSlug) || normalize(product.brandName)
+        if (!productBrandKey || !filters.brands.map(normalize).includes(productBrandKey)) {
+          return false
+        }
       }
 
       if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
@@ -143,51 +261,65 @@ export function ProductsPageClient({
   )
 
   const handleRemoveFilter = (type: string, value?: string) => {
+    let nextFilters = filters
+    let nextSearch: string | null | undefined
+
     switch (type) {
+      case "search":
+        nextSearch = ""
+        setSearchQuery("")
+        break
       case "category":
-        setFilters((prev) => ({
-          ...prev,
-          categories: prev.categories.filter((c) => c !== value),
-        }))
+        nextFilters = { ...filters, categories: filters.categories.filter((c) => c !== value) }
+        setFilters(nextFilters)
         break
       case "brand":
-        setFilters((prev) => ({
-          ...prev,
-          brands: prev.brands.filter((b) => b !== value),
-        }))
+        nextFilters = { ...filters, brands: filters.brands.filter((b) => b !== value) }
+        setFilters(nextFilters)
         break
       case "application":
-        setFilters((prev) => ({
-          ...prev,
-          applications: prev.applications.filter((a) => a !== value),
-        }))
+        nextFilters = { ...filters, applications: filters.applications.filter((a) => a !== value) }
+        setFilters(nextFilters)
         break
       case "inStock":
-        setFilters((prev) => ({ ...prev, inStock: null }))
+        nextFilters = { ...filters, inStock: null }
+        setFilters(nextFilters)
         break
       case "hasWarranty":
-        setFilters((prev) => ({ ...prev, hasWarranty: null }))
+        nextFilters = { ...filters, hasWarranty: null }
+        setFilters(nextFilters)
         break
       case "priceRange":
-        setFilters((prev) => ({ ...prev, priceRange: [0, 30000000] }))
+        nextFilters = { ...filters, priceRange: [0, 30000000] }
+        setFilters(nextFilters)
         break
     }
+
+    setCurrentPage(1)
+    pushProductsUrl(nextFilters, { search: nextSearch })
   }
 
   const handleClearFilters = () => {
-    setFilters(initialFilters)
+    setFilters(emptyFilters)
     setSearchQuery("")
+    setSortBy("bestselling")
     setCurrentPage(1)
+    router.push("/products")
+  }
+
+  const handleFilterChange = (nextFilters: ProductFilterState) => {
+    setFilters(nextFilters)
+    setCurrentPage(1)
+    pushProductsUrl(nextFilters)
+  }
+
+  const handleSortChange = (nextSort: string) => {
+    setSortBy(nextSort)
+    setCurrentPage(1)
+    pushProductsUrl(filters, { sort: nextSort })
   }
 
   const hasUrlSearch = Boolean(initialSearchQuery)
-  const hasUrlFilters = Boolean(activeBrandSlug || activeCategorySlug)
-
-  const handleFilterChange = (nextFilters: FilterState) => {
-    setFilters(nextFilters)
-    setCurrentPage(1)
-  }
-
   const totalProducts = filteredProducts.length
 
   return (
@@ -245,6 +377,8 @@ export function ProductsPageClient({
           <aside className="hidden lg:block w-72 shrink-0">
             <FilterSidebar
               filters={filters}
+              categories={categoryOptions}
+              brands={brandOptions}
               onFilterChange={handleFilterChange}
               onClearFilters={handleClearFilters}
             />
@@ -257,7 +391,12 @@ export function ProductsPageClient({
               </SheetHeader>
               <FilterSidebar
                 filters={filters}
-                onFilterChange={handleFilterChange}
+                categories={categoryOptions}
+                brands={brandOptions}
+                onFilterChange={(nextFilters) => {
+                  handleFilterChange(nextFilters)
+                  setMobileFiltersOpen(false)
+                }}
                 onClearFilters={() => {
                   handleClearFilters()
                   setMobileFiltersOpen(false)
@@ -271,7 +410,7 @@ export function ProductsPageClient({
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               sortBy={sortBy}
-              onSortChange={setSortBy}
+              onSortChange={handleSortChange}
               searchQuery={searchQuery}
               onSearchChange={(value) => {
                 setSearchQuery(value)
@@ -282,6 +421,9 @@ export function ProductsPageClient({
 
             <ActiveFilters
               filters={filters}
+              categories={categoryOptions}
+              brands={brandOptions}
+              searchQuery={hasUrlSearch ? initialSearchQuery : ""}
               onRemoveFilter={handleRemoveFilter}
               onClearAll={handleClearFilters}
             />
