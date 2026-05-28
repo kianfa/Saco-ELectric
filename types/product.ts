@@ -72,8 +72,17 @@ export interface ProductQueryOptions {
   active?: boolean
   limit?: number
   search?: string
+
+  /**
+   * Legacy single-value filters kept for backward compatibility with older
+   * links such as /products?category=inverters and /products?brand=siemens.
+   */
   brand?: string
   category?: string
+
+  /** Multi-select filters used by the products page. */
+  brands?: string[]
+  categories?: string[]
 }
 
 

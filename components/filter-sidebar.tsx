@@ -36,17 +36,26 @@ export function FilterSidebar({
   onFilterChange,
   onClearFilters,
 }: FilterSidebarProps) {
+  const toggleValue = (values: string[], value: string, checked: boolean) => {
+    if (checked) {
+      return values.includes(value) ? values : [...values, value]
+    }
+
+    return values.filter((item) => item !== value)
+  }
+
   const handleCategoryChange = (categorySlug: string, checked: boolean) => {
-    // Products URL currently supports one category slug at a time:
-    // /products?category={slug}. Replacing the previous selected category keeps
-    // the sidebar, URL, and server-side product query in sync.
-    onFilterChange({ ...filters, categories: checked ? [categorySlug] : [] })
+    onFilterChange({
+      ...filters,
+      categories: toggleValue(filters.categories, categorySlug, checked),
+    })
   }
 
   const handleBrandChange = (brandSlug: string, checked: boolean) => {
-    // Same as category: one brand slug in the URL keeps links from the header,
-    // brand pages, and sidebar filters consistent.
-    onFilterChange({ ...filters, brands: checked ? [brandSlug] : [] })
+    onFilterChange({
+      ...filters,
+      brands: toggleValue(filters.brands, brandSlug, checked),
+    })
   }
 
   const handleApplicationChange = (app: string, checked: boolean) => {

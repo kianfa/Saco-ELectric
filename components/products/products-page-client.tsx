@@ -53,8 +53,8 @@ function readAvailability(value?: string) {
 }
 
 function createFiltersFromUrl(params: {
-  category?: string
-  brand?: string
+  categories?: string[]
+  brands?: string[]
   availability?: string
   minPrice?: string
   maxPrice?: string
@@ -64,8 +64,8 @@ function createFiltersFromUrl(params: {
 
   return {
     ...emptyFilters,
-    categories: params.category ? [params.category] : [],
-    brands: params.brand ? [params.brand] : [],
+    categories: params.categories ?? [],
+    brands: params.brands ?? [],
     inStock: readAvailability(params.availability),
     priceRange: [
       Number.isFinite(minPrice) && minPrice >= 0 ? minPrice : 0,
@@ -85,8 +85,8 @@ interface ProductsPageClientProps {
   categories: Category[]
   brands: Brand[]
   initialSearchQuery?: string
-  activeBrandSlug?: string
-  activeCategorySlug?: string
+  activeBrandSlugs?: string[]
+  activeCategorySlugs?: string[]
   activeAvailability?: string
   activeSort?: string
   activeMinPrice?: string
@@ -98,8 +98,8 @@ export function ProductsPageClient({
   categories,
   brands,
   initialSearchQuery = "",
-  activeBrandSlug = "",
-  activeCategorySlug = "",
+  activeBrandSlugs = [],
+  activeCategorySlugs = [],
   activeAvailability = "",
   activeSort = "bestselling",
   activeMinPrice = "",
@@ -112,8 +112,8 @@ export function ProductsPageClient({
   const brandOptions = useMemo(() => toOptions(brands), [brands])
   const [filters, setFilters] = useState<ProductFilterState>(() =>
     createFiltersFromUrl({
-      category: activeCategorySlug,
-      brand: activeBrandSlug,
+      categories: activeCategorySlugs,
+      brands: activeBrandSlugs,
       availability: activeAvailability,
       minPrice: activeMinPrice,
       maxPrice: activeMaxPrice,
@@ -130,8 +130,8 @@ export function ProductsPageClient({
   useEffect(() => {
     setFilters(
       createFiltersFromUrl({
-        category: activeCategorySlug,
-        brand: activeBrandSlug,
+        categories: activeCategorySlugs,
+        brands: activeBrandSlugs,
         availability: activeAvailability,
         minPrice: activeMinPrice,
         maxPrice: activeMaxPrice,
@@ -141,8 +141,8 @@ export function ProductsPageClient({
     setSortBy(activeSort || "bestselling")
     setCurrentPage(1)
   }, [
-    activeCategorySlug,
-    activeBrandSlug,
+    activeCategorySlugs,
+    activeBrandSlugs,
     activeAvailability,
     activeMinPrice,
     activeMaxPrice,
@@ -155,17 +155,17 @@ export function ProductsPageClient({
     const nextSearch = overrides?.search ?? searchQuery
     const nextSort = overrides?.sort ?? sortBy
 
-    const category = nextFilters.categories[0]
-    const brand = nextFilters.brands[0]
-
     if (nextSearch?.trim()) params.set("search", nextSearch.trim())
     else params.delete("search")
 
-    if (category) params.set("category", category)
-    else params.delete("category")
+    if (nextFilters.categories.length > 0) params.set("categories", nextFilters.categories.join(","))
+    else params.delete("categories")
+    // Remove legacy single-value params once the filter UI writes the URL.
+    params.delete("category")
 
-    if (brand) params.set("brand", brand)
-    else params.delete("brand")
+    if (nextFilters.brands.length > 0) params.set("brands", nextFilters.brands.join(","))
+    else params.delete("brands")
+    params.delete("brand")
 
     if (nextFilters.inStock === true) params.set("availability", "in-stock")
     else if (nextFilters.inStock === false) params.set("availability", "out-of-stock")
@@ -465,6 +465,21 @@ export function ProductsPageClient({
                 </p>
                 <Button asChild className="rounded-xl bg-primary hover:bg-primary/90">
                   <Link href="/products">مشاهده همه محصولات</Link>
+                </Button>
+              </div>
+            ) : filters.categories.length > 0 || filters.brands.length > 0 ? (
+              <div className="bg-card border border-border rounded-2xl p-12 text-center">
+                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                  <SearchX className="w-10 h-10 text-muted-foreground" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">
+                  محصولی با فیلترهای انتخاب‌شده پیدا نشد
+                </h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  فیلترها را تغییر دهید یا با پشتیبانی ساکو الکتریک تماس بگیرید.
+                </p>
+                <Button onClick={handleClearFilters} className="rounded-xl bg-primary hover:bg-primary/90">
+                  پاک کردن فیلترها
                 </Button>
               </div>
             ) : (

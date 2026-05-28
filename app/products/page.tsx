@@ -11,6 +11,25 @@ function readSearchParam(value: SearchParamsValue): string | undefined {
   return value
 }
 
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+function parseMultiParam(params: ProductsPageSearchParams, key: string, legacyKey?: string): string[] {
+  const values = [readSearchParam(params[key]), legacyKey ? readSearchParam(params[legacyKey]) : undefined]
+
+  return values
+    .filter((value): value is string => Boolean(value?.trim()))
+    .flatMap((value) => value.split(","))
+    .map((value) => safeDecode(value).trim())
+    .filter(Boolean)
+    .filter((value, index, array) => array.indexOf(value) === index)
+}
+
 interface ProductsPageProps {
   searchParams?: Promise<ProductsPageSearchParams> | ProductsPageSearchParams
 }
@@ -19,19 +38,19 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   try {
     const params = await Promise.resolve(searchParams ?? {})
     const search = readSearchParam(params.search)?.trim() || undefined
-    const brand = readSearchParam(params.brand)?.trim() || undefined
-    const category = readSearchParam(params.category)?.trim() || undefined
+    const categories = parseMultiParam(params, "categories", "category")
+    const brands = parseMultiParam(params, "brands", "brand")
     const availability = readSearchParam(params.availability)?.trim() || undefined
     const sort = readSearchParam(params.sort)?.trim() || undefined
     const minPrice = readSearchParam(params.minPrice)?.trim() || undefined
     const maxPrice = readSearchParam(params.maxPrice)?.trim() || undefined
 
-    const [products, categories, brands] = await Promise.all([
+    const [products, categoryOptions, brandOptions] = await Promise.all([
       getProducts({
         active: true,
         search,
-        brand,
-        category,
+        categories,
+        brands,
       }),
       getCategories().catch(() => []),
       getBrands().catch(() => []),
@@ -40,11 +59,11 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     return (
       <ProductsPageClient
         products={products}
-        categories={categories}
-        brands={brands}
+        categories={categoryOptions}
+        brands={brandOptions}
         initialSearchQuery={search ?? ""}
-        activeBrandSlug={brand ?? ""}
-        activeCategorySlug={category ?? ""}
+        activeCategorySlugs={categories}
+        activeBrandSlugs={brands}
         activeAvailability={availability ?? ""}
         activeSort={sort ?? "bestselling"}
         activeMinPrice={minPrice ?? ""}

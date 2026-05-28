@@ -295,6 +295,14 @@ function normalizeSearchValue(value: string | null | undefined): string {
     .toLowerCase()
 }
 
+function normalizeFilterList(values: Array<string | null | undefined>): string[] {
+  return values
+    .flatMap((value) => (value ?? "").split(","))
+    .map(normalizeSearchValue)
+    .filter(Boolean)
+    .filter((value, index, array) => array.indexOf(value) === index)
+}
+
 function matchesSearch(product: Product, search: string): boolean {
   const normalizedSearch = normalizeSearchValue(search)
   if (!normalizedSearch) return true
@@ -352,14 +360,14 @@ export async function fetchProducts(options: ProductQueryOptions = {}): Promise<
 
   let products = ((data ?? []) as RawProductRow[]).map(mapProduct)
 
-  const brandFilter = normalizeSearchValue(options.brand)
-  if (brandFilter) {
-    products = products.filter((product) => normalizeSearchValue(product.brandSlug) === brandFilter)
+  const brandFilters = normalizeFilterList([...(options.brands ?? []), options.brand])
+  if (brandFilters.length > 0) {
+    products = products.filter((product) => brandFilters.includes(normalizeSearchValue(product.brandSlug)))
   }
 
-  const categoryFilter = normalizeSearchValue(options.category)
-  if (categoryFilter) {
-    products = products.filter((product) => normalizeSearchValue(product.categorySlug) === categoryFilter)
+  const categoryFilters = normalizeFilterList([...(options.categories ?? []), options.category])
+  if (categoryFilters.length > 0) {
+    products = products.filter((product) => categoryFilters.includes(normalizeSearchValue(product.categorySlug)))
   }
 
   const searchFilter = normalizeSearchValue(options.search)
