@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ProductImageWithFallback } from "@/components/product-image-with-fallback"
+import { ProductImagePreviewCard } from "@/components/admin/product-image-preview-card"
 
 function slugify(value: string) {
   return value
@@ -222,27 +222,24 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
             {existingImages.length ? (
               <div>
                 <div className="mb-2 text-sm font-bold">تصاویر فعلی</div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {existingImages.map((image) => (
-                    <div key={image.id} className="rounded-xl border bg-card p-2">
-                      <div className="aspect-square overflow-hidden rounded-lg bg-muted"><ProductImageWithFallback imageUrl={image.imageUrl} alt={image.altText} objectFit="contain" /></div>
-                      <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-                        <label className="flex items-center gap-2"><input type="radio" name="main-image-choice" checked={mainExistingImageId === image.id} onChange={() => setMainExistingImageId(image.id)} /> تصویر اصلی</label>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => removeExistingImage(image.id)} className="text-destructive">حذف</Button>
-                      </div>
-                      <div className="mt-3 space-y-1">
-                        <Label className="text-xs">برچسب جایگزین تصویر (ALT)</Label>
-                        <Input
-                          value={image.altText ?? ""}
-                          maxLength={150}
-                          onChange={(event) => updateExistingImageAlt(image.id, event.target.value)}
-                          placeholder={`${name}${model ? ` ${model}` : ""}`.trim() || "تصویر محصول"}
-                          className="h-9 rounded-lg text-xs"
-                        />
-                        <p className="text-[11px] leading-5 text-muted-foreground">برای سئو، دسترس‌پذیری و نمایش جایگزین هنگام خطای تصویر.</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {existingImages.map((image) => {
+                    const fallbackText = `${name}${model ? ` ${model}` : ""}`.trim() || "تصویر محصول"
+                    const isMain = mainExistingImageId ? mainExistingImageId === image.id : image.isMain
+
+                    return (
+                      <ProductImagePreviewCard
+                        key={image.id}
+                        imageUrl={image.imageUrl}
+                        altText={image.altText ?? ""}
+                        fallbackText={fallbackText}
+                        isMain={isMain}
+                        onSetMain={() => setMainExistingImageId(image.id)}
+                        onRemove={() => removeExistingImage(image.id)}
+                        onAltTextChange={(value) => updateExistingImageAlt(image.id, value)}
+                      />
+                    )
+                  })}
                 </div>
               </div>
             ) : null}
@@ -250,22 +247,21 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
             {newImagePreviews.length ? (
               <div>
                 <div className="mb-2 flex items-center justify-between"><span className="text-sm font-bold">پیش‌نمایش تصاویر جدید</span><Button type="button" variant="ghost" size="sm" onClick={clearNewImages}><X className="h-4 w-4" /> حذف همه</Button></div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {newImagePreviews.map((url, index) => (
-                    <div key={url} className="rounded-xl border bg-card p-2">
-                      <ProductImageWithFallback imageUrl={url} alt={newImageAltTexts[index] || `${name}${model ? ` ${model}` : ""}`.trim()} objectFit="contain" className="aspect-square rounded-lg bg-gradient-to-br from-slate-50 to-white p-4" />
-                      <div className="mt-3 space-y-1">
-                        <Label className="text-xs">برچسب جایگزین تصویر (ALT)</Label>
-                        <Input
-                          value={newImageAltTexts[index] ?? ""}
-                          maxLength={150}
-                          onChange={(event) => updateNewImageAlt(index, event.target.value)}
-                          placeholder={`${name}${model ? ` ${model}` : ""}`.trim() || "تصویر محصول"}
-                          className="h-9 rounded-lg text-xs"
-                        />
-                      </div>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {newImagePreviews.map((url, index) => {
+                    const fallbackText = `${name}${model ? ` ${model}` : ""}`.trim() || "تصویر محصول"
+
+                    return (
+                      <ProductImagePreviewCard
+                        key={url}
+                        imageUrl={url}
+                        altText={newImageAltTexts[index] ?? ""}
+                        fallbackText={fallbackText}
+                        isMain={!existingImages.length && index === 0}
+                        onAltTextChange={(value) => updateNewImageAlt(index, value)}
+                      />
+                    )
+                  })}
                 </div>
               </div>
             ) : null}
