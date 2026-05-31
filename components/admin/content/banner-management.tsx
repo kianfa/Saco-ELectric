@@ -14,7 +14,8 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ContentActionMessage } from "@/components/admin/content/content-action-message"
 import { AdminSubmitButton } from "@/components/admin/content/admin-submit-button"
-import { Edit, Trash2, ImageIcon } from "lucide-react"
+import { Edit, Trash2 } from "lucide-react"
+import { SafeImageWithFallback } from "@/components/common/safe-image-with-fallback"
 
 const initialState: SiteContentActionState = { ok: false, message: "" }
 const placements = ["homepage_promo", "products_top", "checkout_notice"]
@@ -26,6 +27,7 @@ function emptyBanner(): SiteBanner {
     subtitle: null,
     description: null,
     imageUrl: null,
+    imageAltText: null,
     buttonText: null,
     buttonUrl: null,
     badgeText: null,
@@ -65,13 +67,14 @@ export function BannerManagement({ banners }: { banners: SiteBanner[] }) {
                   {banners.map((banner) => (
                     <TableRow key={banner.id}>
                       <TableCell>
-                        {banner.imageUrl ? (
-                          <img src={banner.imageUrl} alt={banner.title} className="h-14 w-20 rounded-lg object-cover" />
-                        ) : (
-                          <div className="flex h-14 w-20 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                            <ImageIcon className="h-5 w-5" />
-                          </div>
-                        )}
+                        <SafeImageWithFallback
+                          src={banner.imageUrl}
+                          altText={banner.imageAltText || banner.title}
+                          fallbackText={banner.title}
+                          compact
+                          objectFit="cover"
+                          className="h-14 w-20 rounded-lg"
+                        />
                       </TableCell>
                       <TableCell className="font-medium">{banner.title}</TableCell>
                       <TableCell dir="ltr">{banner.placement}</TableCell>
@@ -117,7 +120,13 @@ export function BannerManagement({ banners }: { banners: SiteBanner[] }) {
 
             {editing.imageUrl ? (
               <div className="overflow-hidden rounded-2xl border bg-muted">
-                <img src={editing.imageUrl} alt={editing.title || "بنر"} className="h-40 w-full object-cover" />
+                <SafeImageWithFallback
+                  src={editing.imageUrl}
+                  altText={editing.imageAltText || editing.title || "بنر ساکو الکتریک"}
+                  fallbackText={editing.title || "بنر ساکو الکتریک"}
+                  objectFit="cover"
+                  className="h-40 w-full"
+                />
                 <div className="border-t bg-card p-3 text-xs text-muted-foreground" dir="ltr">
                   <span className="break-all">{editing.imageUrl}</span>
                 </div>
@@ -166,8 +175,20 @@ export function BannerManagement({ banners }: { banners: SiteBanner[] }) {
             </div>
             <div className="space-y-2">
               <Label>تصویر بنر</Label>
-              <Input name="image" type="file" accept="image/*" className="rounded-xl" />
+              <Input name="image" type="file" accept="image/jpeg,image/png,image/webp" className="rounded-xl" />
               <p className="text-xs text-muted-foreground">تصویر در bucket site-media ذخیره می‌شود و URL عمومی آن در image_url ثبت می‌شود.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>متن ALT تصویر بنر</Label>
+              <Input
+                name="imageAltText"
+                maxLength={150}
+                value={editing.imageAltText ?? ""}
+                onChange={(event) => setEditing({ ...editing, imageAltText: event.target.value })}
+                placeholder={editing.title || "بنر ساکو الکتریک"}
+                className="rounded-xl"
+              />
+              <p className="text-xs text-muted-foreground">برای سئو، دسترس‌پذیری و fallback در صورت خطای تصویر استفاده می‌شود.</p>
             </div>
             <div className="flex items-center justify-between rounded-xl border p-3">
               <span className="text-sm font-medium">فعال</span>

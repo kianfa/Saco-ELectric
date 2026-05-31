@@ -58,6 +58,7 @@ function parseProductInput(formData: FormData): AdminProductFormInput {
     existingImages: jsonValue<AdminProductImage[]>(formData.get("existingImagesJson"), []),
     removedImageIds: jsonValue<string[]>(formData.get("removedImageIdsJson"), []),
     mainExistingImageId: nullableText(formData.get("mainExistingImageId")),
+    newImageAltTexts: jsonValue<string[]>(formData.get("newImageAltTextsJson"), []),
   }
 }
 

@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { storeContactConfig } from "@/lib/store-contact-config"
 import { useSiteSettings } from "@/components/site-settings-provider"
+import { SafeImageWithFallback } from "@/components/common/safe-image-with-fallback"
 
 type FooterCategoryLink = {
   name: string
@@ -182,10 +183,12 @@ export function Footer(_props: { settings?: unknown } = {}) {
                   <h4 className="font-bold text-white">اطلاعات اعتماد فروشگاه</h4>
                   {footer.trustBadgeImageUrl ? (
                     <div className="mt-3 flex items-center gap-3">
-                      <img
+                      <SafeImageWithFallback
                         src={footer.trustBadgeImageUrl}
-                        alt="نشان اعتماد فروشگاه"
-                        className="h-20 w-20 rounded-2xl border border-white/10 bg-white object-contain p-2"
+                        altText={footer.trustBadgeImageAltText || "نشان اعتماد ساکو الکتریک"}
+                        fallbackText={footer.trustBadgeImageAltText || "نشان اعتماد ساکو الکتریک"}
+                        objectFit="contain"
+                        className="h-20 w-20 rounded-2xl border border-white/10 bg-white p-2"
                       />
                       <span className="text-xs leading-6 text-white/65">نشان اعتماد ثبت‌شده فروشگاه</span>
                     </div>

@@ -12,6 +12,7 @@ import { useContactInfo } from "@/components/site-settings-provider"
 import { TopBar } from "@/components/top-bar"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { SafeImageWithFallback } from "@/components/common/safe-image-with-fallback"
 
 type BrandsPageProps = {
   brands: Brand[]
@@ -20,9 +21,13 @@ type BrandsPageProps = {
 function BrandLogo({ brand }: { brand: Brand }) {
   if (brand.logoUrl) {
     return (
-      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-border bg-white p-3 shadow-sm">
-        <img src={brand.logoUrl} alt={brand.name} className="max-h-full max-w-full object-contain" loading="lazy" />
-      </div>
+      <SafeImageWithFallback
+        src={brand.logoUrl}
+        altText={`لوگوی ${brand.name}`}
+        fallbackText={brand.name}
+        objectFit="contain"
+        className="h-20 w-20 rounded-2xl border border-border bg-white p-3 shadow-sm"
+      />
     )
   }
 

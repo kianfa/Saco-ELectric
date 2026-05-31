@@ -1,7 +1,6 @@
 "use client"
 
 import { useActionState } from "react"
-import { ImageIcon } from "lucide-react"
 import { saveHomepageContentAction } from "@/lib/actions/site-content-actions"
 import type { HeroSliderImage, HomepageSection, SiteContentActionState } from "@/types/site-content"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
+import { SafeImageWithFallback } from "@/components/common/safe-image-with-fallback"
 import { AdminSubmitButton } from "@/components/admin/content/admin-submit-button"
 import { ContentActionMessage } from "@/components/admin/content/content-action-message"
 
@@ -43,21 +43,14 @@ function getHeroSlides(section?: HomepageSection): HeroSliderImage[] {
 }
 
 function ImagePreview({ url, label }: { url?: string | null; label: string }) {
-  if (!url) {
-    return (
-      <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed bg-muted/40 text-muted-foreground">
-        <div className="text-center text-xs">
-          <ImageIcon className="mx-auto mb-2 h-7 w-7" />
-          <span>{label}</span>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="overflow-hidden rounded-xl border bg-muted">
-      <img src={url} alt={label} className="aspect-video w-full object-cover" />
-    </div>
+    <SafeImageWithFallback
+      src={url}
+      altText={label}
+      fallbackText={label}
+      objectFit="cover"
+      className="aspect-video w-full rounded-xl border bg-muted"
+    />
   )
 }
 
@@ -173,7 +166,13 @@ export function HomepageContentForm({ sections }: { sections: HomepageSection[] 
 
                 <div className="space-y-2">
                   <Label>متن جایگزین تصویر</Label>
-                  <Input name={`heroSlide${slideNumber}AltText`} defaultValue={slide.altText ?? `تصویر تجهیزات برق صنعتی ${slideNumber}`} className="rounded-xl" />
+                  <Input
+                    name={`heroSlide${slideNumber}AltText`}
+                    maxLength={150}
+                    defaultValue={slide.altText ?? `تصویر تجهیزات برق صنعتی ${slideNumber}`}
+                    className="rounded-xl"
+                  />
+                  <p className="text-xs text-muted-foreground">متن ALT کوتاه و توصیفی وارد کنید؛ مثال: PLC دلتا مناسب اتوماسیون صنعتی</p>
                 </div>
               </div>
             )
@@ -192,7 +191,17 @@ export function HomepageContentForm({ sections }: { sections: HomepageSection[] 
           <div className="space-y-2"><Label>لینک دکمه</Label><Input name="promoButtonUrl" dir="ltr" defaultValue={promo?.primaryButtonUrl ?? "/products"} className="rounded-xl" /></div>
           <div className="space-y-2"><Label>فعال</Label><div className="flex h-10 items-center gap-3"><Switch name="promoIsActive" defaultChecked={promo?.isActive ?? true} /><span className="text-sm text-muted-foreground">نمایش بنر</span></div></div>
           <div className="space-y-2 md:col-span-2"><Label>توضیح</Label><Textarea name="promoDescription" defaultValue={promo?.description ?? ""} className="rounded-xl" /></div>
-          <div className="space-y-2 md:col-span-2"><Label>تصویر بنر</Label><Input name="promoImage" type="file" accept="image/*" className="rounded-xl" /></div>
+          <div className="space-y-2 md:col-span-2"><Label>تصویر بنر</Label><Input name="promoImage" type="file" accept="image/jpeg,image/png,image/webp" className="rounded-xl" /></div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>متن ALT تصویر بنر</Label>
+            <Input
+              name="promoImageAltText"
+              maxLength={150}
+              defaultValue={String(promo?.metadata?.imageAltText ?? promo?.title ?? "بنر ساکو الکتریک")}
+              className="rounded-xl"
+            />
+            <p className="text-xs text-muted-foreground">برای دسترس‌پذیری، سئو و نمایش جایگزین در صورت خطای تصویر استفاده می‌شود.</p>
+          </div>
         </CardContent>
       </Card>
 

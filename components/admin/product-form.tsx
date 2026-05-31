@@ -59,6 +59,7 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
   const [removedImageIds, setRemovedImageIds] = useState<string[]>([])
   const [mainExistingImageId, setMainExistingImageId] = useState<string | null>(product?.images.find((image) => image.isMain)?.id ?? null)
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([])
+  const [newImageAltTexts, setNewImageAltTexts] = useState<string[]>([])
   const [manualSlugTouched, setManualSlugTouched] = useState(Boolean(product?.slug))
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -106,14 +107,26 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
 
   function handleNewImagesChange(files: FileList | null) {
     newImagePreviews.forEach((url) => URL.revokeObjectURL(url))
-    const previews = Array.from(files ?? []).map((file) => URL.createObjectURL(file))
+    const selectedFiles = Array.from(files ?? [])
+    const previews = selectedFiles.map((file) => URL.createObjectURL(file))
+    const defaultAlt = `${name}${model ? ` ${model}` : ""}`.trim() || "تصویر محصول"
     setNewImagePreviews(previews)
+    setNewImageAltTexts(selectedFiles.map((_, index) => newImageAltTexts[index] || defaultAlt))
   }
 
   function clearNewImages() {
     newImagePreviews.forEach((url) => URL.revokeObjectURL(url))
     setNewImagePreviews([])
+    setNewImageAltTexts([])
     if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  function updateExistingImageAlt(id: string, altText: string) {
+    setExistingImages((images) => images.map((image) => image.id === id ? { ...image, altText } : image))
+  }
+
+  function updateNewImageAlt(index: number, altText: string) {
+    setNewImageAltTexts((items) => items.map((item, itemIndex) => itemIndex === index ? altText : item))
   }
 
   return (
@@ -122,6 +135,7 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
       <input type="hidden" name="existingImagesJson" value={JSON.stringify(existingImages)} />
       <input type="hidden" name="removedImageIdsJson" value={JSON.stringify(removedImageIds)} />
       <input type="hidden" name="mainExistingImageId" value={mainExistingImageId ?? ""} />
+      <input type="hidden" name="newImageAltTextsJson" value={JSON.stringify(newImageAltTexts)} />
 
       <div className="space-y-6">
         <Card className="rounded-2xl shadow-sm">
@@ -216,6 +230,17 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
                         <label className="flex items-center gap-2"><input type="radio" name="main-image-choice" checked={mainExistingImageId === image.id} onChange={() => setMainExistingImageId(image.id)} /> تصویر اصلی</label>
                         <Button type="button" variant="ghost" size="sm" onClick={() => removeExistingImage(image.id)} className="text-destructive">حذف</Button>
                       </div>
+                      <div className="mt-3 space-y-1">
+                        <Label className="text-xs">برچسب جایگزین تصویر (ALT)</Label>
+                        <Input
+                          value={image.altText ?? ""}
+                          maxLength={150}
+                          onChange={(event) => updateExistingImageAlt(image.id, event.target.value)}
+                          placeholder={`${name}${model ? ` ${model}` : ""}`.trim() || "تصویر محصول"}
+                          className="h-9 rounded-lg text-xs"
+                        />
+                        <p className="text-[11px] leading-5 text-muted-foreground">برای سئو، دسترس‌پذیری و نمایش جایگزین هنگام خطای تصویر.</p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -226,7 +251,21 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
               <div>
                 <div className="mb-2 flex items-center justify-between"><span className="text-sm font-bold">پیش‌نمایش تصاویر جدید</span><Button type="button" variant="ghost" size="sm" onClick={clearNewImages}><X className="h-4 w-4" /> حذف همه</Button></div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {newImagePreviews.map((url, index) => <img key={url} src={url} alt={`preview-${index + 1}`} className="aspect-square rounded-xl border bg-gradient-to-br from-slate-50 to-white object-contain p-4" />)}
+                  {newImagePreviews.map((url, index) => (
+                    <div key={url} className="rounded-xl border bg-card p-2">
+                      <ProductImageWithFallback imageUrl={url} alt={newImageAltTexts[index] || `${name}${model ? ` ${model}` : ""}`.trim()} objectFit="contain" className="aspect-square rounded-lg bg-gradient-to-br from-slate-50 to-white p-4" />
+                      <div className="mt-3 space-y-1">
+                        <Label className="text-xs">برچسب جایگزین تصویر (ALT)</Label>
+                        <Input
+                          value={newImageAltTexts[index] ?? ""}
+                          maxLength={150}
+                          onChange={(event) => updateNewImageAlt(index, event.target.value)}
+                          placeholder={`${name}${model ? ` ${model}` : ""}`.trim() || "تصویر محصول"}
+                          className="h-9 rounded-lg text-xs"
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : null}

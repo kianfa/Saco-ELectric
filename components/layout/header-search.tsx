@@ -30,7 +30,7 @@ function getSuggestionMeta(product: ProductSearchSuggestion): string {
 }
 
 function ProductSuggestionImage({ product }: { product: ProductSearchSuggestion }) {
-  return <ProductImage src={product.mainImageUrl} alt={product.name} size="search" />
+  return <ProductImage src={product.mainImageUrl} alt={product.mainImageAlt || product.name} size="search" />
 }
 
 function HeaderSearchInner({

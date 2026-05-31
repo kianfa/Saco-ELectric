@@ -447,5 +447,6 @@ export async function fetchProductSearchSuggestions(
     brandName: product.brandName,
     categoryName: product.categoryName,
     mainImageUrl: product.mainImageUrl,
+    mainImageAlt: product.mainImageAlt,
   }))
 }

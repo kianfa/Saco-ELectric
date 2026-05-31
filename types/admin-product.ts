@@ -66,6 +66,7 @@ export interface AdminProductFormInput {
   existingImages?: AdminProductImage[]
   removedImageIds?: string[]
   mainExistingImageId?: string | null
+  newImageAltTexts?: string[]
 }
 
 export interface AdminProductFormOptions {

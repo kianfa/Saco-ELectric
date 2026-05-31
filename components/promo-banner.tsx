@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
+import { SafeImageWithFallback } from "@/components/common/safe-image-with-fallback"
 import type { HomepageSection, SiteBanner } from "@/types/site-content"
 
 export function PromoBanner({ section, banners = [] }: { section?: HomepageSection | null; banners?: SiteBanner[] }) {
@@ -14,30 +15,31 @@ export function PromoBanner({ section, banners = [] }: { section?: HomepageSecti
   const buttonText = banner?.buttonText || section?.primaryButtonText || "مشاهده پیشنهادها"
   const buttonUrl = banner?.buttonUrl || section?.primaryButtonUrl || "/products"
   const imageUrl = banner?.imageUrl || section?.imageUrl || null
+  const imageAltText =
+    banner?.imageAltText ||
+    (typeof section?.metadata?.imageAltText === "string" ? section.metadata.imageAltText : null) ||
+    title ||
+    "بنر ساکو الکتریک"
 
   return (
     <section className="container mx-auto px-4 py-8" data-homepage-promo-banner={banner?.id ?? "fallback"}>
-      <div
-        className="relative overflow-hidden rounded-3xl bg-primary p-8 shadow-sm md:p-12"
-        style={
-          imageUrl
-            ? {
-                backgroundImage: `linear-gradient(270deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.78) 48%, rgba(15, 23, 42, 0.42) 100%), url(${imageUrl})`,
-                backgroundPosition: "center",
-                backgroundSize: "cover",
-              }
-            : undefined
-        }
-      >
-        {!imageUrl ? (
-          <>
-            <div className="absolute inset-0 bg-gradient-to-l from-primary to-primary/90" />
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute left-1/4 top-0 h-96 w-96 rounded-full bg-accent blur-3xl" />
-              <div className="absolute bottom-0 right-1/4 h-64 w-64 rounded-full bg-accent/50 blur-2xl" />
-            </div>
-          </>
-        ) : null}
+      <div className="relative overflow-hidden rounded-3xl bg-primary p-8 shadow-sm md:p-12">
+        <div className="absolute inset-0">
+          <SafeImageWithFallback
+            src={imageUrl}
+            altText={imageAltText}
+            fallbackText={imageAltText}
+            objectFit="cover"
+            className="h-full w-full"
+            imageClassName="opacity-90"
+            fallbackClassName="opacity-35"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-l from-slate-950/95 via-slate-950/80 to-slate-950/45" />
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute left-1/4 top-0 h-96 w-96 rounded-full bg-accent blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 h-64 w-64 rounded-full bg-accent/50 blur-2xl" />
+        </div>
 
         <div className="relative flex flex-col items-center justify-between gap-6 md:flex-row">
           <div className="text-center md:text-right">

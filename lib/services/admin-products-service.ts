@@ -68,7 +68,7 @@ export async function createAdminProduct(input: AdminProductFormInput, imageFile
     const imageUrl = await uploadProductImage(file, input.slug, fileName)
     uploadedImages.push({
       imageUrl,
-      altText: input.name,
+      altText: input.newImageAltTexts?.[index]?.trim() || `${input.name}${input.model ? ` ${input.model}` : ""}`.trim(),
       sortOrder: index + 1,
       isMain: index === 0,
     })
@@ -106,7 +106,7 @@ export async function updateAdminProduct(id: string, input: AdminProductFormInpu
     const imageUrl = await uploadProductImage(file, input.slug, fileName)
     uploadedImages.push({
       imageUrl,
-      altText: input.name,
+      altText: input.newImageAltTexts?.[index]?.trim() || `${input.name}${input.model ? ` ${input.model}` : ""}`.trim(),
       sortOrder: (input.existingImages?.length ?? 0) + index + 1,
       isMain: !input.existingImages?.length && index === 0,
     })

@@ -26,7 +26,8 @@ function CategoryVisual({ category }: { category: Category }) {
     <CategoryImage
       src={image}
       iconSrc={icon}
-      alt={category.homepageTitle || category.name}
+      alt={category.displayImageAltText || category.homepageTitle || category.name}
+      iconAlt={category.homepageIconAltText || category.name}
       size="large"
       className="h-40 w-full"
     />

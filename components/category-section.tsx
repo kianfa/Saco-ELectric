@@ -17,15 +17,15 @@ const fallbackSettings: HomepageCategorySectionSettings = {
   isActive: true,
 }
 
-const fallbackCategories: Pick<Category, "id" | "name" | "slug" | "homepageTitle" | "homepageImageUrl" | "homepageIconUrl" | "displayImageUrl" | "homepageUrl" | "imageUrl">[] = [
-  { id: "fallback-mccb", name: "کلید اتوماتیک", slug: "mccb", homepageTitle: null, homepageImageUrl: null, homepageIconUrl: null, displayImageUrl: null, homepageUrl: null, imageUrl: null },
-  { id: "fallback-cable", name: "کابل و سیم", slug: "cable-wire", homepageTitle: null, homepageImageUrl: null, homepageIconUrl: null, displayImageUrl: null, homepageUrl: null, imageUrl: null },
-  { id: "fallback-sensor", name: "سنسور و ابزار دقیق", slug: "sensor-instrument", homepageTitle: null, homepageImageUrl: null, homepageIconUrl: null, displayImageUrl: null, homepageUrl: null, imageUrl: null },
-  { id: "fallback-panel", name: "تابلو برق", slug: "electrical-panel", homepageTitle: null, homepageImageUrl: null, homepageIconUrl: null, displayImageUrl: null, homepageUrl: null, imageUrl: null },
-  { id: "fallback-inverter", name: "اینورتر", slug: "inverter", homepageTitle: null, homepageImageUrl: null, homepageIconUrl: null, displayImageUrl: null, homepageUrl: null, imageUrl: null },
-  { id: "fallback-motor", name: "الکتروموتور", slug: "electric-motor", homepageTitle: null, homepageImageUrl: null, homepageIconUrl: null, displayImageUrl: null, homepageUrl: null, imageUrl: null },
-  { id: "fallback-plc", name: "PLC و اتوماسیون", slug: "plc-automation", homepageTitle: null, homepageImageUrl: null, homepageIconUrl: null, displayImageUrl: null, homepageUrl: null, imageUrl: null },
-  { id: "fallback-contactor", name: "کنتاکتور", slug: "contactor", homepageTitle: null, homepageImageUrl: null, homepageIconUrl: null, displayImageUrl: null, homepageUrl: null, imageUrl: null },
+const fallbackCategories: Pick<Category, "id" | "name" | "slug" | "homepageTitle" | "homepageImageUrl" | "homepageImageAltText" | "homepageIconUrl" | "homepageIconAltText" | "displayImageUrl" | "displayImageAltText" | "homepageUrl" | "imageUrl">[] = [
+  { id: "fallback-mccb", name: "کلید اتوماتیک", slug: "mccb", homepageTitle: null, homepageImageUrl: null, homepageImageAltText: null, homepageIconUrl: null, homepageIconAltText: null, displayImageUrl: null, displayImageAltText: null, homepageUrl: null, imageUrl: null },
+  { id: "fallback-cable", name: "کابل و سیم", slug: "cable-wire", homepageTitle: null, homepageImageUrl: null, homepageImageAltText: null, homepageIconUrl: null, homepageIconAltText: null, displayImageUrl: null, displayImageAltText: null, homepageUrl: null, imageUrl: null },
+  { id: "fallback-sensor", name: "سنسور و ابزار دقیق", slug: "sensor-instrument", homepageTitle: null, homepageImageUrl: null, homepageImageAltText: null, homepageIconUrl: null, homepageIconAltText: null, displayImageUrl: null, displayImageAltText: null, homepageUrl: null, imageUrl: null },
+  { id: "fallback-panel", name: "تابلو برق", slug: "electrical-panel", homepageTitle: null, homepageImageUrl: null, homepageImageAltText: null, homepageIconUrl: null, homepageIconAltText: null, displayImageUrl: null, displayImageAltText: null, homepageUrl: null, imageUrl: null },
+  { id: "fallback-inverter", name: "اینورتر", slug: "inverter", homepageTitle: null, homepageImageUrl: null, homepageImageAltText: null, homepageIconUrl: null, homepageIconAltText: null, displayImageUrl: null, displayImageAltText: null, homepageUrl: null, imageUrl: null },
+  { id: "fallback-motor", name: "الکتروموتور", slug: "electric-motor", homepageTitle: null, homepageImageUrl: null, homepageImageAltText: null, homepageIconUrl: null, homepageIconAltText: null, displayImageUrl: null, displayImageAltText: null, homepageUrl: null, imageUrl: null },
+  { id: "fallback-plc", name: "PLC و اتوماسیون", slug: "plc-automation", homepageTitle: null, homepageImageUrl: null, homepageImageAltText: null, homepageIconUrl: null, homepageIconAltText: null, displayImageUrl: null, displayImageAltText: null, homepageUrl: null, imageUrl: null },
+  { id: "fallback-contactor", name: "کنتاکتور", slug: "contactor", homepageTitle: null, homepageImageUrl: null, homepageImageAltText: null, homepageIconUrl: null, homepageIconAltText: null, displayImageUrl: null, displayImageAltText: null, homepageUrl: null, imageUrl: null },
 ]
 
 export function CategorySection({ categories, settings, error }: CategorySectionProps) {
@@ -78,7 +78,14 @@ export function CategorySection({ categories, settings, error }: CategorySection
               const href = category.homepageUrl || `/products?category=${encodeURIComponent(category.slug)}`
               return (
                 <div key={category.id} className="w-[142px] flex-shrink-0 snap-start sm:w-[160px] xl:w-auto">
-                  <CategoryCard name={category.homepageTitle || category.name} image={image} fallbackImage={fallbackImage} href={href} />
+                  <CategoryCard
+                    name={category.homepageTitle || category.name}
+                    image={image}
+                    fallbackImage={fallbackImage}
+                    altText={category.displayImageAltText || category.homepageTitle || category.name}
+                    fallbackAltText={category.homepageIconAltText || category.name}
+                    href={href}
+                  />
                 </div>
               )
             })}

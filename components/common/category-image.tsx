@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
-import { IndustrialImagePlaceholder } from "@/components/common/industrial-image-placeholder"
+import { SafeImageWithFallback } from "@/components/common/safe-image-with-fallback"
 
 type CategoryImageSize = "card" | "large" | "thumbnail"
 
@@ -10,6 +10,7 @@ type CategoryImageProps = {
   src?: string | null
   iconSrc?: string | null
   alt: string
+  iconAlt?: string | null
   className?: string
   imageClassName?: string
   size?: CategoryImageSize
@@ -21,36 +22,40 @@ const sizeClasses: Record<CategoryImageSize, string> = {
   thumbnail: "h-14 w-14 rounded-xl p-2",
 }
 
-export function CategoryImage({ src, iconSrc, alt, className, imageClassName, size = "card" }: CategoryImageProps) {
-  const sources = useMemo(() => [src?.trim() || null, iconSrc?.trim() || null].filter(Boolean) as string[], [src, iconSrc])
+export function CategoryImage({ src, iconSrc, alt, iconAlt, className, imageClassName, size = "card" }: CategoryImageProps) {
+  const sources = useMemo(
+    () =>
+      [
+        src?.trim() ? { url: src.trim(), alt } : null,
+        iconSrc?.trim() ? { url: iconSrc.trim(), alt: iconAlt?.trim() || alt } : null,
+      ].filter(Boolean) as { url: string; alt: string }[],
+    [src, iconSrc, alt, iconAlt],
+  )
   const [sourceIndex, setSourceIndex] = useState(0)
 
   useEffect(() => {
     setSourceIndex(0)
-  }, [sources.join("|")])
+  }, [sources.map((item) => item.url).join("|")])
 
-  const currentSrc = sources[sourceIndex] ?? null
+  const current = sources[sourceIndex] ?? null
 
   return (
-    <div
+    <SafeImageWithFallback
+      src={current?.url}
+      altText={current?.alt || alt}
+      fallbackText={alt || "تصویر دسته‌بندی"}
+      compact={size === "thumbnail"}
+      objectFit="contain"
+      onImageError={() => {
+        if (sourceIndex < sources.length - 1) setSourceIndex((index) => index + 1)
+      }}
       className={cn(
-        "relative flex shrink-0 items-center justify-center overflow-hidden border border-slate-100 bg-gradient-to-br from-slate-50 via-white to-slate-100 shadow-sm",
+        "group relative shrink-0 border border-slate-100 bg-gradient-to-br from-slate-50 via-white to-slate-100 shadow-sm",
         "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_70%_15%,rgba(249,115,22,0.08),transparent_34%),radial-gradient(circle_at_10%_90%,rgba(15,23,42,0.07),transparent_32%)]",
         sizeClasses[size],
         className,
       )}
-    >
-      {currentSrc ? (
-        <img
-          src={currentSrc}
-          alt={alt}
-          loading="lazy"
-          onError={() => setSourceIndex((index) => index + 1)}
-          className={cn("relative z-[1] h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]", imageClassName)}
-        />
-      ) : (
-        <IndustrialImagePlaceholder alt={alt} label={size === "large" ? "تصویر دسته‌بندی" : null} compact={size !== "large"} />
-      )}
-    </div>
+      imageClassName={cn("relative z-[1] group-hover:scale-[1.04]", imageClassName)}
+    />
   )
 }

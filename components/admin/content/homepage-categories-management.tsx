@@ -16,7 +16,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AdminSubmitButton } from "@/components/admin/content/admin-submit-button"
-import { Edit, Eye, EyeOff, ImageIcon, Power, PowerOff, Search } from "lucide-react"
+import { Edit, Eye, EyeOff, Power, PowerOff, Search } from "lucide-react"
+import { SafeImageWithFallback } from "@/components/common/safe-image-with-fallback"
 
 const initialState: CategoryActionState = { ok: false, message: "" }
 
@@ -36,7 +37,9 @@ function CategoryHiddenFields({ category }: { category: Category }) {
       <input type="hidden" name="slug" value={category.slug} />
       <input type="hidden" name="homepageTitle" value={category.homepageTitle ?? ""} />
       <input type="hidden" name="homepageImageUrl" value={category.homepageImageUrl ?? ""} />
+      <input type="hidden" name="homepageImageAltText" value={category.homepageImageAltText ?? ""} />
       <input type="hidden" name="homepageIconUrl" value={category.homepageIconUrl ?? ""} />
+      <input type="hidden" name="homepageIconAltText" value={category.homepageIconAltText ?? ""} />
       <input type="hidden" name="homepageUrl" value={category.homepageUrl ?? ""} />
       <input type="hidden" name="homepageSortOrder" value={category.homepageSortOrder} />
       {category.showOnHomepage ? <input type="hidden" name="currentShowOnHomepage" value="on" /> : null}
@@ -123,13 +126,14 @@ export function HomepageCategoriesManagement({ categories, settings }: { categor
                       return (
                         <TableRow key={category.id}>
                           <TableCell>
-                            {preview ? (
-                              <img src={preview} alt={category.homepageTitle || category.name} className="h-14 w-20 rounded-lg bg-gradient-to-br from-slate-50 to-white object-contain p-1" />
-                            ) : (
-                              <div className="flex h-14 w-20 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                                <ImageIcon className="h-5 w-5" />
-                              </div>
-                            )}
+                            <SafeImageWithFallback
+                              src={preview}
+                              altText={category.displayImageAltText || category.homepageTitle || category.name}
+                              fallbackText={category.homepageTitle || category.name}
+                              compact
+                              className="h-14 w-20 rounded-lg bg-gradient-to-br from-slate-50 to-white p-1"
+                              objectFit="contain"
+                            />
                           </TableCell>
                           <TableCell>
                             <div className="font-medium text-foreground">{category.homepageTitle || category.name}</div>
@@ -188,13 +192,13 @@ export function HomepageCategoriesManagement({ categories, settings }: { categor
                   <div className="mt-1 text-xs text-muted-foreground" dir="ltr">{editing.slug}</div>
                 </div>
 
-                {emptyPreview(editing) ? (
-                  <div className="overflow-hidden rounded-2xl border bg-muted">
-                    <img src={emptyPreview(editing) ?? ""} alt={editing.homepageTitle || editing.name} className="h-40 w-full bg-gradient-to-br from-slate-50 to-white object-contain p-4" />
-                  </div>
-                ) : (
-                  <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed bg-muted/50 text-muted-foreground">تصویری ثبت نشده است</div>
-                )}
+                <SafeImageWithFallback
+                  src={emptyPreview(editing)}
+                  altText={editing.displayImageAltText || editing.homepageTitle || editing.name}
+                  fallbackText={editing.homepageTitle || editing.name}
+                  className="h-40 w-full rounded-2xl border bg-gradient-to-br from-slate-50 to-white p-4"
+                  objectFit="contain"
+                />
 
                 <div className="rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
                   <div className="font-bold text-foreground">آدرس‌های ذخیره‌شده</div>
@@ -225,6 +229,17 @@ export function HomepageCategoriesManagement({ categories, settings }: { categor
                 </div>
 
                 <div className="space-y-2">
+                  <Label>متن ALT تصویر دسته‌بندی</Label>
+                  <Input
+                    name="homepageImageAltText"
+                    maxLength={150}
+                    defaultValue={editing.homepageImageAltText ?? `تصویر دسته‌بندی ${editing.name}`}
+                    className="rounded-xl"
+                  />
+                  <p className="text-xs text-muted-foreground">برای سئو، دسترس‌پذیری و نمایش جایگزین هنگام خطای تصویر استفاده می‌شود.</p>
+                </div>
+
+                <div className="space-y-2">
                   <Label>آیکن کارت</Label>
                   <Input name="homepageIcon" type="file" accept="image/jpeg,image/png,image/webp" className="rounded-xl" />
                   <p className="text-xs text-muted-foreground">پیشنهاد: آیکن ساده، خوانا و با نسبت ۱:۱ آپلود شود.</p>
@@ -232,6 +247,17 @@ export function HomepageCategoriesManagement({ categories, settings }: { categor
                     <input type="checkbox" name="clearHomepageIcon" />
                     حذف آیکن فعلی
                   </label>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>متن ALT آیکن دسته‌بندی</Label>
+                  <Input
+                    name="homepageIconAltText"
+                    maxLength={150}
+                    defaultValue={editing.homepageIconAltText ?? `آیکن دسته‌بندی ${editing.name}`}
+                    className="rounded-xl"
+                  />
+                  <p className="text-xs text-muted-foreground">اختیاری؛ اگر تصویر اصلی در دسترس نباشد برای آیکن جایگزین استفاده می‌شود.</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

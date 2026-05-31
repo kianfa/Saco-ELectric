@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Brand } from "@/types/brand"
+import { SafeImageWithFallback } from "@/components/common/safe-image-with-fallback"
 
 interface BrandStripProps {
   brands: Brand[]
@@ -47,7 +48,14 @@ export function BrandStrip({ brands, error }: BrandStripProps) {
                 className="flex-shrink-0 bg-card border border-border rounded-xl px-6 py-4 hover:border-primary hover:shadow-md transition-all flex items-center justify-center min-w-[140px]"
               >
                 {brand.logoUrl ? (
-                  <img src={brand.logoUrl} alt={brand.name} className="max-h-8 max-w-28 object-contain" />
+                  <SafeImageWithFallback
+                    src={brand.logoUrl}
+                    altText={`لوگوی ${brand.name}`}
+                    fallbackText={brand.name}
+                    objectFit="contain"
+                    compact
+                    className="h-9 w-28"
+                  />
                 ) : (
                   <span className="font-semibold text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
                     {brand.name}

@@ -33,6 +33,7 @@ export type SiteBanner = {
   subtitle: string | null
   description: string | null
   imageUrl: string | null
+  imageAltText: string | null
   buttonText: string | null
   buttonUrl: string | null
   badgeText: string | null
@@ -71,6 +72,7 @@ export type FooterInfoSettings = {
   description?: string
   copyright?: string
   trustBadgeImageUrl?: string
+  trustBadgeImageAltText?: string
   instagramUrl?: string
   telegramUrl?: string
   baleUrl?: string

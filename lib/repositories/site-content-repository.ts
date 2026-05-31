@@ -35,6 +35,7 @@ type RawBanner = {
   subtitle?: string | null
   description?: string | null
   image_url?: string | null
+  image_alt_text?: string | null
   button_text?: string | null
   button_url?: string | null
   badge_text?: string | null
@@ -127,6 +128,7 @@ function mapBanner(row: RawBanner): SiteBanner {
     subtitle: row.subtitle ?? null,
     description: row.description ?? null,
     imageUrl: normalizePublicMediaUrl(row.image_url),
+    imageAltText: row.image_alt_text?.trim() || row.title || "بنر ساکو الکتریک",
     buttonText: row.button_text ?? null,
     buttonUrl: row.button_url ?? null,
     badgeText: row.badge_text ?? null,
@@ -296,13 +298,13 @@ export async function upsertSiteSetting(key: string, value: JsonRecord): Promise
   if (error) throw new Error(`Failed to save site setting: ${error.message}`)
 }
 
-export async function createBanner(input: BannerFormInput): Promise<void> {
-  const supabase = await getSupabaseServerClient()
-  const { error } = await supabase.from("site_banners").insert({
+function bannerPayload(input: BannerFormInput) {
+  return {
     title: input.title,
     subtitle: input.subtitle,
     description: input.description,
     image_url: normalizePublicMediaUrl(input.imageUrl),
+    image_alt_text: input.imageAltText?.trim() || input.title || null,
     button_text: input.buttonText,
     button_url: input.buttonUrl,
     badge_text: input.badgeText,
@@ -311,28 +313,47 @@ export async function createBanner(input: BannerFormInput): Promise<void> {
     starts_at: input.startsAt || null,
     ends_at: input.endsAt || null,
     sort_order: input.sortOrder,
-  })
-  if (error) throw new Error(`Failed to create banner: ${error.message}`)
+  }
+}
+
+function withoutBannerAltText(payload: ReturnType<typeof bannerPayload>) {
+  const { image_alt_text: _imageAltText, ...legacyPayload } = payload
+  return legacyPayload
+}
+
+export async function createBanner(input: BannerFormInput): Promise<void> {
+  const supabase = await getSupabaseServerClient()
+  const payload = bannerPayload(input)
+  const { error } = await supabase.from("site_banners").insert(payload)
+  if (!error) return
+
+  // Backward compatibility: existing projects keep working before the optional
+  // ALT text migration is applied. After migration, the richer payload is used.
+  if (isMissingTableOrColumn(error.message)) {
+    const legacy = await supabase.from("site_banners").insert(withoutBannerAltText(payload))
+    if (!legacy.error) return
+    throw new Error(`Failed to create banner: ${legacy.error.message}`)
+  }
+
+  throw new Error(`Failed to create banner: ${error.message}`)
 }
 
 export async function updateBanner(input: BannerFormInput & { id: string }): Promise<void> {
   const supabase = await getSupabaseServerClient()
-  const { error } = await supabase.from("site_banners").update({
-    title: input.title,
-    subtitle: input.subtitle,
-    description: input.description,
-    image_url: normalizePublicMediaUrl(input.imageUrl),
-    button_text: input.buttonText,
-    button_url: input.buttonUrl,
-    badge_text: input.badgeText,
-    placement: normalizePlacement(input.placement),
-    is_active: input.isActive,
-    starts_at: input.startsAt || null,
-    ends_at: input.endsAt || null,
-    sort_order: input.sortOrder,
-    updated_at: new Date().toISOString(),
-  }).eq("id", input.id)
-  if (error) throw new Error(`Failed to update banner: ${error.message}`)
+  const payload = { ...bannerPayload(input), updated_at: new Date().toISOString() }
+  const { error } = await supabase.from("site_banners").update(payload).eq("id", input.id)
+  if (!error) return
+
+  // Backward compatibility for databases where image_alt_text has not yet been
+  // added. The admin save still succeeds; applying the migration enables ALT persistence.
+  if (isMissingTableOrColumn(error.message)) {
+    const { image_alt_text: _imageAltText, ...legacyPayload } = payload
+    const legacy = await supabase.from("site_banners").update(legacyPayload).eq("id", input.id)
+    if (!legacy.error) return
+    throw new Error(`Failed to update banner: ${legacy.error.message}`)
+  }
+
+  throw new Error(`Failed to update banner: ${error.message}`)
 }
 
 export async function deleteBanner(id: string): Promise<void> {

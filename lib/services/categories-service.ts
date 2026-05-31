@@ -43,8 +43,11 @@ export async function getHomepageCategories(): Promise<Category[]> {
         slug: category.slug,
         homepageImageUrl: category.homepageImageUrl,
         homepageIconUrl: category.homepageIconUrl,
+        homepageImageAltText: category.homepageImageAltText,
+        homepageIconAltText: category.homepageIconAltText,
         imageUrl: category.imageUrl,
         displayImageUrl: category.displayImageUrl,
+        displayImageAltText: category.displayImageAltText,
       })),
     )
   }

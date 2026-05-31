@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight, ImageIcon, ShieldCheck, SlidersHorizontal, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { SafeImageWithFallback } from "@/components/common/safe-image-with-fallback"
 import type { HeroSliderImage } from "@/types/site-content"
 
 type HeroImageSliderProps = {
@@ -87,6 +88,7 @@ export function HeroImageSlider({ images, fallbackImageUrl, fallbackMobileImageU
             src={currentSlide.desktopUrl}
             alt=""
             aria-hidden="true"
+            onError={() => setFailedSlides((previous) => ({ ...previous, [currentIndex]: true }))}
             className="h-full w-full scale-[1.34] object-contain object-right opacity-[0.22] saturate-[1.15] contrast-[1.05] transition-all duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-l from-[#071d3d]/20 via-[#071d3d]/70 to-[#071d3d]" />
@@ -125,14 +127,12 @@ export function HeroImageSlider({ images, fallbackImageUrl, fallbackMobileImageU
           ))}
 
           {failedSlides[currentIndex] ? (
-            <div className="absolute inset-0 flex items-center justify-center text-primary/50">
-              <div className="text-center">
-                <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/8">
-                  <ImageIcon className="h-8 w-8" />
-                </div>
-                <p className="text-sm font-semibold">تصویر در دسترس نیست</p>
-              </div>
-            </div>
+            <SafeImageWithFallback
+              src={null}
+              altText={currentSlide?.altText || fallbackAlt || "تصویر تجهیزات برق صنعتی"}
+              fallbackText={currentSlide?.altText || fallbackAlt || "تصویر تجهیزات برق صنعتی"}
+              className="absolute inset-0"
+            />
           ) : null}
 
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-primary/16 to-transparent" />

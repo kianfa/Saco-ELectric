@@ -96,4 +96,5 @@ export interface ProductSearchSuggestion {
   brandName: string | null
   categoryName: string | null
   mainImageUrl: string | null
+  mainImageAlt: string | null
 }

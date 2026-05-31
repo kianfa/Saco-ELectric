@@ -48,7 +48,17 @@ export function SiteSettingsForm({ settings }: { settings: SiteSettingsBundle })
         <div className="space-y-2"><Label>Telegram URL</Label><Input name="telegramUrl" dir="ltr" defaultValue={settings.footerInfo.telegramUrl ?? storeContactConfig.telegram.url} className="rounded-xl" /></div>
         <div className="space-y-2"><Label>Bale URL</Label><Input name="baleUrl" dir="ltr" defaultValue={settings.footerInfo.baleUrl ?? ""} className="rounded-xl" /></div>
         <div className="space-y-2"><Label>LinkedIn URL</Label><Input name="linkedinUrl" dir="ltr" defaultValue={settings.footerInfo.linkedinUrl ?? ""} className="rounded-xl" /></div>
-        <div className="space-y-2 md:col-span-2"><Label>تصویر نماد/اعتماد</Label><Input name="trustBadgeImage" type="file" accept="image/*" className="rounded-xl" /></div>
+        <div className="space-y-2 md:col-span-2"><Label>تصویر نماد/اعتماد</Label><Input name="trustBadgeImage" type="file" accept="image/jpeg,image/png,image/webp" className="rounded-xl" /></div>
+        <div className="space-y-2 md:col-span-2">
+          <Label>متن جایگزین تصویر اعتماد (ALT)</Label>
+          <Input
+            name="trustBadgeImageAltText"
+            maxLength={150}
+            defaultValue={settings.footerInfo.trustBadgeImageAltText ?? "نشان اعتماد ساکو الکتریک"}
+            className="rounded-xl"
+          />
+          <p className="text-xs text-muted-foreground">در صورت بارگذاری‌نشدن تصویر، این متن به‌صورت جایگزین نمایش داده می‌شود.</p>
+        </div>
       </CardContent></Card>
 
       <Card className="rounded-2xl shadow-sm"><CardHeader><CardTitle>متن پرداخت دستی</CardTitle></CardHeader><CardContent className="space-y-4">

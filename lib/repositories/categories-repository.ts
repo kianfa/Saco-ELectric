@@ -20,7 +20,9 @@ type RawCategoryRow = {
   homepage_title?: string | null
   homepage_display_title?: string | null
   homepage_image_url?: string | null
+  homepage_image_alt_text?: string | null
   homepage_icon_url?: string | null
+  homepage_icon_alt_text?: string | null
   homepage_url?: string | null
   show_on_homepage?: boolean | null
   homepage_sort_order?: number | string | null
@@ -68,8 +70,15 @@ function mapCategory(row: RawCategoryRow): Category {
   const slug = row.slug || createFallbackSlug(name)
   const imageUrl = normalizePublicSiteMediaUrl(row.image_url ?? row.imageUrl ?? null)
   const homepageImageUrl = normalizePublicSiteMediaUrl(row.homepage_image_url)
+  const homepageImageAltText = row.homepage_image_alt_text?.trim() || null
   const homepageIconUrl = normalizePublicSiteMediaUrl(row.homepage_icon_url)
+  const homepageIconAltText = row.homepage_icon_alt_text?.trim() || null
   const displayImageUrl = homepageImageUrl ?? imageUrl ?? homepageIconUrl ?? null
+  const displayImageAltText =
+    (homepageImageUrl ? homepageImageAltText : null) ??
+    (imageUrl ? name : null) ??
+    (homepageIconUrl ? homepageIconAltText : null) ??
+    `تصویر دسته‌بندی ${name}`
 
   return {
     id: String(row.id),
@@ -79,8 +88,11 @@ function mapCategory(row: RawCategoryRow): Category {
     imageUrl,
     homepageTitle: row.homepage_title ?? row.homepage_display_title ?? null,
     homepageImageUrl,
+    homepageImageAltText,
     homepageIconUrl,
+    homepageIconAltText,
     displayImageUrl,
+    displayImageAltText,
     homepageUrl: row.homepage_url ?? null,
     showOnHomepage: row.show_on_homepage ?? true,
     homepageSortOrder: toNumber(row.homepage_sort_order),
@@ -90,6 +102,9 @@ function mapCategory(row: RawCategoryRow): Category {
 }
 
 const fullCategorySelect =
+  "id, name, slug, description, image_url, homepage_title, homepage_image_url, homepage_image_alt_text, homepage_icon_url, homepage_icon_alt_text, homepage_url, show_on_homepage, homepage_sort_order, is_active"
+
+const legacyHomepageCategorySelect =
   "id, name, slug, description, image_url, homepage_title, homepage_image_url, homepage_icon_url, homepage_url, show_on_homepage, homepage_sort_order, is_active"
 
 // Repository boundary: Supabase-specific category queries belong here only.
@@ -110,6 +125,16 @@ export async function fetchCategories(): Promise<Category[]> {
 
   if (!isMissingColumnError(primaryResult.error.message)) {
     throw new Error(`Failed to fetch categories: ${primaryResult.error.message}`)
+  }
+
+  const legacyResult = await supabase
+    .from("categories")
+    .select(legacyHomepageCategorySelect)
+    .eq("is_active", true)
+    .order("name", { ascending: true })
+
+  if (!legacyResult.error) {
+    return ((legacyResult.data ?? []) as RawCategoryRow[]).map(mapCategory)
   }
 
   const fallbackResult = await supabase
@@ -172,6 +197,18 @@ export async function fetchHomepageCategories(): Promise<Category[]> {
     throw new Error(`Failed to fetch homepage categories: ${result.error.message}`)
   }
 
+  const legacyResult = await supabase
+    .from("categories")
+    .select(legacyHomepageCategorySelect)
+    .eq("is_active", true)
+    .eq("show_on_homepage", true)
+    .order("homepage_sort_order", { ascending: true })
+    .order("name", { ascending: true })
+
+  if (!legacyResult.error) {
+    return ((legacyResult.data ?? []) as RawCategoryRow[]).map(mapCategory)
+  }
+
   // Backward-compatible fallback for databases that have not run the homepage
   // category migration yet. Public homepage still renders instead of breaking.
   return fetchCategories()
@@ -191,6 +228,16 @@ export async function fetchAllCategoriesForAdmin(): Promise<Category[]> {
     throw new Error(`Failed to fetch admin categories: ${result.error.message}`)
   }
 
+  const legacyResult = await supabase
+    .from("categories")
+    .select(legacyHomepageCategorySelect)
+    .order("homepage_sort_order", { ascending: true })
+    .order("name", { ascending: true })
+
+  if (!legacyResult.error) {
+    return ((legacyResult.data ?? []) as RawCategoryRow[]).map(mapCategory)
+  }
+
   const fallback = await supabase.from("categories").select("id, name, slug, description, image_url").order("name", { ascending: true })
   if (fallback.error) throw new Error(`Failed to fetch admin categories: ${fallback.error.message}`)
   return ((fallback.data ?? []) as RawCategoryRow[]).map(mapCategory)
@@ -201,7 +248,9 @@ export async function updateCategoryHomepageSettings(input: AdminCategoryHomepag
   const payload = {
     homepage_title: input.homepageTitle || null,
     homepage_image_url: input.homepageImageUrl || null,
+    homepage_image_alt_text: input.homepageImageAltText?.trim() || null,
     homepage_icon_url: input.homepageIconUrl || null,
+    homepage_icon_alt_text: input.homepageIconAltText?.trim() || null,
     homepage_url: input.homepageUrl || null,
     show_on_homepage: input.showOnHomepage,
     homepage_sort_order: input.homepageSortOrder,
@@ -210,5 +259,20 @@ export async function updateCategoryHomepageSettings(input: AdminCategoryHomepag
   }
 
   const { error } = await supabase.from("categories").update(payload).eq("id", input.id)
-  if (error) throw new Error(`Failed to update category homepage settings: ${error.message}`)
+  if (!error) return
+
+  if (!isMissingColumnError(error.message)) {
+    throw new Error(`Failed to update category homepage settings: ${error.message}`)
+  }
+
+  // Backward-compatible retry for environments that have not run the ALT text
+  // migration yet. Existing category editing keeps working; ALT persistence
+  // becomes available immediately after the migration is applied.
+  const {
+    homepage_image_alt_text: _homepageImageAltText,
+    homepage_icon_alt_text: _homepageIconAltText,
+    ...legacyPayload
+  } = payload
+  const fallback = await supabase.from("categories").update(legacyPayload).eq("id", input.id)
+  if (fallback.error) throw new Error(`Failed to update category homepage settings: ${fallback.error.message}`)
 }

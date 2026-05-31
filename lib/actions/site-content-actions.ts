@@ -112,7 +112,10 @@ export async function saveHomepageContentAction(
       imageUrl: promoImageUrl,
       primaryButtonText: text(formData, "promoButtonText"),
       primaryButtonUrl: text(formData, "promoButtonUrl"),
-      metadata: { badgeText: text(formData, "promoBadgeText") },
+      metadata: {
+        badgeText: text(formData, "promoBadgeText"),
+        imageAltText: text(formData, "promoImageAltText") || text(formData, "promoTitle") || "بنر ساکو الکتریک",
+      },
       isActive: bool(formData, "promoIsActive"),
       sortOrder: 2,
     })
@@ -159,6 +162,7 @@ export async function saveBannerAction(
       subtitle: text(formData, "subtitle"),
       description: text(formData, "description"),
       imageUrl,
+      imageAltText: text(formData, "imageAltText") || text(formData, "title") || "بنر ساکو الکتریک",
       buttonText: text(formData, "buttonText"),
       buttonUrl: text(formData, "buttonUrl"),
       badgeText: text(formData, "badgeText"),
@@ -222,6 +226,7 @@ export async function saveSiteSettingsAction(
         description: text(formData, "footerDescription") ?? undefined,
         copyright: text(formData, "copyright") ?? undefined,
         trustBadgeImageUrl: trustBadgeImageUrl ?? undefined,
+        trustBadgeImageAltText: text(formData, "trustBadgeImageAltText") ?? "نشان اعتماد ساکو الکتریک",
         instagramUrl: text(formData, "instagramUrl") ?? undefined,
         telegramUrl: text(formData, "telegramUrl") ?? undefined,
         baleUrl: text(formData, "baleUrl") ?? undefined,
