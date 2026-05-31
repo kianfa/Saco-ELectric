@@ -9,6 +9,13 @@ export interface AdminProductImage {
   isMain: boolean
 }
 
+export interface NewProductImageMetadata {
+  clientId: string
+  altText: string
+  isMain: boolean
+  sortOrder: number
+}
+
 export interface AdminProductSpec {
   id?: string
   specName: string
@@ -67,6 +74,7 @@ export interface AdminProductFormInput {
   removedImageIds?: string[]
   mainExistingImageId?: string | null
   newImageAltTexts?: string[]
+  newImagesMetadata?: NewProductImageMetadata[]
 }
 
 export interface AdminProductFormOptions {

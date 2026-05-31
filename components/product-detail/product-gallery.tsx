@@ -62,7 +62,7 @@ export function ProductGallery({ images, badges, productName }: ProductGalleryPr
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
         {(visibleImages.length > 0 ? visibleImages : [null]).map((image, index) => (
           <button
-            key={image?.imageUrl ?? `placeholder-${index}`}
+            key={image?.id ?? image?.imageUrl ?? `placeholder-${index}`}
             onClick={() => setSelectedImage(index)}
             className={`shrink-0 w-20 h-20 rounded-xl border-2 overflow-hidden transition-all bg-white ${
               selectedImage === index

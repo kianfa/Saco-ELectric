@@ -5,13 +5,14 @@ import {
   fetchAdminProductById,
   fetchAdminProducts,
   insertProduct,
-  insertProductImages,
+  normalizeMainImage,
   replaceProductSpecs,
   toggleProductActiveRecord,
   updateExistingImages,
   updateProductRecord,
-  uploadProductImage,
+  uploadMultipleProductImages,
   upsertInventory,
+  type ProductImageUploadInput,
 } from "@/lib/repositories/admin-products-repository"
 import type { AdminProduct, AdminProductFormInput, AdminProductImage } from "@/types/admin-product"
 import type { Product } from "@/types/product"
@@ -51,6 +52,25 @@ export async function validateAdminProductInput(input: AdminProductFormInput, pr
   return fieldErrors
 }
 
+function defaultImageAlt(input: AdminProductFormInput): string {
+  return `${input.name}${input.model ? ` ${input.model}` : ""}`.trim() || "تصویر محصول"
+}
+
+function buildNewImageUploads(input: AdminProductFormInput, imageFiles: File[], startingSortOrder = 0): ProductImageUploadInput[] {
+  const fallbackAlt = defaultImageAlt(input)
+  return imageFiles
+    .filter((file) => file && file.size > 0)
+    .map((file, index) => {
+      const metadata = input.newImagesMetadata?.[index]
+      return {
+        file,
+        altText: metadata?.altText?.trim() || input.newImageAltTexts?.[index]?.trim() || fallbackAlt,
+        isMain: Boolean(metadata?.isMain),
+        sortOrder: metadata?.sortOrder || startingSortOrder + index,
+      }
+    })
+}
+
 export async function createAdminProduct(input: AdminProductFormInput, imageFiles: File[]) {
   const fieldErrors = await validateAdminProductInput(input)
   if (Object.keys(fieldErrors).length) {
@@ -60,24 +80,22 @@ export async function createAdminProduct(input: AdminProductFormInput, imageFile
   const productId = await insertProduct(input)
   await upsertInventory(productId, input.quantity, input.lowStockThreshold)
 
-  const uploadedImages: Omit<AdminProductImage, "id">[] = []
-  for (let index = 0; index < imageFiles.length; index++) {
-    const file = imageFiles[index]
-    if (!file || file.size === 0) continue
-    const fileName = index === 0 ? "main" : `gallery-${index}`
-    const imageUrl = await uploadProductImage(file, input.slug, fileName)
-    uploadedImages.push({
-      imageUrl,
-      altText: input.newImageAltTexts?.[index]?.trim() || `${input.name}${input.model ? ` ${input.model}` : ""}`.trim(),
-      sortOrder: index + 1,
-      isMain: index === 0,
-    })
+  const uploads = normalizeMainImage(buildNewImageUploads(input, imageFiles, 0))
+  try {
+    await uploadMultipleProductImages(productId, input.slug, uploads)
+  } catch (error) {
+    const details = error instanceof Error ? error.message : "خطا در آپلود تصاویر محصول"
+    throw new Error(`محصول ذخیره شد، اما ثبت تصاویر با خطا مواجه شد. لطفاً تصاویر را دوباره بارگذاری کنید. ${details}`)
   }
-
-  await insertProductImages(productId, uploadedImages)
   await replaceProductSpecs(productId, input.specs)
 
-  return { ok: true, message: "محصول با موفقیت ثبت شد", productId }
+  return {
+    ok: true,
+    message: uploads.length
+      ? `محصول و ${uploads.length.toLocaleString("fa-IR")} تصویر آن با موفقیت ثبت شدند`
+      : "محصول با موفقیت ثبت شد",
+    productId,
+  }
 }
 
 export async function updateAdminProduct(id: string, input: AdminProductFormInput, imageFiles: File[]) {
@@ -89,33 +107,46 @@ export async function updateAdminProduct(id: string, input: AdminProductFormInpu
   await updateProductRecord(id, input)
   await upsertInventory(id, input.quantity, input.lowStockThreshold)
 
-  if (input.existingImages) {
-    await updateExistingImages({
-      productId: id,
-      existingImages: input.existingImages,
-      removedImageIds: input.removedImageIds ?? [],
-      mainExistingImageId: input.mainExistingImageId ?? null,
-    })
-  }
+  const removedIds = input.removedImageIds ?? []
+  const existingImages = (input.existingImages ?? []).filter((image) => !removedIds.includes(image.id))
+  const maxExistingSortOrder = existingImages.reduce((max, image) => Math.max(max, image.sortOrder || 0), 0)
+  const newUploads = buildNewImageUploads(input, imageFiles, maxExistingSortOrder + 1)
 
-  const uploadedImages: Omit<AdminProductImage, "id">[] = []
-  for (let index = 0; index < imageFiles.length; index++) {
-    const file = imageFiles[index]
-    if (!file || file.size === 0) continue
-    const fileName = input.existingImages?.length || index > 0 ? `gallery-${Date.now()}-${index + 1}` : "main"
-    const imageUrl = await uploadProductImage(file, input.slug, fileName)
-    uploadedImages.push({
-      imageUrl,
-      altText: input.newImageAltTexts?.[index]?.trim() || `${input.name}${input.model ? ` ${input.model}` : ""}`.trim(),
-      sortOrder: (input.existingImages?.length ?? 0) + index + 1,
-      isMain: !input.existingImages?.length && index === 0,
-    })
-  }
+  const normalizedCombined = normalizeMainImage([
+    ...existingImages.map((image) => ({ ...image, kind: "existing" as const })),
+    ...newUploads.map((image) => ({ ...image, kind: "new" as const })),
+  ])
 
-  await insertProductImages(id, uploadedImages)
+  const normalizedExisting = normalizedCombined
+    .filter((image) => image.kind === "existing")
+    .map(({ kind: _kind, ...image }) => image as AdminProductImage)
+
+  const normalizedNewUploads = normalizedCombined
+    .filter((image) => image.kind === "new")
+    .map(({ kind: _kind, ...image }) => image as ProductImageUploadInput)
+
+  await updateExistingImages({
+    productId: id,
+    existingImages: normalizedExisting,
+    removedImageIds: removedIds,
+    mainExistingImageId: normalizedExisting.find((image) => image.isMain)?.id ?? null,
+  })
+
+  try {
+    await uploadMultipleProductImages(id, input.slug, normalizedNewUploads)
+  } catch (error) {
+    const details = error instanceof Error ? error.message : "خطا در آپلود تصاویر محصول"
+    throw new Error(`محصول ذخیره شد، اما ثبت تصاویر جدید با خطا مواجه شد. لطفاً تصاویر را دوباره بارگذاری کنید. ${details}`)
+  }
   await replaceProductSpecs(id, input.specs)
 
-  return { ok: true, message: "محصول با موفقیت به‌روزرسانی شد", productId: id }
+  return {
+    ok: true,
+    message: normalizedNewUploads.length
+      ? `محصول و ${normalizedNewUploads.length.toLocaleString("fa-IR")} تصویر جدید آن با موفقیت به‌روزرسانی شدند`
+      : "محصول با موفقیت به‌روزرسانی شد",
+    productId: id,
+  }
 }
 
 export async function deleteAdminProduct(id: string): Promise<void> {

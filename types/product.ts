@@ -28,6 +28,7 @@ export interface Product {
 }
 
 export interface ProductDetailImage {
+  id: string
   imageUrl: string
   altText: string | null
   isMain: boolean

@@ -33,6 +33,8 @@ type RawProductRow = {
     quantity?: number | string | null
   }>
   product_images?: SupabaseRelation<{
+    id?: string | number | null
+    url?: string | null
     image_url?: string | null
     alt_text?: string | null
     is_main?: boolean | null
@@ -67,7 +69,7 @@ const PRODUCTS_SELECT = `
   brands(name, slug),
   categories(name, slug),
   inventory(stock_quantity, quantity),
-  product_images(image_url, alt_text, is_main, sort_order),
+  product_images(id, url, image_url, alt_text, is_main, sort_order),
   product_specs(label, name, value, sort_order)
 `
 
@@ -89,7 +91,7 @@ const PRODUCTS_SELECT_FALLBACK = `
   brands(name, slug),
   categories(name, slug),
   inventory(stock_quantity, quantity),
-  product_images(image_url, alt_text, is_main, sort_order),
+  product_images(id, url, image_url, alt_text, is_main, sort_order),
   product_specs(label, name, value, sort_order)
 `
 
@@ -114,7 +116,7 @@ const PRODUCT_DETAIL_SELECT = `
   brands(name, slug),
   categories(name, slug),
   inventory(stock_quantity, quantity),
-  product_images(image_url, alt_text, is_main, sort_order),
+  product_images(id, url, image_url, alt_text, is_main, sort_order),
   product_specs(spec_name, spec_value, label, name, value, sort_order)
 `
 
@@ -137,7 +139,7 @@ const PRODUCT_DETAIL_SELECT_FALLBACK = `
   brands(name, slug),
   categories(name, slug),
   inventory(stock_quantity, quantity),
-  product_images(image_url, alt_text, is_main, sort_order),
+  product_images(id, url, image_url, alt_text, is_main, sort_order),
   product_specs(spec_name, spec_value, label, name, value, sort_order)
 `
 
@@ -168,11 +170,16 @@ function createFallbackSlug(name: string, model: string | null): string {
     .replace(/[^\w\u0600-\u06FF-]/g, "")
 }
 
+export function resolveProductImageUrl(image: { image_url?: string | null; url?: string | null } | null | undefined): string | null {
+  const resolved = image?.image_url?.trim() || image?.url?.trim() || ""
+  return resolved || null
+}
+
 function pickMainImage(images: RawProductRow["product_images"]): { url: string | null; alt: string | null } {
   const sorted = sortImages(images)
   const firstImage = sorted[0]
   return {
-    url: firstImage?.image_url?.trim() || null,
+    url: resolveProductImageUrl(firstImage),
     alt: firstImage?.alt_text ?? null,
   }
 }
@@ -238,6 +245,24 @@ function mapProduct(row: RawProductRow): Product {
 
 function mapProductDetail(row: RawProductRow): ProductDetail {
   const product = mapProduct(row)
+  const mappedImages = sortImages(row.product_images)
+    .map((image, index) => ({
+      id: image?.id ? String(image.id) : `image-${index}`,
+      imageUrl: resolveProductImageUrl(image) || "",
+      altText: image?.alt_text ?? null,
+      isMain: Boolean(image?.is_main ?? index === 0),
+      sortOrder: toNumber(image?.sort_order, index),
+    }))
+    .filter((image) => Boolean(image.imageUrl))
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("Mapped public product detail images:", {
+      productId: product.id,
+      slug: product.slug,
+      images: mappedImages,
+    })
+  }
+
   const detailSpecs = sortSpecs(row.product_specs)
     .map((spec) => ({
       name: spec?.name ?? spec?.label ?? spec?.spec_name ?? "",
@@ -270,14 +295,7 @@ function mapProductDetail(row: RawProductRow): ProductDetail {
     brandName: product.brandName,
     categoryName: product.categoryName,
     stockQuantity: product.stockQuantity,
-    images: sortImages(row.product_images)
-      .map((image, index) => ({
-        imageUrl: image?.image_url?.trim() || "",
-        altText: image?.alt_text ?? null,
-        isMain: Boolean(image?.is_main ?? index === 0),
-        sortOrder: toNumber(image?.sort_order, index + 1),
-      }))
-      .filter((image) => Boolean(image.imageUrl)),
+    images: mappedImages,
     specs: detailSpecs,
     rating: product.rating,
     reviewCount: product.reviewCount,
@@ -359,6 +377,15 @@ export async function fetchProducts(options: ProductQueryOptions = {}): Promise<
   }
 
   let products = ((data ?? []) as RawProductRow[]).map(mapProduct)
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("Mapped public product images:", products.map((product) => ({
+      id: product.id,
+      slug: product.slug,
+      mainImageUrl: product.mainImageUrl,
+      mainImageAlt: product.mainImageAlt,
+    })))
+  }
 
   const brandFilters = normalizeFilterList([...(options.brands ?? []), options.brand])
   if (brandFilters.length > 0) {

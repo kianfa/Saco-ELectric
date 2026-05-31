@@ -16,6 +16,7 @@ export type ProductImagePreviewCardProps = {
   onAltTextChange: (value: string) => void
   onRemove?: () => void
   onSetMain?: () => void
+  showSavedUrl?: boolean
 }
 
 /**
@@ -31,6 +32,7 @@ export function ProductImagePreviewCard({
   onAltTextChange,
   onRemove,
   onSetMain,
+  showSavedUrl = false,
 }: ProductImagePreviewCardProps) {
   const altInputId = useId()
 
@@ -83,6 +85,12 @@ export function ProductImagePreviewCard({
             </Button>
           ) : null}
         </div>
+
+        {showSavedUrl && imageUrl ? (
+          <div className="min-w-0 rounded-lg bg-muted/50 px-2 py-1.5 text-[10px] leading-4 text-muted-foreground" dir="ltr">
+            <span className="block truncate" title={imageUrl}>{imageUrl}</span>
+          </div>
+        ) : null}
 
         <div className="min-w-0 space-y-1.5" dir="rtl">
           <Label htmlFor={altInputId} className="block text-right text-xs font-semibold leading-5">

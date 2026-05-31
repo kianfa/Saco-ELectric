@@ -103,7 +103,7 @@ const ADMIN_PRODUCT_SELECT_FALLBACK = `
   brands(name),
   categories(name),
   inventory(quantity, stock_quantity),
-  product_images(id, image_url, alt_text, sort_order, is_main),
+  product_images(id, url, image_url, alt_text, sort_order, is_main),
   product_specs(id, spec_name, spec_value, name, label, value, sort_order)
 `
 
@@ -338,49 +338,210 @@ export async function replaceProductSpecs(productId: string, specs: AdminProduct
   if (result.error) throw new Error(`Failed to save specs: ${result.error.message}`)
 }
 
-export async function uploadProductImage(file: File, productSlug: string, fileName: string): Promise<string> {
+export type ProductImageUploadInput = {
+  file: File
+  altText: string
+  isMain: boolean
+  sortOrder: number
+}
+
+export type UploadedProductImage = {
+  publicUrl: string
+  storagePath: string
+  altText: string
+  isMain: boolean
+  sortOrder: number
+}
+
+function storagePathFromPublicUrl(url: string): string | null {
+  const marker = `/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/`
+  const markerIndex = url.indexOf(marker)
+  if (markerIndex < 0) return null
+  return decodeURIComponent(url.slice(markerIndex + marker.length)).replace(/^\/+/, "") || null
+}
+
+/**
+ * Upload one product image with a unique, slug-safe file name.
+ * Database writes remain outside UI components and are centralized in this repository.
+ */
+export async function uploadProductImageFile(file: File, productSlug: string, index: number): Promise<{ publicUrl: string; storagePath: string }> {
   assertSafeImageFile(file)
 
   const supabase = await getSupabaseServerClient()
   const extension = getSafeImageExtension(file)
-  const baseFileName = fileName.replace(/\.[^.]+$/, "")
-  const safeFileName = `${toSafePathSegment(baseFileName, "product-image")}.${extension}`
-  const path = buildSafeStoragePath(["products", productSlug, safeFileName])
+  const uniqueSuffix = `${Date.now()}-${index + 1}-${Math.random().toString(36).slice(2, 10)}`
+  const safeFileName = `${toSafePathSegment(uniqueSuffix, `image-${index + 1}`)}.${extension}`
+  const storagePath = buildSafeStoragePath(["products", productSlug, safeFileName])
 
-  const upload = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(path, file, {
-    upsert: true,
+  const upload = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(storagePath, file, {
+    upsert: false,
     contentType: file.type,
   })
 
   if (upload.error) throw new Error(`Failed to upload image: ${upload.error.message}`)
 
-  const publicUrl = supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl
-  return publicUrl
+  const publicUrl = supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(storagePath).data.publicUrl
+  return { publicUrl, storagePath }
 }
 
-export async function insertProductImages(productId: string, images: Omit<AdminProductImage, "id">[]): Promise<void> {
-  if (!images.length) return
+/** Backwards-compatible wrapper kept for older service callers. */
+export async function uploadProductImage(file: File, productSlug: string, fileName: string): Promise<string> {
+  const numericIndex = Number(fileName.match(/(\d+)/)?.[1] ?? 0)
+  return (await uploadProductImageFile(file, productSlug, numericIndex)).publicUrl
+}
+
+export async function insertProductImages(productId: string, images: Omit<AdminProductImage, "id">[]): Promise<AdminProductImage[]> {
+  if (!images.length) return []
   const supabase = await getSupabaseServerClient()
 
-  const rows = images.map((image, index) => ({
+  const normalized = normalizeMainImage(images)
+  const rows = normalized.map((image, index) => ({
     product_id: productId,
     url: image.imageUrl,
     image_url: image.imageUrl,
     alt_text: image.altText,
-    sort_order: image.sortOrder || index + 1,
+    sort_order: Number.isFinite(image.sortOrder) ? image.sortOrder : index,
     is_main: image.isMain,
   }))
 
-  const result = await supabase.from("product_images").insert(rows)
-  if (!result.error) return
+  const result = await supabase
+    .from("product_images")
+    .insert(rows)
+    .select("id, url, image_url, alt_text, sort_order, is_main")
 
-  if (!isMissingColumnError(result.error.message)) {
+  if (result.error) {
     throw new Error(`Failed to save product images: ${result.error.message}`)
   }
 
-  const fallbackRows = rows.map(({ url, ...row }) => row)
-  const fallback = await supabase.from("product_images").insert(fallbackRows)
-  if (fallback.error) throw new Error(`Failed to save product images: ${fallback.error.message}`)
+  const insertedRows = (result.data ?? []).map((row: {
+    id: string | number
+    url?: string | null
+    image_url?: string | null
+    alt_text?: string | null
+    sort_order?: number | string | null
+    is_main?: boolean | null
+  }, index: number) => ({
+    id: String(row.id),
+    imageUrl: row.image_url || row.url || rows[index]?.image_url || "",
+    altText: row.alt_text ?? rows[index]?.alt_text ?? null,
+    sortOrder: toNumber(row.sort_order, rows[index]?.sort_order ?? index),
+    isMain: Boolean(row.is_main),
+  }))
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("Inserted product image rows:", insertedRows)
+  }
+
+  return insertedRows
+}
+
+/**
+ * Upload and persist multiple images one-by-one.
+ * If a later upload fails, earlier successful rows stay saved and the error clearly
+ * reports a partial save so an admin can retry without silently losing work.
+ */
+export async function uploadMultipleProductImages(productId: string, productSlug: string, images: ProductImageUploadInput[]): Promise<UploadedProductImage[]> {
+  const validImages = images.filter((image) => image.file && image.file.size > 0)
+  if (!validImages.length) return []
+
+  const normalizedInputs = normalizeMainImage(validImages)
+  const uploadedImages: UploadedProductImage[] = []
+
+  for (let index = 0; index < normalizedInputs.length; index += 1) {
+    const image = normalizedInputs[index]
+
+    try {
+      const uploaded = await uploadProductImageFile(image.file, productSlug, index)
+      uploadedImages.push({
+        ...uploaded,
+        altText: image.altText,
+        isMain: image.isMain,
+        sortOrder: Number.isFinite(image.sortOrder) ? image.sortOrder : index,
+      })
+    } catch (error) {
+      if (uploadedImages.length) {
+        await insertProductImages(
+          productId,
+          uploadedImages.map((image) => ({
+            imageUrl: image.publicUrl,
+            altText: image.altText,
+            isMain: image.isMain,
+            sortOrder: image.sortOrder,
+          }))
+        )
+      }
+
+      const suffix = uploadedImages.length
+        ? ` ${uploadedImages.length} تصویر قبلی با موفقیت ذخیره شد؛ لطفاً تصاویر باقی‌مانده را دوباره آپلود کنید.`
+        : ""
+      const message = error instanceof Error ? error.message : "خطا در آپلود تصاویر محصول"
+      throw new Error(`${message}${suffix}`)
+    }
+  }
+
+  await insertProductImages(
+    productId,
+    uploadedImages.map((image) => ({
+      imageUrl: image.publicUrl,
+      altText: image.altText,
+      isMain: image.isMain,
+      sortOrder: image.sortOrder,
+    }))
+  )
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("Uploaded product images:", uploadedImages)
+  }
+
+  return uploadedImages
+}
+
+export function normalizeMainImage<T extends { isMain: boolean; sortOrder: number; markedForDeletion?: boolean }>(images: T[]): T[] {
+  const activeImages = images
+    .filter((image) => !image.markedForDeletion)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+
+  if (!activeImages.length) return []
+
+  const firstSelectedIndex = activeImages.findIndex((image) => image.isMain)
+  const mainIndex = firstSelectedIndex >= 0 ? firstSelectedIndex : 0
+
+  return activeImages.map((image, index) => ({
+    ...image,
+    isMain: index === mainIndex,
+  }))
+}
+
+export async function updateProductImageMetadata(productId: string, images: AdminProductImage[]): Promise<void> {
+  const supabase = await getSupabaseServerClient()
+  for (const image of normalizeMainImage(images)) {
+    const update = await supabase
+      .from("product_images")
+      .update({ alt_text: image.altText, sort_order: image.sortOrder, is_main: image.isMain })
+      .eq("id", image.id)
+      .eq("product_id", productId)
+
+    if (update.error) throw new Error(`Failed to update image: ${update.error.message}`)
+  }
+}
+
+export async function deleteProductImages(imageIds: string[]): Promise<void> {
+  if (!imageIds.length) return
+  const supabase = await getSupabaseServerClient()
+  const existing = await supabase.from("product_images").select("id, image_url, url").in("id", imageIds)
+  if (existing.error) throw new Error(`Failed to read images before deletion: ${existing.error.message}`)
+
+  const storagePaths = (existing.data ?? [])
+    .map((image: { image_url?: string | null; url?: string | null }) => storagePathFromPublicUrl(String(image.image_url || image.url || "")))
+    .filter((path: string | null): path is string => Boolean(path))
+
+  if (storagePaths.length) {
+    const removeStorage = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove(storagePaths)
+    if (removeStorage.error) throw new Error(`Failed to remove image files: ${removeStorage.error.message}`)
+  }
+
+  const removeRows = await supabase.from("product_images").delete().in("id", imageIds)
+  if (removeRows.error) throw new Error(`Failed to remove images: ${removeRows.error.message}`)
 }
 
 export async function updateExistingImages(options: {
@@ -389,25 +550,29 @@ export async function updateExistingImages(options: {
   removedImageIds: string[]
   mainExistingImageId: string | null
 }): Promise<void> {
-  const supabase = await getSupabaseServerClient()
+  if (options.removedImageIds.length) await deleteProductImages(options.removedImageIds)
 
-  if (options.removedImageIds.length) {
-    const remove = await supabase.from("product_images").delete().in("id", options.removedImageIds)
-    if (remove.error) throw new Error(`Failed to remove images: ${remove.error.message}`)
+  const remaining = options.existingImages
+    .filter((image) => !options.removedImageIds.includes(image.id))
+    .map((image) => ({
+      ...image,
+      isMain: options.mainExistingImageId ? image.id === options.mainExistingImageId : image.isMain,
+    }))
+
+  // When a newly uploaded image is selected as main, all existing images arrive with isMain=false.
+  // Preserve that intentionally; normalize only when at least one existing image is marked main.
+  if (remaining.some((image) => image.isMain)) {
+    await updateProductImageMetadata(options.productId, remaining)
+    return
   }
 
-  const remaining = options.existingImages.filter((image) => !options.removedImageIds.includes(image.id))
+  const supabase = await getSupabaseServerClient()
   for (const image of remaining) {
     const update = await supabase
       .from("product_images")
-      .update({
-        alt_text: image.altText,
-        sort_order: image.sortOrder,
-        is_main: options.mainExistingImageId ? image.id === options.mainExistingImageId : image.isMain,
-      })
+      .update({ alt_text: image.altText, sort_order: image.sortOrder, is_main: false })
       .eq("id", image.id)
       .eq("product_id", options.productId)
-
     if (update.error) throw new Error(`Failed to update image: ${update.error.message}`)
   }
 }
@@ -424,7 +589,11 @@ export async function toggleProductActiveRecord(id: string): Promise<void> {
 export async function deleteProductRecord(id: string): Promise<void> {
   const supabase = await getSupabaseServerClient()
   await supabase.from("product_specs").delete().eq("product_id", id)
-  await supabase.from("product_images").delete().eq("product_id", id)
+
+  const imageRows = await supabase.from("product_images").select("id").eq("product_id", id)
+  if (imageRows.error) throw new Error(`Failed to read product images before deletion: ${imageRows.error.message}`)
+  await deleteProductImages((imageRows.data ?? []).map((image: { id: string | number }) => String(image.id)))
+
   await supabase.from("inventory").delete().eq("product_id", id)
   const result = await supabase.from("products").delete().eq("id", id)
   if (result.error) throw new Error(`Failed to delete product: ${result.error.message}`)

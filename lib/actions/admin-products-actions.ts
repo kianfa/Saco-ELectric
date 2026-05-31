@@ -8,7 +8,7 @@ import {
   toggleAdminProductActive,
   updateAdminProduct,
 } from "@/lib/services/admin-products-service"
-import type { AdminActionState, AdminProductFormInput, AdminProductImage, AdminProductSpec } from "@/types/admin-product"
+import type { AdminActionState, AdminProductFormInput, AdminProductImage, AdminProductSpec, NewProductImageMetadata } from "@/types/admin-product"
 import { requireAdminAccess } from "@/lib/auth/admin-auth"
 
 const emptyState: AdminActionState = { ok: false, message: "" }
@@ -59,6 +59,7 @@ function parseProductInput(formData: FormData): AdminProductFormInput {
     removedImageIds: jsonValue<string[]>(formData.get("removedImageIdsJson"), []),
     mainExistingImageId: nullableText(formData.get("mainExistingImageId")),
     newImageAltTexts: jsonValue<string[]>(formData.get("newImageAltTextsJson"), []),
+    newImagesMetadata: jsonValue<NewProductImageMetadata[]>(formData.get("newImagesMetadataJson"), []),
   }
 }
 

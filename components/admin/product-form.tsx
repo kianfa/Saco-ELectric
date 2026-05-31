@@ -37,6 +37,21 @@ function initialState(): AdminActionState {
   return { ok: false, message: "" }
 }
 
+type PendingProductImage = {
+  id: string
+  file: File
+  previewUrl: string
+  altText: string
+  isMain: boolean
+  sortOrder: number
+}
+
+function createPendingImageId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 export function ProductForm({ options, product = null }: { options: AdminProductFormOptions; product?: AdminProduct | null }) {
   const router = useRouter()
   const isEdit = Boolean(product)
@@ -58,8 +73,7 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
   const [existingImages, setExistingImages] = useState<AdminProductImage[]>(product?.images ?? [])
   const [removedImageIds, setRemovedImageIds] = useState<string[]>([])
   const [mainExistingImageId, setMainExistingImageId] = useState<string | null>(product?.images.find((image) => image.isMain)?.id ?? null)
-  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([])
-  const [newImageAltTexts, setNewImageAltTexts] = useState<string[]>([])
+  const [pendingImages, setPendingImages] = useState<PendingProductImage[]>([])
   const [manualSlugTouched, setManualSlugTouched] = useState(Boolean(product?.slug))
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -99,25 +113,87 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
     setSpecs((items) => items.filter((_, itemIndex) => itemIndex !== index).map((item, itemIndex) => ({ ...item, sortOrder: itemIndex + 1 })))
   }
 
+  useEffect(() => {
+    if (!fileInputRef.current || typeof DataTransfer === "undefined") return
+    const transfer = new DataTransfer()
+    pendingImages.forEach((image) => transfer.items.add(image.file))
+    fileInputRef.current.files = transfer.files
+  }, [pendingImages])
+
+  function selectExistingMain(id: string) {
+    setMainExistingImageId(id)
+    setExistingImages((images) => images.map((image) => ({ ...image, isMain: image.id === id })))
+    setPendingImages((images) => images.map((image) => ({ ...image, isMain: false })))
+  }
+
+  function selectPendingMain(id: string) {
+    setMainExistingImageId(null)
+    setExistingImages((images) => images.map((image) => ({ ...image, isMain: false })))
+    setPendingImages((images) => images.map((image) => ({ ...image, isMain: image.id === id })))
+  }
+
   function removeExistingImage(id: string) {
-    setRemovedImageIds((items) => [...items, id])
-    setExistingImages((images) => images.filter((image) => image.id !== id))
-    if (mainExistingImageId === id) setMainExistingImageId(null)
+    const remainingExisting = existingImages.filter((image) => image.id !== id)
+    const removedWasMain = existingImages.some((image) => image.id === id && image.isMain)
+    setRemovedImageIds((items) => items.includes(id) ? items : [...items, id])
+
+    if (!removedWasMain) {
+      setExistingImages(remainingExisting)
+      return
+    }
+
+    const nextExistingMain = remainingExisting[0]?.id ?? null
+    const nextPendingMain = nextExistingMain ? null : pendingImages[0]?.id ?? null
+    setMainExistingImageId(nextExistingMain)
+    setExistingImages(remainingExisting.map((image) => ({ ...image, isMain: image.id === nextExistingMain })))
+    setPendingImages((images) => images.map((image) => ({ ...image, isMain: image.id === nextPendingMain })))
   }
 
   function handleNewImagesChange(files: FileList | null) {
-    newImagePreviews.forEach((url) => URL.revokeObjectURL(url))
-    const selectedFiles = Array.from(files ?? [])
-    const previews = selectedFiles.map((file) => URL.createObjectURL(file))
+    const selectedFiles = Array.from(files ?? []).filter((file) => file.size > 0)
+    if (!selectedFiles.length) return
+
     const defaultAlt = `${name}${model ? ` ${model}` : ""}`.trim() || "تصویر محصول"
-    setNewImagePreviews(previews)
-    setNewImageAltTexts(selectedFiles.map((_, index) => newImageAltTexts[index] || defaultAlt))
+    const currentMaxSortOrder = [...existingImages, ...pendingImages].reduce((max, image) => Math.max(max, image.sortOrder || 0), 0)
+    const hasMain = existingImages.some((image) => image.isMain) || pendingImages.some((image) => image.isMain)
+
+    const additions = selectedFiles.map((file, index) => ({
+      id: createPendingImageId(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      altText: defaultAlt,
+      isMain: !hasMain && index === 0,
+      sortOrder: currentMaxSortOrder + index + 1,
+    }))
+
+    setPendingImages((images) => [...images, ...additions])
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  function removePendingImage(id: string) {
+    const imageToRemove = pendingImages.find((image) => image.id === id)
+    if (imageToRemove) URL.revokeObjectURL(imageToRemove.previewUrl)
+
+    const remainingPending = pendingImages.filter((image) => image.id !== id)
+    if (!imageToRemove?.isMain) {
+      setPendingImages(remainingPending)
+      return
+    }
+
+    const nextExistingMain = existingImages[0]?.id ?? null
+    const nextPendingMain = nextExistingMain ? null : remainingPending[0]?.id ?? null
+    setMainExistingImageId(nextExistingMain)
+    setExistingImages((images) => images.map((image) => ({ ...image, isMain: image.id === nextExistingMain })))
+    setPendingImages(remainingPending.map((image) => ({ ...image, isMain: image.id === nextPendingMain })))
   }
 
   function clearNewImages() {
-    newImagePreviews.forEach((url) => URL.revokeObjectURL(url))
-    setNewImagePreviews([])
-    setNewImageAltTexts([])
+    pendingImages.forEach((image) => URL.revokeObjectURL(image.previewUrl))
+    const pendingHadMain = pendingImages.some((image) => image.isMain)
+    const nextExistingMain = pendingHadMain ? existingImages[0]?.id ?? null : mainExistingImageId
+    setMainExistingImageId(nextExistingMain)
+    setExistingImages((images) => images.map((image) => ({ ...image, isMain: image.id === nextExistingMain })))
+    setPendingImages([])
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
@@ -125,8 +201,8 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
     setExistingImages((images) => images.map((image) => image.id === id ? { ...image, altText } : image))
   }
 
-  function updateNewImageAlt(index: number, altText: string) {
-    setNewImageAltTexts((items) => items.map((item, itemIndex) => itemIndex === index ? altText : item))
+  function updatePendingImageAlt(id: string, altText: string) {
+    setPendingImages((images) => images.map((image) => image.id === id ? { ...image, altText } : image))
   }
 
   return (
@@ -135,7 +211,12 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
       <input type="hidden" name="existingImagesJson" value={JSON.stringify(existingImages)} />
       <input type="hidden" name="removedImageIdsJson" value={JSON.stringify(removedImageIds)} />
       <input type="hidden" name="mainExistingImageId" value={mainExistingImageId ?? ""} />
-      <input type="hidden" name="newImageAltTextsJson" value={JSON.stringify(newImageAltTexts)} />
+      <input type="hidden" name="newImageAltTextsJson" value={JSON.stringify(pendingImages.map((image) => image.altText))} />
+      <input
+        type="hidden"
+        name="newImagesMetadataJson"
+        value={JSON.stringify(pendingImages.map(({ id, altText, isMain, sortOrder }) => ({ clientId: id, altText, isMain, sortOrder })))}
+      />
 
       <div className="space-y-6">
         <Card className="rounded-2xl shadow-sm">
@@ -213,10 +294,25 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
           <CardHeader><CardTitle>تصاویر محصول</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-xl border border-dashed bg-muted/40 p-4">
-              <Label htmlFor="images" className="mb-3 flex items-center gap-2 font-bold"><ImagePlus className="h-4 w-4" /> آپلود تصویر اصلی و گالری</Label>
-              <Input ref={fileInputRef} id="images" name="images" type="file" accept="image/*" multiple onChange={(event) => handleNewImagesChange(event.target.files)} className="rounded-xl bg-card" />
-              <p className="mt-2 text-xs text-muted-foreground">مسیر ذخیره‌سازی: product-images/products/{slug || "product-slug"}/main.webp و gallery</p>
+              <Label htmlFor="images" className="mb-3 flex items-center gap-2 font-bold"><ImagePlus className="h-4 w-4" /> آپلود تصاویر محصول</Label>
+              <Input
+                ref={fileInputRef}
+                id="images"
+                name="images"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={(event) => handleNewImagesChange(event.target.files)}
+                className="rounded-xl bg-card"
+              />
+              <p className="mt-2 text-xs leading-6 text-muted-foreground">می‌توانید چند تصویر را هم‌زمان انتخاب کنید یا بعداً تصاویر بیشتری اضافه کنید. تصویر اول به‌صورت پیش‌فرض تصویر اصلی است و از داخل کارت‌ها قابل تغییر خواهد بود.</p>
+              <p className="mt-1 text-xs text-muted-foreground">مسیر ذخیره‌سازی: product-images/products/{slug || "product-slug"}/</p>
               <p className="mt-1 text-xs font-medium text-primary">پیشنهاد: تصویر محصول با پس‌زمینه سفید یا روشن و نسبت ۱:۱ آپلود شود.</p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+              <span>تعداد تصاویر فعلی: {existingImages.length}</span>
+              <span>تصاویر جدید انتخاب‌شده: {pendingImages.length}</span>
             </div>
 
             {existingImages.length ? (
@@ -225,18 +321,17 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {existingImages.map((image) => {
                     const fallbackText = `${name}${model ? ` ${model}` : ""}`.trim() || "تصویر محصول"
-                    const isMain = mainExistingImageId ? mainExistingImageId === image.id : image.isMain
-
                     return (
                       <ProductImagePreviewCard
                         key={image.id}
                         imageUrl={image.imageUrl}
                         altText={image.altText ?? ""}
                         fallbackText={fallbackText}
-                        isMain={isMain}
-                        onSetMain={() => setMainExistingImageId(image.id)}
+                        isMain={image.isMain}
+                        onSetMain={() => selectExistingMain(image.id)}
                         onRemove={() => removeExistingImage(image.id)}
                         onAltTextChange={(value) => updateExistingImageAlt(image.id, value)}
+                        showSavedUrl
                       />
                     )
                   })}
@@ -244,21 +339,25 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
               </div>
             ) : null}
 
-            {newImagePreviews.length ? (
+            {pendingImages.length ? (
               <div>
-                <div className="mb-2 flex items-center justify-between"><span className="text-sm font-bold">پیش‌نمایش تصاویر جدید</span><Button type="button" variant="ghost" size="sm" onClick={clearNewImages}><X className="h-4 w-4" /> حذف همه</Button></div>
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-bold">پیش‌نمایش تصاویر جدید</span>
+                  <Button type="button" variant="ghost" size="sm" onClick={clearNewImages}><X className="h-4 w-4" /> حذف همه تصاویر جدید</Button>
+                </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {newImagePreviews.map((url, index) => {
+                  {pendingImages.map((image) => {
                     const fallbackText = `${name}${model ? ` ${model}` : ""}`.trim() || "تصویر محصول"
-
                     return (
                       <ProductImagePreviewCard
-                        key={url}
-                        imageUrl={url}
-                        altText={newImageAltTexts[index] ?? ""}
+                        key={image.id}
+                        imageUrl={image.previewUrl}
+                        altText={image.altText}
                         fallbackText={fallbackText}
-                        isMain={!existingImages.length && index === 0}
-                        onAltTextChange={(value) => updateNewImageAlt(index, value)}
+                        isMain={image.isMain}
+                        onSetMain={() => selectPendingMain(image.id)}
+                        onRemove={() => removePendingImage(image.id)}
+                        onAltTextChange={(value) => updatePendingImageAlt(image.id, value)}
                       />
                     )
                   })}
