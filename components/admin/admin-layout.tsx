@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { LayoutDashboard, Package, Tags, Building2, ShoppingCart, Settings, Zap, LogOut, UserRound, ImagePlus, Percent, Grid3X3 } from "lucide-react"
+import { LayoutDashboard, Package, Tags, Building2, ShoppingCart, Settings, Zap, LogOut, UserRound, ImagePlus, Percent, Grid3X3, PhoneCall } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getCurrentAdminUser } from "@/lib/auth/admin-auth"
 import { logoutAdminAction } from "@/lib/actions/auth-actions"
@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button"
 
 const links = [
   { href: "/admin/products", label: "محصولات", icon: Package },
+  { href: "/admin/brands", label: "برندها", icon: Building2 },
+  { href: "/admin/categories", label: "دسته‌بندی‌ها", icon: Grid3X3 },
   { href: "/admin/products/bulk-price-update", label: "تغییر گروهی قیمت‌ها", icon: Percent },
   { href: "/admin/content", label: "محتوای سایت", icon: ImagePlus },
   { href: "/admin/content/homepage-categories", label: "دسته‌بندی‌های صفحه اصلی", icon: Grid3X3 },
   { href: "/admin/content/banners", label: "بنرها", icon: Tags },
-  { href: "#", label: "برندها", icon: Building2 },
+  { href: "/admin/purchase-requests", label: "درخواست‌های خرید", icon: PhoneCall },
   { href: "#", label: "سفارش‌ها", icon: ShoppingCart },
   { href: "/admin/content/settings", label: "تنظیمات سایت", icon: Settings },
 ]
@@ -66,7 +68,7 @@ export async function AdminLayout({ children, title, subtitle }: { children: Rea
                   href={link.href}
                   className={cn(
                     "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary",
-                    (link.href === "/admin/products" || link.href === "/admin/products/bulk-price-update" || link.href.startsWith("/admin/content")) && "bg-primary/10 text-primary"
+                    (link.href === "/admin/products" || link.href === "/admin/products/bulk-price-update" || link.href === "/admin/brands" || link.href === "/admin/categories" || link.href === "/admin/purchase-requests" || link.href.startsWith("/admin/content")) && "bg-primary/10 text-primary"
                   )}
                 >
                   <Icon className="h-4 w-4" />

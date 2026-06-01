@@ -1,15 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
-import { AlertTriangle, ChevronLeft, Home, MessageCircle, PackageOpen, Send } from "lucide-react"
+import { AlertTriangle, ChevronLeft, Home, PackageOpen } from "lucide-react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { TopBar } from "@/components/top-bar"
 import { CheckoutSteps } from "@/components/checkout/checkout-steps"
 import { CustomerInfoForm } from "@/components/checkout/customer-info-form"
 import { ShippingAddressForm } from "@/components/checkout/shipping-address-form"
-import { PaymentMethod, PaymentMethodSelector } from "@/components/checkout/payment-method-selector"
 import { CheckoutOrderSummary } from "@/components/checkout/checkout-order-summary"
 import { ProjectOrderNotice } from "@/components/checkout/project-order-notice"
 import {
@@ -21,10 +19,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
-import { ManualCheckoutContactSection } from "@/components/checkout/manual-checkout-contact-section"
 import { CardToCardInstructions } from "@/components/checkout/card-to-card-instructions"
-import { useContactInfo } from "@/components/site-settings-provider"
-import { storeContactConfig } from "@/lib/store-contact-config"
+import { CheckoutFinalizationMethods } from "@/components/checkout/checkout-finalization-methods"
 import { useCart } from "@/lib/cart/cart-store"
 import { formatPrice } from "@/lib/data"
 
@@ -77,18 +73,8 @@ function EmptyCheckoutState() {
 
 export function CheckoutPage() {
   const { items, totals, isHydrated } = useCart()
-  const contact = useContactInfo()
-  const telegramUrl = contact.telegramUrl || storeContactConfig.telegram.url
-  const supportPhone = contact.supportPhone || contact.mobile || storeContactConfig.mobile
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("manual")
-  const [submitted, setSubmitted] = useState(false)
-
   const hasOutOfStock = items.some((item) => item.stockQuantity === 0)
   const shippingLabel = "پس از بررسی و تایید کارشناسان"
-
-  const handleManualCheckoutClick = () => {
-    setSubmitted(true)
-  }
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
@@ -158,14 +144,9 @@ export function CheckoutPage() {
                   </div>
                 )}
 
-                <CustomerInfoForm showErrors={submitted} />
-                <ShippingAddressForm showErrors={submitted} />
-                <PaymentMethodSelector
-                  value={paymentMethod}
-                  onChange={setPaymentMethod}
-                  showWarning={submitted && !paymentMethod}
-                />
-                <ManualCheckoutContactSection />
+                <CheckoutFinalizationMethods items={items} />
+                <CustomerInfoForm showErrors={false} />
+                <ShippingAddressForm showErrors={false} />
                 <CardToCardInstructions />
                 <ProjectOrderNotice />
               </section>
@@ -178,8 +159,6 @@ export function CheckoutPage() {
                   payable={totals.payable}
                   shippingLabel={shippingLabel}
                   itemCount={totals.totalQuantity}
-                  telegramUrl={telegramUrl}
-                  baleUrl={null}
                 />
               </aside>
             </div>
@@ -191,23 +170,12 @@ export function CheckoutPage() {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 p-3 shadow-[0_-10px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
           <div className="container mx-auto flex items-center justify-between gap-3 px-1">
             <div>
-              <p className="text-xs text-muted-foreground">مبلغ قابل پرداخت</p>
+              <p className="text-xs text-muted-foreground">مبلغ تقریبی سبد خرید</p>
               <p className="text-lg font-extrabold text-primary">{formatPrice(totals.payable)} تومان</p>
             </div>
-            <div className="flex shrink-0 gap-2">
-              <Button asChild onClick={handleManualCheckoutClick} className="h-12 rounded-xl bg-secondary px-4 text-xs font-extrabold text-secondary-foreground hover:bg-secondary/90">
-                <a href={telegramUrl} target="_blank" rel="noreferrer">
-                  <Send className="h-4 w-4" />
-                  تلگرام
-                </a>
-              </Button>
-              <Button asChild onClick={handleManualCheckoutClick} variant="outline" className="h-12 rounded-xl bg-transparent px-4 text-xs font-extrabold">
-                <a href={`tel:${supportPhone}`} target="_blank" rel="noreferrer">
-                  <MessageCircle className="h-4 w-4" />
-                  بله
-                </a>
-              </Button>
-            </div>
+            <Button asChild className="h-12 rounded-xl bg-secondary px-4 text-xs font-extrabold text-secondary-foreground hover:bg-secondary/90">
+              <a href="#checkout-finalization">انتخاب روش نهایی‌سازی</a>
+            </Button>
           </div>
         </div>
       )}

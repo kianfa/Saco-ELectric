@@ -17,6 +17,10 @@ type RawCategoryRow = {
   description?: string | null
   image_url?: string | null
   imageUrl?: string | null
+  image_alt_text?: string | null
+  parent_id?: string | number | null
+  parent?: { name?: string | null } | null
+  created_at?: string | null
   homepage_title?: string | null
   homepage_display_title?: string | null
   homepage_image_url?: string | null
@@ -86,6 +90,9 @@ function mapCategory(row: RawCategoryRow): Category {
     slug,
     description: row.description ?? null,
     imageUrl,
+    imageAltText: row.image_alt_text?.trim() || (imageUrl ? `تصویر دسته‌بندی ${name}` : null),
+    parentId: row.parent_id == null ? null : String(row.parent_id),
+    parentName: row.parent?.name ?? null,
     homepageTitle: row.homepage_title ?? row.homepage_display_title ?? null,
     homepageImageUrl,
     homepageImageAltText,
@@ -97,15 +104,16 @@ function mapCategory(row: RawCategoryRow): Category {
     showOnHomepage: row.show_on_homepage ?? true,
     homepageSortOrder: toNumber(row.homepage_sort_order),
     isActive: row.is_active ?? true,
+    createdAt: row.created_at ?? null,
     productCount: 0,
   }
 }
 
 const fullCategorySelect =
-  "id, name, slug, description, image_url, homepage_title, homepage_image_url, homepage_image_alt_text, homepage_icon_url, homepage_icon_alt_text, homepage_url, show_on_homepage, homepage_sort_order, is_active"
+  "id, name, slug, description, image_url, image_alt_text, parent_id, created_at, homepage_title, homepage_image_url, homepage_image_alt_text, homepage_icon_url, homepage_icon_alt_text, homepage_url, show_on_homepage, homepage_sort_order, is_active"
 
 const legacyHomepageCategorySelect =
-  "id, name, slug, description, image_url, homepage_title, homepage_image_url, homepage_icon_url, homepage_url, show_on_homepage, homepage_sort_order, is_active"
+  "id, name, slug, description, image_url, parent_id, created_at, homepage_title, homepage_image_url, homepage_icon_url, homepage_url, show_on_homepage, homepage_sort_order, is_active"
 
 // Repository boundary: Supabase-specific category queries belong here only.
 // To migrate away from Supabase later, replace this repository implementation and
@@ -176,7 +184,7 @@ export async function fetchCategoryProductCounts(): Promise<Record<string, numbe
 }
 
 export async function fetchCategoriesWithProductCounts(): Promise<Category[]> {
-  const [categories, counts] = await Promise.all([fetchCategories(), fetchCategoryProductCounts().catch(() => ({}))])
+  const [categories, counts] = await Promise.all([fetchCategories(), fetchCategoryProductCounts().catch((): Record<string, number> => ({}))])
   return categories.map((category) => ({ ...category, productCount: counts[category.id] ?? 0 }))
 }
 

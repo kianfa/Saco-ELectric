@@ -8,6 +8,9 @@ type RawBrandRow = {
   logo_url?: string | null
   logoUrl?: string | null
   description?: string | null
+  logo_alt_text?: string | null
+  is_active?: boolean | null
+  created_at?: string | null
 }
 
 type ProductBrandRow = {
@@ -36,6 +39,9 @@ function mapBrand(row: RawBrandRow): Brand {
     slug: row.slug || createFallbackSlug(name),
     logoUrl: row.logo_url ?? row.logoUrl ?? null,
     description: row.description ?? null,
+    logoAltText: row.logo_alt_text?.trim() || (name ? `لوگوی برند ${name}` : null),
+    isActive: row.is_active ?? true,
+    createdAt: row.created_at ?? null,
     productCount: 0,
   }
 }
@@ -52,7 +58,7 @@ export async function fetchBrands(): Promise<Brand[]> {
 
   const primaryResult = await supabase
     .from("brands")
-    .select("id, name, slug, logo_url, description")
+    .select("id, name, slug, logo_url, logo_alt_text, description, is_active, created_at")
     .eq("is_active", true)
     .order("name", { ascending: true })
 
@@ -66,7 +72,7 @@ export async function fetchBrands(): Promise<Brand[]> {
 
   const fallbackResult = await supabase
     .from("brands")
-    .select("id, name, slug, logo_url, description")
+    .select("id, name, slug, logo_url, description, created_at")
     .order("name", { ascending: true })
 
   if (!fallbackResult.error) {
@@ -110,6 +116,6 @@ export async function fetchBrandProductCounts(): Promise<Record<string, number>>
 }
 
 export async function fetchBrandsWithProductCounts(): Promise<Brand[]> {
-  const [brands, counts] = await Promise.all([fetchBrands(), fetchBrandProductCounts().catch(() => ({}))])
+  const [brands, counts] = await Promise.all([fetchBrands(), fetchBrandProductCounts().catch((): Record<string, number> => ({}))])
   return attachProductCounts(brands, counts)
 }

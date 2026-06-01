@@ -6,7 +6,11 @@ import Link from "next/link"
 import { AlertTriangle, ImagePlus, Loader2, Plus, Save, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 import type { AdminActionState, AdminProduct, AdminProductFormOptions, AdminProductImage, AdminProductSpec } from "@/types/admin-product"
+import type { Brand, BrandActionState } from "@/types/brand"
+import type { Category, CategoryActionState } from "@/types/category"
 import { createProductAction, updateProductAction } from "@/lib/actions/admin-products-actions"
+import { quickCreateBrandAction } from "@/lib/actions/admin-brand-actions"
+import { quickCreateCategoryAction } from "@/lib/actions/admin-category-actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProductImagePreviewCard } from "@/components/admin/product-image-preview-card"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 function slugify(value: string) {
   return value
@@ -63,6 +68,8 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
   const [name, setName] = useState(product?.name ?? "")
   const [model, setModel] = useState(product?.model ?? "")
   const [slug, setSlug] = useState(product?.slug ?? "")
+  const [brands, setBrands] = useState(options.brands)
+  const [categories, setCategories] = useState(options.categories)
   const [brandId, setBrandId] = useState(product?.brandId ?? "")
   const [categoryId, setCategoryId] = useState(product?.categoryId ?? "")
   const [price, setPrice] = useState(String(product?.price ?? ""))
@@ -77,7 +84,7 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
   const [manualSlugTouched, setManualSlugTouched] = useState(Boolean(product?.slug))
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const selectedBrand = options.brands.find((brand) => brand.id === brandId)?.slug ?? ""
+  const selectedBrand = brands.find((brand) => brand.id === brandId)?.slug ?? ""
   const calculatedDiscount = useMemo(() => {
     const priceNumber = Number(price || 0)
     const oldPriceNumber = Number(oldPrice || 0)
@@ -235,22 +242,28 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
               <Input name="sku" defaultValue={product?.sku ?? ""} dir="ltr" className="rounded-xl text-left" />
             </Field>
             <Field label="برند">
-              <Select value={brandId || "none"} onValueChange={(value) => setBrandId(value === "none" ? "" : value)} name="brandId">
-                <SelectTrigger className="w-full rounded-xl"><SelectValue placeholder="انتخاب برند" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">بدون برند</SelectItem>
-                  {options.brands.map((brand) => <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Select value={brandId || "none"} onValueChange={(value) => setBrandId(value === "none" ? "" : value)} name="brandId">
+                  <SelectTrigger className="w-full rounded-xl"><SelectValue placeholder="انتخاب برند" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون برند</SelectItem>
+                    {brands.map((brand) => <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <QuickCreateBrandDialog onCreated={(brand) => { setBrands((items) => [...items, brand].sort((a, b) => a.name.localeCompare(b.name, "fa"))); setBrandId(brand.id) }} />
+              </div>
             </Field>
             <Field label="دسته‌بندی" error={state.fieldErrors?.categoryId}>
-              <Select value={categoryId || "none"} onValueChange={(value) => setCategoryId(value === "none" ? "" : value)} name="categoryId">
-                <SelectTrigger className="w-full rounded-xl"><SelectValue placeholder="انتخاب دسته‌بندی" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">انتخاب نشده</SelectItem>
-                  {options.categories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Select value={categoryId || "none"} onValueChange={(value) => setCategoryId(value === "none" ? "" : value)} name="categoryId">
+                  <SelectTrigger className="w-full rounded-xl"><SelectValue placeholder="انتخاب دسته‌بندی" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">انتخاب نشده</SelectItem>
+                    {categories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <QuickCreateCategoryDialog categories={categories} onCreated={(category) => { setCategories((items) => [...items, category].sort((a, b) => a.name.localeCompare(b.name, "fa"))); setCategoryId(category.id) }} />
+              </div>
             </Field>
             <Field label="توضیح کوتاه" className="md:col-span-2">
               <Textarea name="shortDescription" defaultValue={product?.shortDescription ?? ""} className="min-h-24 rounded-xl" />
@@ -420,6 +433,31 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
       </aside>
     </form>
   )
+}
+
+
+function QuickCreateBrandDialog({ onCreated }: { onCreated: (brand: Brand) => void }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState("")
+  const [slug, setSlug] = useState("")
+  const [slugTouched, setSlugTouched] = useState(false)
+  const [state, action, pending] = useActionState<BrandActionState, FormData>(quickCreateBrandAction, { ok: false, message: "" })
+  const handledBrandId = useRef<string | null>(null)
+  useEffect(() => { if (!slugTouched) setSlug(slugify(name)) }, [name, slugTouched])
+  useEffect(() => { if (!state.message) return; if (state.ok && state.createdBrand && handledBrandId.current !== state.createdBrand.id) { handledBrandId.current = state.createdBrand.id; toast.success(state.message); onCreated(state.createdBrand); setOpen(false); setName(""); setSlug(""); setSlugTouched(false) } else if (!state.ok) toast.error(state.message) }, [onCreated, state])
+  return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button type="button" variant="ghost" size="sm" className="h-auto px-1 text-xs text-primary"><Plus className="h-3.5 w-3.5" /> افزودن برند جدید</Button></DialogTrigger><DialogContent dir="rtl"><DialogHeader><DialogTitle>افزودن سریع برند</DialogTitle><DialogDescription>برای تنظیم لوگو و توضیحات کامل بعداً به صفحه مدیریت برندها بروید.</DialogDescription></DialogHeader><form action={action} className="space-y-4"><div className="space-y-2"><Label>نام برند</Label><Input name="name" value={name} onChange={(e) => setName(e.target.value)} required className="rounded-xl" /></div><div className="space-y-2"><Label>slug</Label><Input name="slug" value={slug} onChange={(e) => { setSlug(slugify(e.target.value)); setSlugTouched(true) }} required dir="ltr" className="rounded-xl text-left" /></div><DialogFooter><Button type="submit" disabled={pending} className="rounded-xl">{pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} ذخیره برند</Button></DialogFooter></form></DialogContent></Dialog>
+}
+
+function QuickCreateCategoryDialog({ categories, onCreated }: { categories: Category[]; onCreated: (category: Category) => void }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState("")
+  const [slug, setSlug] = useState("")
+  const [slugTouched, setSlugTouched] = useState(false)
+  const [state, action, pending] = useActionState<CategoryActionState, FormData>(quickCreateCategoryAction, { ok: false, message: "" })
+  const handledCategoryId = useRef<string | null>(null)
+  useEffect(() => { if (!slugTouched) setSlug(slugify(name)) }, [name, slugTouched])
+  useEffect(() => { if (!state.message) return; if (state.ok && state.createdCategory && handledCategoryId.current !== state.createdCategory.id) { handledCategoryId.current = state.createdCategory.id; toast.success(state.message); onCreated(state.createdCategory); setOpen(false); setName(""); setSlug(""); setSlugTouched(false) } else if (!state.ok) toast.error(state.message) }, [onCreated, state])
+  return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button type="button" variant="ghost" size="sm" className="h-auto px-1 text-xs text-primary"><Plus className="h-3.5 w-3.5" /> افزودن دسته‌بندی جدید</Button></DialogTrigger><DialogContent dir="rtl"><DialogHeader><DialogTitle>افزودن سریع دسته‌بندی</DialogTitle><DialogDescription>برای تصاویر و تنظیمات صفحه اصلی بعداً به صفحه مدیریت دسته‌بندی‌ها بروید.</DialogDescription></DialogHeader><form action={action} className="space-y-4"><div className="space-y-2"><Label>نام دسته‌بندی</Label><Input name="name" value={name} onChange={(e) => setName(e.target.value)} required className="rounded-xl" /></div><div className="space-y-2"><Label>slug</Label><Input name="slug" value={slug} onChange={(e) => { setSlug(slugify(e.target.value)); setSlugTouched(true) }} required dir="ltr" className="rounded-xl text-left" /></div><div className="space-y-2"><Label>دسته‌بندی والد</Label><Select name="parentId" defaultValue="none"><SelectTrigger className="rounded-xl"><SelectValue placeholder="بدون والد" /></SelectTrigger><SelectContent><SelectItem value="none">بدون والد</SelectItem>{categories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}</SelectContent></Select></div><DialogFooter><Button type="submit" disabled={pending} className="rounded-xl">{pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} ذخیره دسته‌بندی</Button></DialogFooter></form></DialogContent></Dialog>
 }
 
 function Field({ label, helper, error, className, children }: { label: string; helper?: string; error?: string; className?: string; children: ReactNode }) {

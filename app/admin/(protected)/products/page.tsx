@@ -2,14 +2,14 @@ import { AdminLayout } from "@/components/admin/admin-layout"
 import { AdminEmptyState } from "@/components/admin/admin-empty-state"
 import { AdminProductsTable } from "@/components/admin/admin-products-table"
 import { getAdminProducts } from "@/lib/services/admin-products-service"
-import { getBrands } from "@/lib/services/brands-service"
-import { getCategories } from "@/lib/services/categories-service"
+import { getAdminBrands } from "@/lib/services/admin-brands-service"
+import { getAdminCategories } from "@/lib/services/admin-categories-service"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 export default async function AdminProductsPage() {
   try {
-    const [products, brands, categories] = await Promise.all([getAdminProducts(), getBrands(), getCategories()])
+    const [products, brands, categories] = await Promise.all([getAdminProducts(), getAdminBrands(), getAdminCategories()])
 
     return (
       <AdminLayout title="مدیریت محصولات" subtitle="افزودن، ویرایش و کنترل وضعیت محصولات فروشگاه">

@@ -1,14 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, Camera, ExternalLink, Info, LockKeyhole, MessageCircle, Send } from "lucide-react"
+import { ArrowRight, Info, LockKeyhole, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { ProductImage } from "@/components/common/product-image"
 import { formatPrice } from "@/lib/data"
 import type { CartItem } from "@/lib/cart/cart-store"
-import { useContactInfo, useManualCheckoutSettings } from "@/components/site-settings-provider"
-import { storeContactConfig } from "@/lib/store-contact-config"
 
 interface CheckoutOrderSummaryProps {
   items: CartItem[]
@@ -17,8 +15,6 @@ interface CheckoutOrderSummaryProps {
   payable: number
   shippingLabel: string
   itemCount: number
-  telegramUrl?: string
-  baleUrl?: string | null
 }
 
 function PriceRow({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
@@ -30,36 +26,17 @@ function PriceRow({ label, value, highlight = false }: { label: string; value: s
   )
 }
 
-export function CheckoutOrderSummary({
-  items,
-  subtotal,
-  discount,
-  payable,
-  shippingLabel,
-  itemCount,
-  telegramUrl,
-  baleUrl,
-}: CheckoutOrderSummaryProps) {
-  const contact = useContactInfo()
-  const manual = useManualCheckoutSettings()
-  const supportPhone = contact.supportPhone || contact.mobile || storeContactConfig.mobile
-  const resolvedTelegramUrl = telegramUrl || contact.telegramUrl || storeContactConfig.telegram.url
-  const resolvedBaleUrl = baleUrl || null
+export function CheckoutOrderSummary({ items, subtotal, discount, payable, shippingLabel, itemCount }: CheckoutOrderSummaryProps) {
   return (
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm md:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-extrabold text-foreground">خلاصه سفارش</h2>
-          <p className="text-sm text-muted-foreground">این بخش را برای پشتیبانی ارسال کنید</p>
+          <p className="text-sm text-muted-foreground">اطلاعات سبد خرید برای هماهنگی فروش</p>
         </div>
         <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-extrabold text-primary">
           {itemCount.toLocaleString("fa-IR")} کالا
         </div>
-      </div>
-
-      <div className="mb-4 flex items-start gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-3 text-xs font-semibold leading-6 text-orange-800">
-        <Camera className="mt-0.5 h-4 w-4 shrink-0" />
-        <span>{manual.explanationText}</span>
       </div>
 
       <div className="space-y-3 rounded-2xl bg-muted/35 p-3">
@@ -78,9 +55,7 @@ export function CheckoutOrderSummary({
                 </p>
               </div>
             </div>
-            <span className="shrink-0 font-extrabold text-primary">
-              {formatPrice(item.price * item.quantity)} تومان
-            </span>
+            <span className="shrink-0 font-extrabold text-primary">{formatPrice(item.price * item.quantity)} تومان</span>
           </div>
         ))}
       </div>
@@ -95,33 +70,23 @@ export function CheckoutOrderSummary({
       </div>
 
       <Separator className="my-4" />
+      <PriceRow label="مبلغ تقریبی سبد خرید" value={`${formatPrice(payable)} تومان`} highlight />
 
-      <PriceRow label="مبلغ قابل پرداخت" value={`${formatPrice(payable)} تومان`} highlight />
-
-      <div className="mt-3 flex items-start gap-2 rounded-xl bg-muted/50 px-3 py-3 text-xs font-semibold leading-6 text-muted-foreground">
+      <div className="mt-4 flex items-start gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-3 text-xs font-semibold leading-6 text-orange-800">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
-        <span>{manual.helperText}</span>
+        <span>مبلغ نهایی سفارش پس از بررسی موجودی، قیمت کالاها و شرایط ارسال توسط کارشناسان فروش تأیید خواهد شد.</span>
+      </div>
+      <div className="mt-3 flex items-start gap-2 rounded-xl bg-muted/50 px-3 py-3 text-xs font-semibold leading-6 text-muted-foreground">
+        <ShoppingCart className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>در هر دو روش، اطلاعات سبد خرید شما برای بررسی سفارش استفاده می‌شود.</span>
       </div>
 
       <div className="mt-5 space-y-3">
-        <Button asChild className="h-12 w-full rounded-xl bg-secondary text-base font-extrabold text-secondary-foreground hover:bg-secondary/90">
-          <a href={resolvedTelegramUrl} target="_blank" rel="noreferrer">
-            ارسال سفارش در تلگرام
-            <Send className="h-4 w-4" />
-          </a>
-        </Button>
-        <Button asChild variant="outline" className="h-11 w-full rounded-xl bg-transparent">
-          <a href={resolvedBaleUrl ?? `tel:${supportPhone}`} target="_blank" rel="noreferrer">
-            ارسال سفارش در بله
-            <MessageCircle className="h-4 w-4" />
-            <ExternalLink className="h-4 w-4" />
-          </a>
+        <Button asChild className="h-12 w-full rounded-xl bg-secondary text-sm font-extrabold text-secondary-foreground hover:bg-secondary/90">
+          <a href="#checkout-finalization">انتخاب روش نهایی‌سازی خرید</a>
         </Button>
         <Button asChild variant="ghost" className="h-10 w-full rounded-xl">
-          <Link href="/cart">
-            <ArrowRight className="h-4 w-4" />
-            بازگشت به سبد خرید
-          </Link>
+          <Link href="/cart"><ArrowRight className="h-4 w-4" />بازگشت به سبد خرید</Link>
         </Button>
       </div>
 

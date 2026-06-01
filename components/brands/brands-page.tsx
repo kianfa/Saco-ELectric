@@ -23,7 +23,7 @@ function BrandLogo({ brand }: { brand: Brand }) {
     return (
       <SafeImageWithFallback
         src={brand.logoUrl}
-        altText={`لوگوی ${brand.name}`}
+        altText={brand.logoAltText || `لوگوی ${brand.name}`}
         fallbackText={brand.name}
         objectFit="contain"
         className="h-20 w-20 rounded-2xl border border-border bg-white p-3 shadow-sm"
