@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { createRequestTimeoutSignal, performanceDebugEnabled, safePerformanceError, withExternalRequestTimeout, withServerTiming } from "@/lib/performance/server-timing"
 import type { AdminCategoryInput, Category } from "@/types/category"
 
 type RawCategory = {
@@ -107,6 +108,35 @@ export async function fetchAdminCategories(): Promise<Category[]> {
   return decorate((data ?? []) as RawCategory[], counts)
 }
 
+// Product-list filters only need identifiers and names; avoid the category
+// management page's product-count scan and large media metadata payload.
+export async function fetchAdminCategoryOptions(caller = "unspecified"): Promise<Category[]> {
+  const startedAt = performance.now()
+  if (performanceDebugEnabled() && caller === "admin-new-product") {
+    console.log("[admin-new-product] categories query started")
+  }
+  const supabase = await getSupabaseServerClient()
+  try {
+    const result = await withServerTiming("admin category options query", async () => {
+      const { data, error } = await withExternalRequestTimeout(
+        "admin categories lookup",
+        (signal) => supabase.from("categories").select("id, name, slug, is_active").order("name", { ascending: true }).abortSignal(signal),
+      )
+      if (error) throw new Error(`Failed to fetch admin category options: ${error.message}`)
+      return ((data ?? []) as RawCategory[]).map((row) => mapCategory(row, null))
+    })
+    if (performanceDebugEnabled() && caller === "admin-new-product") {
+      console.log(`[admin-new-product] categories query completed durationMs=${Math.round(performance.now() - startedAt)}`)
+    }
+    return result
+  } catch (error) {
+    if (performanceDebugEnabled() && caller === "admin-new-product") {
+      console.log(`[admin-new-product] failed stage=categories-query durationMs=${Math.round(performance.now() - startedAt)} safeMessage=${safePerformanceError(error)}`)
+    }
+    throw error
+  }
+}
+
 export async function fetchAdminCategoryById(id: string): Promise<Category | null> {
   const rows = await fetchAdminCategories()
   return rows.find((item) => item.id === id) ?? null
@@ -116,7 +146,7 @@ export async function categorySlugExists(slug: string, excludeId?: string): Prom
   const supabase = await getSupabaseServerClient()
   let query = supabase.from("categories").select("id").eq("slug", slug).limit(1)
   if (excludeId) query = query.neq("id", excludeId)
-  const { data, error } = await query
+  const { data, error } = await query.abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (error) throw new Error(`Failed to validate category slug: ${error.message}`)
   return Boolean(data?.length)
 }
@@ -130,7 +160,7 @@ async function createsCycle(id: string, parentId: string | null | undefined): Pr
   while (current && !seen.has(current)) {
     if (current === id) return true
     seen.add(current)
-    const result: { data: { parent_id?: string | null } | null; error: { message: string } | null } = await supabase.from("categories").select("parent_id").eq("id", current).maybeSingle()
+    const result: { data: { parent_id?: string | null } | null; error: { message: string } | null } = await supabase.from("categories").select("parent_id").eq("id", current).abortSignal(createRequestTimeoutSignal("adminMutation")).maybeSingle()
     if (result.error) throw new Error(`Failed to validate parent category: ${result.error.message}`)
     current = result.data?.parent_id ? String(result.data.parent_id) : null
   }
@@ -160,7 +190,7 @@ function payload(input: AdminCategoryInput) {
 
 export async function insertCategory(input: AdminCategoryInput): Promise<Category> {
   const supabase = await getSupabaseServerClient()
-  const { data, error } = await supabase.from("categories").insert(payload(input)).select(CATEGORY_SELECT).single()
+  const { data, error } = await supabase.from("categories").insert(payload(input)).select(CATEGORY_SELECT).abortSignal(createRequestTimeoutSignal("adminMutation")).single()
   if (error) throw new Error(`Failed to create category: ${error.message}`)
   return mapCategory(data as RawCategory, null)
 }
@@ -168,29 +198,29 @@ export async function insertCategory(input: AdminCategoryInput): Promise<Categor
 export async function patchCategory(id: string, input: AdminCategoryInput): Promise<Category> {
   if (await createsCycle(id, input.parentId)) throw new Error("دسته‌بندی والد نمی‌تواند باعث حلقه در ساختار دسته‌بندی‌ها شود")
   const supabase = await getSupabaseServerClient()
-  const { data, error } = await supabase.from("categories").update(payload(input)).eq("id", id).select(CATEGORY_SELECT).single()
+  const { data, error } = await supabase.from("categories").update(payload(input)).eq("id", id).select(CATEGORY_SELECT).abortSignal(createRequestTimeoutSignal("adminMutation")).single()
   if (error) throw new Error(`Failed to update category: ${error.message}`)
   return mapCategory(data as RawCategory, null)
 }
 
 export async function removeCategory(id: string): Promise<void> {
   const supabase = await getSupabaseServerClient()
-  const detachProducts = await supabase.from("products").update({ category_id: null }).eq("category_id", id)
+  const detachProducts = await supabase.from("products").update({ category_id: null }).eq("category_id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (detachProducts.error) throw new Error(`Failed to detach category products: ${detachProducts.error.message}`)
-  const detachChildren = await supabase.from("categories").update({ parent_id: null }).eq("parent_id", id)
+  const detachChildren = await supabase.from("categories").update({ parent_id: null }).eq("parent_id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (detachChildren.error) throw new Error(`Failed to detach child categories: ${detachChildren.error.message}`)
-  const { error } = await supabase.from("categories").delete().eq("id", id)
+  const { error } = await supabase.from("categories").delete().eq("id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (error) throw new Error(`Failed to delete category: ${error.message}`)
 }
 
 export async function setCategoryActive(id: string, isActive: boolean): Promise<void> {
   const supabase = await getSupabaseServerClient()
-  const { error } = await supabase.from("categories").update({ is_active: isActive, updated_at: new Date().toISOString() }).eq("id", id)
+  const { error } = await supabase.from("categories").update({ is_active: isActive, updated_at: new Date().toISOString() }).eq("id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (error) throw new Error(`Failed to update category status: ${error.message}`)
 }
 
 export async function setCategoryHomepageVisibility(id: string, showOnHomepage: boolean): Promise<void> {
   const supabase = await getSupabaseServerClient()
-  const { error } = await supabase.from("categories").update({ show_on_homepage: showOnHomepage, updated_at: new Date().toISOString() }).eq("id", id)
+  const { error } = await supabase.from("categories").update({ show_on_homepage: showOnHomepage, updated_at: new Date().toISOString() }).eq("id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (error) throw new Error(`Failed to update category homepage visibility: ${error.message}`)
 }

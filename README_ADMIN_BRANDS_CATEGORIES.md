@@ -1,18 +1,12 @@
-# Admin brands and categories
+# Admin brand and category media
 
-Run this migration once in Supabase SQL Editor:
+Brand logos and category images are uploaded through protected server actions and saved directly in the persistent host filesystem.
 
-`supabase/migrations/20260601_admin_brands_categories.sql`
+Configure:
 
-Admin routes:
+```env
+MEDIA_UPLOAD_DIR=/home/USERNAME/public_html/uploads
+NEXT_PUBLIC_MEDIA_BASE_URL=/uploads
+```
 
-- `/admin/brands`
-- `/admin/brands/new`
-- `/admin/brands/[id]/edit`
-- `/admin/categories`
-- `/admin/categories/new`
-- `/admin/categories/[id]/edit`
-
-Brand logos and category images are uploaded to the existing public `site-media` bucket. Existing Storage RLS must allow authenticated admins to upload/update/delete objects in that bucket.
-
-Product create/edit forms also expose quick-add dialogs for creating a basic brand or category without leaving the form.
+New database values are public URLs such as `/uploads/site-media/brands/siemens/logo.webp` and `/uploads/site-media/categories/cables/homepage.webp`. Existing Supabase Storage URLs remain readable for backward compatibility.

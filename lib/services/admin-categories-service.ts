@@ -1,6 +1,7 @@
 import {
   categorySlugExists,
   fetchAdminCategories,
+  fetchAdminCategoryOptions,
   fetchAdminCategoryById,
   insertCategory,
   patchCategory,
@@ -23,6 +24,7 @@ function validate(input: AdminCategoryInput) {
 }
 
 export const getAdminCategories = fetchAdminCategories
+export const getAdminCategoryOptions = fetchAdminCategoryOptions
 export const getAdminCategoryById = fetchAdminCategoryById
 
 export async function createCategory(input: AdminCategoryInput) {

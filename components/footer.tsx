@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 import {
   Award,
   ChevronLeft,
@@ -21,12 +21,8 @@ import { Button } from "@/components/ui/button"
 import { storeContactConfig } from "@/lib/store-contact-config"
 import { useSiteSettings } from "@/components/site-settings-provider"
 import { SafeImageWithFallback } from "@/components/common/safe-image-with-fallback"
-
-type FooterCategoryLink = {
-  name: string
-  slug: string
-  href: string
-}
+import { usePublicFooterCategories } from "@/components/storefront/public-categories-provider"
+import type { FooterCategoryLink } from "@/types/storefront"
 
 const quickLinks = [
   { name: "صفحه اصلی", href: "/" },
@@ -84,24 +80,7 @@ function isValidExternalUrl(value?: string | null) {
 
 export function Footer(_props: { settings?: unknown } = {}) {
   const { contactInfo: contact, footerInfo: footer } = useSiteSettings()
-  const [dynamicCategories, setDynamicCategories] = useState<FooterCategoryLink[]>([])
-
-  useEffect(() => {
-    const controller = new AbortController()
-
-    fetch("/api/public/footer-categories", { signal: controller.signal })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload) => {
-        if (Array.isArray(payload?.categories)) {
-          setDynamicCategories(payload.categories.slice(0, 8))
-        }
-      })
-      .catch(() => {
-        // Keep fallback links when the public categories endpoint is unavailable.
-      })
-
-    return () => controller.abort()
-  }, [])
+  const dynamicCategories = usePublicFooterCategories()
 
   const brandName = contact.brandName || storeContactConfig.brandName
   const description = footer.description || storeContactConfig.defaultFooterDescription

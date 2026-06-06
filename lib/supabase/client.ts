@@ -1,8 +1,9 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 
-// Supabase is intentionally initialized in this one file only.
-// To migrate away from Supabase later, replace this client and repository implementation
-// without changing UI components or page-level product usage.
+let publicClient: SupabaseClient | null = null
+
+// Browser-safe anonymous database client for public reads. It does not persist
+// or refresh auth sessions. Reusing the instance avoids needless setup work.
 export function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -13,10 +14,14 @@ export function getSupabaseClient() {
     )
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
+  if (!publicClient) {
+    publicClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    })
+  }
+
+  return publicClient
 }

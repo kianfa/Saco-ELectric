@@ -1,17 +1,12 @@
 import Link from "next/link"
-import { redirect } from "next/navigation"
 import { Zap } from "lucide-react"
 import { AdminLoginForm } from "@/components/admin/auth/admin-login-form"
-import { getCurrentAdminUser } from "@/lib/auth/admin-auth"
 
 export default async function AdminLoginPage({
   searchParams,
 }: {
   searchParams?: Promise<{ error?: string }>
 }) {
-  const admin = await getCurrentAdminUser()
-  if (admin) redirect("/admin/products")
-
   const params = await searchParams
   const accessDenied = params?.error === "access-denied"
 

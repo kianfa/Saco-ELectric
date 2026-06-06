@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { requireAdminAccess } from "@/lib/auth/admin-auth"
 import { createBrand, deleteBrand, toggleBrandActive, updateBrand, uploadBrandLogo } from "@/lib/services/admin-brands-service"
 import type { AdminBrandInput, BrandActionState } from "@/types/brand"
+import { withAdminMutationTimeout } from "@/lib/performance/server-timing"
 
 const emptyState: BrandActionState = { ok: false, message: "" }
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim()
@@ -41,7 +42,9 @@ export async function saveBrandAction(_prev: BrandActionState = emptyState, form
     const logoFile = file(formData, "logo")
     if (logoFile) logoUrl = await uploadBrandLogo(logoFile, slug)
     const input = inputFrom(formData, logoUrl)
-    const brand = id ? await updateBrand(id, input) : await createBrand(input)
+    const brand = id
+      ? await withAdminMutationTimeout("update brand", updateBrand(id, input))
+      : await withAdminMutationTimeout("create brand", createBrand(input))
     revalidateBrands()
     return { ok: true, message: "برند با موفقیت ذخیره شد", createdBrand: brand, redirectTo: text(formData, "intent") === "save-new" ? "/admin/brands/new" : "/admin/brands" }
   } catch (error) {
@@ -52,7 +55,7 @@ export async function saveBrandAction(_prev: BrandActionState = emptyState, form
 export async function quickCreateBrandAction(_prev: BrandActionState = emptyState, formData: FormData): Promise<BrandActionState> {
   await requireAdminAccess()
   try {
-    const brand = await createBrand({ name: text(formData, "name"), slug: text(formData, "slug").toLowerCase(), description: null, logoUrl: null, logoAltText: null, isActive: true })
+    const brand = await withAdminMutationTimeout("quick create brand", createBrand({ name: text(formData, "name"), slug: text(formData, "slug").toLowerCase(), description: null, logoUrl: null, logoAltText: null, isActive: true }))
     revalidateBrands()
     return { ok: true, message: "برند با موفقیت ذخیره شد", createdBrand: brand }
   } catch (error) {
@@ -62,12 +65,12 @@ export async function quickCreateBrandAction(_prev: BrandActionState = emptyStat
 
 export async function toggleBrandActiveAction(formData: FormData) {
   await requireAdminAccess()
-  await toggleBrandActive(text(formData, "id"), !bool(formData, "currentIsActive"))
+  await withAdminMutationTimeout("toggle brand active", toggleBrandActive(text(formData, "id"), !bool(formData, "currentIsActive")))
   revalidateBrands()
 }
 
 export async function deleteBrandAction(formData: FormData) {
   await requireAdminAccess()
-  await deleteBrand(text(formData, "id"))
+  await withAdminMutationTimeout("delete brand", deleteBrand(text(formData, "id")))
   revalidateBrands()
 }

@@ -1,6 +1,9 @@
 import Link from "next/link"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { ProductForm } from "@/components/admin/product-form"
+import { updateProductAction } from "@/lib/actions/admin-products-actions"
+import { quickCreateBrandAction } from "@/lib/actions/admin-brand-actions"
+import { quickCreateCategoryAction } from "@/lib/actions/admin-category-actions"
 import { Button } from "@/components/ui/button"
 import { getAdminBrands } from "@/lib/services/admin-brands-service"
 import { getAdminCategories } from "@/lib/services/admin-categories-service"
@@ -27,7 +30,13 @@ export default async function EditProductPage({ params }: PageProps) {
 
   return (
     <AdminLayout title="ویرایش محصول" subtitle={product.name}>
-      <ProductForm product={product} options={{ brands, categories }} />
+      <ProductForm
+        product={product}
+        options={{ brands, categories }}
+        submitAction={updateProductAction.bind(null, product.id)}
+        quickCreateBrandSubmitAction={quickCreateBrandAction}
+        quickCreateCategorySubmitAction={quickCreateCategoryAction}
+      />
     </AdminLayout>
   )
 }

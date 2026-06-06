@@ -1,6 +1,6 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidatePath, revalidateTag } from "next/cache"
 import { requireAdminAccess } from "@/lib/auth/admin-auth"
 import {
   createCategory,
@@ -11,6 +11,7 @@ import {
   uploadCategoryImage,
 } from "@/lib/services/admin-categories-service"
 import type { AdminCategoryInput, CategoryActionState } from "@/types/category"
+import { withAdminMutationTimeout } from "@/lib/performance/server-timing"
 
 const emptyState: CategoryActionState = { ok: false, message: "" }
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim()
@@ -26,6 +27,7 @@ const file = (formData: FormData, key: string) => {
 }
 
 function revalidateCategories() {
+  revalidateTag("public-categories", "max")
   revalidatePath("/")
   revalidatePath("/categories")
   revalidatePath("/products")
@@ -69,7 +71,9 @@ export async function saveCategoryAction(_prev: CategoryActionState = emptyState
     if (homepageFile) homepageImageUrl = await uploadCategoryImage(homepageFile, slug, "homepage")
     if (iconFile) homepageIconUrl = await uploadCategoryImage(iconFile, slug, "icon")
     const input = inputFrom(formData, { imageUrl, homepageImageUrl, homepageIconUrl })
-    const category = id ? await updateCategory(id, input) : await createCategory(input)
+    const category = id
+      ? await withAdminMutationTimeout("update category", updateCategory(id, input))
+      : await withAdminMutationTimeout("create category", createCategory(input))
     revalidateCategories()
     return { ok: true, message: "دسته‌بندی با موفقیت ذخیره شد", createdCategory: category, redirectTo: text(formData, "intent") === "save-new" ? "/admin/categories/new" : "/admin/categories" }
   } catch (error) {
@@ -80,7 +84,7 @@ export async function saveCategoryAction(_prev: CategoryActionState = emptyState
 export async function quickCreateCategoryAction(_prev: CategoryActionState = emptyState, formData: FormData): Promise<CategoryActionState> {
   await requireAdminAccess()
   try {
-    const category = await createCategory({
+    const category = await withAdminMutationTimeout("quick create category", createCategory({
       name: text(formData, "name"),
       slug: text(formData, "slug").toLowerCase(),
       parentId: nullableId(text(formData, "parentId")),
@@ -96,7 +100,7 @@ export async function quickCreateCategoryAction(_prev: CategoryActionState = emp
       showOnHomepage: true,
       homepageSortOrder: 0,
       isActive: true,
-    })
+    }))
     revalidateCategories()
     return { ok: true, message: "دسته‌بندی با موفقیت ذخیره شد", createdCategory: category }
   } catch (error) {
@@ -106,18 +110,18 @@ export async function quickCreateCategoryAction(_prev: CategoryActionState = emp
 
 export async function toggleAdminCategoryActiveAction(formData: FormData) {
   await requireAdminAccess()
-  await toggleCategoryActive(text(formData, "id"), !bool(formData, "currentIsActive"))
+  await withAdminMutationTimeout("toggle category active", toggleCategoryActive(text(formData, "id"), !bool(formData, "currentIsActive")))
   revalidateCategories()
 }
 
 export async function toggleAdminCategoryHomepageAction(formData: FormData) {
   await requireAdminAccess()
-  await toggleCategoryHomepageVisibility(text(formData, "id"), !bool(formData, "currentShowOnHomepage"))
+  await withAdminMutationTimeout("toggle category homepage visibility", toggleCategoryHomepageVisibility(text(formData, "id"), !bool(formData, "currentShowOnHomepage")))
   revalidateCategories()
 }
 
 export async function deleteCategoryAction(formData: FormData) {
   await requireAdminAccess()
-  await deleteCategory(text(formData, "id"))
+  await withAdminMutationTimeout("delete category", deleteCategory(text(formData, "id")))
   revalidateCategories()
 }

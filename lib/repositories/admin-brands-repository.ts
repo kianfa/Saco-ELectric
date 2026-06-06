@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { createRequestTimeoutSignal, performanceDebugEnabled, safePerformanceError, withExternalRequestTimeout, withServerTiming } from "@/lib/performance/server-timing"
 import type { AdminBrandInput, Brand } from "@/types/brand"
 
 type RawBrand = {
@@ -63,6 +64,34 @@ export async function fetchAdminBrands(): Promise<Brand[]> {
   return ((data ?? []) as RawBrand[]).map((row) => mapBrand(row, counts[String(row.id)] ?? 0))
 }
 
+// Product-list filters do not need expensive product-count scans.
+export async function fetchAdminBrandOptions(caller = "unspecified"): Promise<Brand[]> {
+  const startedAt = performance.now()
+  if (performanceDebugEnabled() && caller === "admin-new-product") {
+    console.log("[admin-new-product] brands query started")
+  }
+  const supabase = await getSupabaseServerClient()
+  try {
+    const result = await withServerTiming("admin brand options query", async () => {
+      const { data, error } = await withExternalRequestTimeout(
+        "admin brands lookup",
+        (signal) => supabase.from("brands").select("id, name, slug, is_active").order("name", { ascending: true }).abortSignal(signal),
+      )
+      if (error) throw new Error(`Failed to fetch admin brand options: ${error.message}`)
+      return ((data ?? []) as RawBrand[]).map((row) => mapBrand(row))
+    })
+    if (performanceDebugEnabled() && caller === "admin-new-product") {
+      console.log(`[admin-new-product] brands query completed durationMs=${Math.round(performance.now() - startedAt)}`)
+    }
+    return result
+  } catch (error) {
+    if (performanceDebugEnabled() && caller === "admin-new-product") {
+      console.log(`[admin-new-product] failed stage=brands-query durationMs=${Math.round(performance.now() - startedAt)} safeMessage=${safePerformanceError(error)}`)
+    }
+    throw error
+  }
+}
+
 export async function fetchAdminBrandById(id: string): Promise<Brand | null> {
   const supabase = await getSupabaseServerClient()
   const { data, error } = await supabase.from("brands").select(BRAND_SELECT).eq("id", id).maybeSingle()
@@ -76,7 +105,7 @@ export async function brandSlugExists(slug: string, excludeId?: string): Promise
   const supabase = await getSupabaseServerClient()
   let query = supabase.from("brands").select("id").eq("slug", slug).limit(1)
   if (excludeId) query = query.neq("id", excludeId)
-  const { data, error } = await query
+  const { data, error } = await query.abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (error) throw new Error(`Failed to validate brand slug: ${error.message}`)
   return Boolean(data?.length)
 }
@@ -92,7 +121,7 @@ export async function insertBrand(input: AdminBrandInput): Promise<Brand> {
     is_active: input.isActive,
     updated_at: new Date().toISOString(),
   }
-  const { data, error } = await supabase.from("brands").insert(payload).select(BRAND_SELECT).single()
+  const { data, error } = await supabase.from("brands").insert(payload).select(BRAND_SELECT).abortSignal(createRequestTimeoutSignal("adminMutation")).single()
   if (error) throw new Error(`Failed to create brand: ${error.message}`)
   return mapBrand(data as RawBrand)
 }
@@ -108,21 +137,21 @@ export async function patchBrand(id: string, input: AdminBrandInput): Promise<Br
     is_active: input.isActive,
     updated_at: new Date().toISOString(),
   }
-  const { data, error } = await supabase.from("brands").update(payload).eq("id", id).select(BRAND_SELECT).single()
+  const { data, error } = await supabase.from("brands").update(payload).eq("id", id).select(BRAND_SELECT).abortSignal(createRequestTimeoutSignal("adminMutation")).single()
   if (error) throw new Error(`Failed to update brand: ${error.message}`)
   return mapBrand(data as RawBrand)
 }
 
 export async function removeBrand(id: string): Promise<void> {
   const supabase = await getSupabaseServerClient()
-  const detach = await supabase.from("products").update({ brand_id: null }).eq("brand_id", id)
+  const detach = await supabase.from("products").update({ brand_id: null }).eq("brand_id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (detach.error) throw new Error(`Failed to detach brand products: ${detach.error.message}`)
-  const { error } = await supabase.from("brands").delete().eq("id", id)
+  const { error } = await supabase.from("brands").delete().eq("id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (error) throw new Error(`Failed to delete brand: ${error.message}`)
 }
 
 export async function setBrandActive(id: string, isActive: boolean): Promise<void> {
   const supabase = await getSupabaseServerClient()
-  const { error } = await supabase.from("brands").update({ is_active: isActive, updated_at: new Date().toISOString() }).eq("id", id)
+  const { error } = await supabase.from("brands").update({ is_active: isActive, updated_at: new Date().toISOString() }).eq("id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (error) throw new Error(`Failed to update brand status: ${error.message}`)
 }

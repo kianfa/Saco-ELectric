@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { PackagePlus } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 export function AdminEmptyState() {
   return (
@@ -10,9 +9,14 @@ export function AdminEmptyState() {
       </div>
       <h2 className="text-xl font-bold text-primary">هنوز محصولی ثبت نشده است</h2>
       <p className="mt-2 text-sm text-muted-foreground">برای شروع، اولین محصول فروشگاه را بدون نیاز به SQL اضافه کنید.</p>
-      <Button asChild className="mt-6 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90">
-        <Link href="/admin/products/new">افزودن اولین محصول</Link>
-      </Button>
+      <Link
+        href="/admin/products/new"
+        prefetch={false}
+        data-add-product-link="empty-state"
+        className="mt-6 inline-flex h-10 items-center justify-center whitespace-nowrap rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-all hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        افزودن اولین محصول
+      </Link>
     </div>
   )
 }

@@ -15,7 +15,8 @@ import {
   upsertSiteSetting,
 } from "@/lib/repositories/site-content-repository"
 import type { BannerFormInput, HomepageSection, SiteSettingsBundle } from "@/types/site-content"
-import { assertSafeImageFile, buildSafeStoragePath, getSafeImageExtension, toSafePathSegment } from "@/lib/security/file-upload"
+import { assertSafeImageFile, toSafePathSegment } from "@/lib/security/file-upload"
+import { withAdminMutationTimeout } from "@/lib/performance/server-timing"
 
 export const getHomepageSection = fetchHomepageSection
 export const getHomepageSections = fetchHomepageSections
@@ -30,38 +31,42 @@ export async function saveHomepageSection(section: Partial<HomepageSection> & { 
   if (section.sectionKey === "hero" && !section.title?.trim()) {
     return { ok: false, message: "عنوان اصلی hero الزامی است" }
   }
-  await upsertHomepageSection(section)
+  await withAdminMutationTimeout("save homepage section", upsertHomepageSection(section))
   return { ok: true, message: "محتوای صفحه اصلی ذخیره شد" }
 }
 
 export async function saveSiteSettings(settings: SiteSettingsBundle) {
-  await upsertSiteSetting("contact_info", settings.contactInfo)
-  await upsertSiteSetting("footer_info", settings.footerInfo)
-  await upsertSiteSetting("manual_checkout", settings.manualCheckout)
+  await withAdminMutationTimeout("save contact settings", upsertSiteSetting("contact_info", settings.contactInfo))
+  await withAdminMutationTimeout("save footer settings", upsertSiteSetting("footer_info", settings.footerInfo))
+  await withAdminMutationTimeout("save checkout settings", upsertSiteSetting("manual_checkout", settings.manualCheckout))
   return { ok: true, message: "تنظیمات سایت با موفقیت ذخیره شد" }
 }
 
 export async function saveBanner(input: BannerFormInput) {
   if (!input.title.trim()) return { ok: false, message: "عنوان بنر الزامی است" }
   if (!input.placement.trim()) return { ok: false, message: "محل نمایش بنر الزامی است" }
-  if (input.id) await updateBanner(input as BannerFormInput & { id: string })
-  else await createBanner(input)
+  if (input.startsAt && input.endsAt && new Date(input.startsAt).getTime() > new Date(input.endsAt).getTime()) {
+    return { ok: false, message: "زمان پایان بنر باید بعد از زمان شروع باشد" }
+  }
+  if (input.id) await withAdminMutationTimeout("update banner", updateBanner(input as BannerFormInput & { id: string }))
+  else await withAdminMutationTimeout("create banner", createBanner(input))
   return { ok: true, message: "بنر ذخیره شد" }
 }
 
 export async function removeBanner(id: string) {
-  await deleteBanner(id)
+  await withAdminMutationTimeout("delete banner", deleteBanner(id))
   return { ok: true, message: "بنر حذف شد" }
 }
 
 export async function uploadWebsiteMedia(file: File, folder: string, fileName: string) {
   assertSafeImageFile(file)
 
-  const extension = getSafeImageExtension(file)
-  const baseFileName = fileName.replace(/\.[^.]+$/, "")
-  const safeName = `${toSafePathSegment(baseFileName, "site-media")}.${extension}`
-  const safeFolderParts = folder.split("/").filter(Boolean)
-  const safePath = buildSafeStoragePath([...safeFolderParts, safeName])
+  const safeFolder = folder
+    .split("/")
+    .filter(Boolean)
+    .map((part) => toSafePathSegment(part, "folder"))
+    .join("/")
+  const safeFileName = toSafePathSegment(fileName.replace(/\.[^.]+$/, ""), "site-media")
 
-  return uploadSiteMedia(file, safePath)
+  return uploadSiteMedia(file, safeFolder, safeFileName)
 }

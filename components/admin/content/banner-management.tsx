@@ -20,6 +20,14 @@ import { SafeImageWithFallback } from "@/components/common/safe-image-with-fallb
 const initialState: SiteContentActionState = { ok: false, message: "" }
 const placements = ["homepage_promo", "products_top", "checkout_notice"]
 
+function toDateTimeLocalValue(value: string | null) {
+  if (!value) return ""
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ""
+  const offsetMs = parsed.getTimezoneOffset() * 60_000
+  return new Date(parsed.getTime() - offsetMs).toISOString().slice(0, 16)
+}
+
 function emptyBanner(): SiteBanner {
   return {
     id: "",
@@ -176,7 +184,7 @@ export function BannerManagement({ banners }: { banners: SiteBanner[] }) {
             <div className="space-y-2">
               <Label>تصویر بنر</Label>
               <Input name="image" type="file" accept="image/jpeg,image/png,image/webp" className="rounded-xl" />
-              <p className="text-xs text-muted-foreground">تصویر در bucket site-media ذخیره می‌شود و URL عمومی آن در image_url ثبت می‌شود.</p>
+              <p className="text-xs text-muted-foreground">تصویر مستقیماً روی فضای هاست ذخیره می‌شود و آدرس عمومی آن در دیتابیس ثبت می‌شود.</p>
             </div>
             <div className="space-y-2">
               <Label>متن ALT تصویر بنر</Label>
@@ -192,11 +200,30 @@ export function BannerManagement({ banners }: { banners: SiteBanner[] }) {
             </div>
             <div className="flex items-center justify-between rounded-xl border p-3">
               <span className="text-sm font-medium">فعال</span>
-              <Switch name="isActive" checked={editing.isActive} onCheckedChange={(value) => setEditing({ ...editing, isActive: value })} />
+              <input type="hidden" name="isActive" value={editing.isActive ? "true" : "false"} />
+              <Switch checked={editing.isActive} onCheckedChange={(value) => setEditing({ ...editing, isActive: value })} />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>شروع</Label><Input name="startsAt" type="datetime-local" className="rounded-xl" /></div>
-              <div className="space-y-2"><Label>پایان</Label><Input name="endsAt" type="datetime-local" className="rounded-xl" /></div>
+              <div className="space-y-2">
+                <Label>شروع</Label>
+                <Input
+                  name="startsAt"
+                  type="datetime-local"
+                  value={toDateTimeLocalValue(editing.startsAt)}
+                  onChange={(event) => setEditing({ ...editing, startsAt: event.target.value || null })}
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>پایان</Label>
+                <Input
+                  name="endsAt"
+                  type="datetime-local"
+                  value={toDateTimeLocalValue(editing.endsAt)}
+                  onChange={(event) => setEditing({ ...editing, endsAt: event.target.value || null })}
+                  className="rounded-xl"
+                />
+              </div>
             </div>
             <div className="flex gap-2">
               <AdminSubmitButton>{editing.id ? "ذخیره تغییرات" : "افزودن بنر"}</AdminSubmitButton>

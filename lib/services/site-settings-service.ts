@@ -1,3 +1,5 @@
+import { unstable_cache } from "next/cache"
+import { performanceDebugEnabled, safePerformanceError, withPublicDataTimeout, withServerTiming } from "@/lib/performance/server-timing"
 import { fetchPublicSiteSettingsRows } from "@/lib/repositories/site-settings-repository"
 import { storeContactConfig } from "@/lib/store-contact-config"
 import { publicSiteSettingsFallback } from "@/lib/site-settings-defaults"
@@ -61,6 +63,7 @@ function normalizeFooterInfo(footer: JsonMap, contactInfo: PublicContactInfo): P
     description: str(footer.description) ?? publicSiteSettingsFallback.footerInfo.description,
     copyright: str(footer.copyright) ?? publicSiteSettingsFallback.footerInfo.copyright,
     trustBadgeImageUrl: str(footer.trustBadgeImageUrl) ?? str(footer.trust_badge_image_url) ?? null,
+    trustBadgeImageAltText: str(footer.trustBadgeImageAltText) ?? str(footer.trust_badge_image_alt_text) ?? publicSiteSettingsFallback.footerInfo.trustBadgeImageAltText,
     instagramUrl: str(footer.instagramUrl) ?? str(footer.instagram_url) ?? null,
     telegramUrl: str(footer.telegramUrl) ?? str(footer.telegram_url) ?? contactInfo.telegramUrl,
     baleUrl: str(footer.baleUrl) ?? str(footer.bale_url) ?? null,
@@ -96,29 +99,46 @@ export function normalizePublicSiteSettings(rows: Record<string, JsonMap>): Publ
   return { contactInfo, footerInfo, manualCheckout }
 }
 
-export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
-  const rows = await fetchPublicSiteSettingsRows()
-  const settings = normalizePublicSiteSettings(rows)
-
-  if (process.env.NODE_ENV === "development") {
-    console.log("Loaded public site settings:", {
-      contactInfo: settings.contactInfo,
-      footerInfo: settings.footerInfo,
-      manualCheckout: settings.manualCheckout,
-    })
+async function fetchPublicSiteSettingsUncached(): Promise<PublicSiteSettings> {
+  try {
+    const rows = await withPublicDataTimeout(
+      "site settings lookup",
+      (signal) => fetchPublicSiteSettingsRows(signal),
+    )
+    return normalizePublicSiteSettings(rows)
+  } catch (error) {
+    // Public storefront settings may safely degrade to defaults during a
+    // transient Supabase outage. Authentication helpers never use this fallback.
+    console.error(`[site-settings] using public fallback: ${safePerformanceError(error)}`)
+    return publicSiteSettingsFallback
   }
-
-  return settings
 }
 
+const cachedPublicSiteSettings = unstable_cache(
+  async () => fetchPublicSiteSettingsUncached(),
+  ["public-site-settings-v2"],
+  { revalidate: 300, tags: ["public-site-settings"] },
+)
+
+export async function getPublicSiteSettings(requestedBy = "unspecified-call-site"): Promise<PublicSiteSettings> {
+  if (performanceDebugEnabled()) {
+    console.log(`[perf] getPublicSiteSettings requested by ${requestedBy}`)
+  }
+  return withServerTiming(`getPublicSiteSettings ${requestedBy}`, () => cachedPublicSiteSettings())
+}
+
+// Compatibility alias for existing imports. The implementation uses the same
+// stable explicit cache entry and does not create an additional cache key.
+export const getCachedPublicSiteSettings = getPublicSiteSettings
+
 export async function getContactInfo(): Promise<PublicContactInfo> {
-  return (await getPublicSiteSettings()).contactInfo
+  return (await getPublicSiteSettings("getContactInfo")).contactInfo
 }
 
 export async function getFooterInfo(): Promise<PublicFooterInfo> {
-  return (await getPublicSiteSettings()).footerInfo
+  return (await getPublicSiteSettings("getFooterInfo")).footerInfo
 }
 
 export async function getManualCheckoutSettings(): Promise<PublicManualCheckoutSettings> {
-  return (await getPublicSiteSettings()).manualCheckout
+  return (await getPublicSiteSettings("getManualCheckoutSettings")).manualCheckout
 }

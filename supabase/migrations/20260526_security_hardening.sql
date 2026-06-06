@@ -243,6 +243,9 @@ drop policy if exists "Admins upload site media" on storage.objects;
 drop policy if exists "Admins update site media" on storage.objects;
 drop policy if exists "Admins delete site media" on storage.objects;
 
+-- Legacy read-only compatibility: existing rows may still point at images that were
+-- uploaded to these former buckets before host-backed media storage was introduced.
+-- Do not create new buckets for uploads and do not grant Storage write access.
 drop policy if exists "Public read product images bucket" on storage.objects;
 create policy "Public read product images bucket"
 on storage.objects
@@ -258,38 +261,8 @@ to public
 using (bucket_id = 'site-media');
 
 drop policy if exists "Admins upload public media buckets" on storage.objects;
-create policy "Admins upload public media buckets"
-on storage.objects
-for insert
-to authenticated
-with check (
-  bucket_id in ('product-images', 'site-media')
-  and public.is_admin()
-);
-
 drop policy if exists "Admins update public media buckets" on storage.objects;
-create policy "Admins update public media buckets"
-on storage.objects
-for update
-to authenticated
-using (
-  bucket_id in ('product-images', 'site-media')
-  and public.is_admin()
-)
-with check (
-  bucket_id in ('product-images', 'site-media')
-  and public.is_admin()
-);
-
 drop policy if exists "Admins delete public media buckets" on storage.objects;
-create policy "Admins delete public media buckets"
-on storage.objects
-for delete
-to authenticated
-using (
-  bucket_id in ('product-images', 'site-media')
-  and public.is_admin()
-);
 
 -- 8) Recommended grants -----------------------------------------------------
 -- Supabase APIs need grants plus RLS policies. Keep anon mostly read-only.

@@ -255,12 +255,8 @@ function mapProductDetail(row: RawProductRow): ProductDetail {
     }))
     .filter((image) => Boolean(image.imageUrl))
 
-  if (process.env.NODE_ENV === "development") {
-    console.log("Mapped public product detail images:", {
-      productId: product.id,
-      slug: product.slug,
-      images: mappedImages,
-    })
+  if (process.env.DEBUG_PERFORMANCE === "true") {
+    console.log(`[perf] mapped public product detail images productId=${product.id} count=${mappedImages.length}`)
   }
 
   const detailSpecs = sortSpecs(row.product_specs)
@@ -376,15 +372,10 @@ export async function fetchProducts(options: ProductQueryOptions = {}): Promise<
     throw new Error(`Failed to fetch products: ${error.message}`)
   }
 
-  let products = ((data ?? []) as RawProductRow[]).map(mapProduct)
+  let products = ((data ?? []) as unknown as RawProductRow[]).map(mapProduct)
 
-  if (process.env.NODE_ENV === "development") {
-    console.log("Mapped public product images:", products.map((product) => ({
-      id: product.id,
-      slug: product.slug,
-      mainImageUrl: product.mainImageUrl,
-      mainImageAlt: product.mainImageAlt,
-    })))
+  if (process.env.DEBUG_PERFORMANCE === "true") {
+    console.log(`[perf] mapped public product images count=${products.length}`)
   }
 
   const brandFilters = normalizeFilterList([...(options.brands ?? []), options.brand])

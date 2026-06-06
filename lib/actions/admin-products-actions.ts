@@ -1,7 +1,6 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 import {
   createAdminProduct,
   deleteAdminProduct,
@@ -10,6 +9,7 @@ import {
 } from "@/lib/services/admin-products-service"
 import type { AdminActionState, AdminProductFormInput, AdminProductImage, AdminProductSpec, NewProductImageMetadata } from "@/types/admin-product"
 import { requireAdminAccess } from "@/lib/auth/admin-auth"
+import { withAdminMutationTimeout } from "@/lib/performance/server-timing"
 
 const emptyState: AdminActionState = { ok: false, message: "" }
 
@@ -74,7 +74,7 @@ export async function createProductAction(_prevState: AdminActionState = emptySt
   try {
     const intent = String(formData.get("intent") ?? "save")
     const input = parseProductInput(formData)
-    const result = await createAdminProduct(input, getImageFiles(formData))
+    const result = await withAdminMutationTimeout("create product", createAdminProduct(input, getImageFiles(formData)))
 
     if (!result.ok) return result
 
@@ -97,7 +97,7 @@ export async function updateProductAction(productId: string, _prevState: AdminAc
   await requireAdminAccess()
   try {
     const input = parseProductInput(formData)
-    const result = await updateAdminProduct(productId, input, getImageFiles(formData))
+    const result = await withAdminMutationTimeout("update product", updateAdminProduct(productId, input, getImageFiles(formData)))
 
     if (!result.ok) return result
 
@@ -116,16 +116,30 @@ export async function updateProductAction(productId: string, _prevState: AdminAc
 export async function toggleProductActiveAction(formData: FormData) {
   await requireAdminAccess()
   const id = String(formData.get("id") ?? "")
-  if (id) await toggleAdminProductActive(id)
+  if (id) await withAdminMutationTimeout("toggle product active", toggleAdminProductActive(id))
   revalidatePath("/products")
   revalidatePath("/admin/products")
 }
 
-export async function deleteProductAction(formData: FormData) {
+const PRODUCT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export async function deleteProductAction(productId: string): Promise<AdminActionState> {
   await requireAdminAccess()
-  const id = String(formData.get("id") ?? "")
-  if (id) await deleteAdminProduct(id)
-  revalidatePath("/products")
-  revalidatePath("/admin/products")
-  redirect("/admin/products")
+  const id = productId.trim()
+  if (!PRODUCT_ID_PATTERN.test(id)) {
+    return { ok: false, message: "شناسه محصول نامعتبر است." }
+  }
+
+  try {
+    await withAdminMutationTimeout("delete product", deleteAdminProduct(id))
+    revalidatePath("/")
+    revalidatePath("/products")
+    revalidatePath("/admin/products")
+    return { ok: true, message: "محصول با موفقیت حذف شد." }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "حذف محصول ناموفق بود.",
+    }
+  }
 }

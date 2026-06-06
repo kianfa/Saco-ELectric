@@ -34,7 +34,8 @@ supabase/migrations/20260526_security_hardening.sql
 - Keep `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` public; this is expected.
 - Never expose a service role key as `NEXT_PUBLIC_*`.
 - If a service role key is added later, use it only in server-only files and never import it into client components.
-- Keep buckets `product-images` and `site-media` public for reads, but use RLS policies so only admin users can upload/update/delete.
+- Historical note: legacy rows may still reference the former `product-images` and `site-media` buckets. New uploads are written to the host filesystem, so Supabase Storage write policies are no longer part of the active upload pipeline.
+- The migration cleanup now removes legacy Storage insert, update, and delete policies without recreating them. Read-only policies remain solely for old hosted URLs.
 
 ## Test checklist
 1. Anonymous visitor can open `/`, `/products`, and `/products/[slug]`.
@@ -43,7 +44,7 @@ supabase/migrations/20260526_security_hardening.sql
 4. Admin user can open all admin pages.
 5. Admin can create/edit product and upload product image.
 6. Admin can edit homepage hero/banner and upload site media.
-7. Anonymous user cannot upload to `product-images` or `site-media` using the anon key.
+7. Anonymous users cannot invoke protected admin upload actions. Legacy Supabase Storage buckets may remain readable only so old image URLs continue to render.
 8. Admin can preview bulk price update without changing database.
 9. Bulk price apply requires final confirmation in UI and writes audit logs.
 10. Public homepage still shows hero slider/banner fallback if no active content exists.

@@ -6,7 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "debug:supabase-latency": "node scripts/check-supabase-latency.mjs",
+    "debug:homepage-request-sources": "node scripts/audit-homepage-request-sources.mjs",
+    "debug:add-product-navigation": "node scripts/audit-add-product-navigation.mjs",
+    "debug:add-product-navigation-surgical": "node scripts/audit-add-product-navigation-surgical.mjs",
+    "debug:admin-new-product-route": "node scripts/audit-admin-new-product-route.mjs",
+    "debug:turbopack-new-product-imports": "node scripts/audit-turbopack-new-product-imports.mjs",
+    "debug:timeout-profiles": "node scripts/audit-timeout-profiles.mjs",
+    "debug:homepage-banner-flow": "node scripts/audit-homepage-banner-flow.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

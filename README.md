@@ -33,3 +33,119 @@ To learn more, take a look at the following resources:
 - [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
 
 <a href="https://v0.app/chat/api/kiro/clone/kianfa/v0-industrial-electrical-homepage" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
+
+## Host filesystem media storage
+
+Supabase remains the database and authentication provider. New image uploads are no longer written to Supabase Storage. They are saved on the hosting server and their public `/uploads/...` URLs are stored in PostgreSQL.
+
+Configure production with an absolute persistent directory:
+
+```env
+MEDIA_UPLOAD_DIR=/home/USERNAME/public_html/uploads
+NEXT_PUBLIC_MEDIA_BASE_URL=/uploads
+```
+
+`MEDIA_UPLOAD_DIR` must be a permanent writable directory. The Node.js process must have write permission, and your web server must expose that directory from the URL prefix configured by `NEXT_PUBLIC_MEDIA_BASE_URL`. Do not point the setting at an ephemeral serverless filesystem.
+
+For local development only, omitting `MEDIA_UPLOAD_DIR` falls back to `public/uploads` inside the project. `NEXT_PUBLIC_MEDIA_BASE_URL` defaults to `/uploads`.
+
+Legacy Supabase-hosted image URLs and older plain `site-media/...` paths remain supported for display. Only new uploads use host filesystem paths such as `/uploads/products/product-slug/image-uuid.webp` and `/uploads/site-media/banners/banner-123.webp`.
+
+Supabase Storage buckets are not required for new uploads. Do not configure Storage write policies for the new media pipeline. Existing buckets may remain available only so legacy image URLs continue to display.
+
+For an existing Supabase deployment, apply `supabase/migrations/20260604_disable_supabase_storage_writes.sql` to remove historical Storage insert, update, and delete policies. It intentionally keeps read-only compatibility for legacy hosted images.
+
+## Performance diagnostics
+
+Admin login routes intentionally use a minimal root layout and do not fetch storefront settings. Storefront routes load cached public settings from `app/(storefront)/layout.tsx` with a 60-second revalidation window. Protected admin pages still perform an authoritative Supabase Auth and `profiles.role = 'admin'` check in the protected server layout and in protected Server Actions.
+
+To print concise server-side timings temporarily:
+
+```env
+DEBUG_PERFORMANCE=true
+```
+
+Timing logs never include passwords, cookies, tokens, session objects, database URLs, or keys. Disable the flag after diagnosis.
+
+Measure Supabase network latency independently from Next.js rendering:
+
+```bash
+pnpm debug:supabase-latency
+```
+
+The diagnostic script reports repeated DNS, Supabase Auth settings endpoint, and lightweight database-query timings with min, max, and average durations. It does not print credentials.
+
+Compare development and production behavior:
+
+```bash
+pnpm dev
+pnpm build
+pnpm start
+```
+
+Then request:
+
+```txt
+/admin/login
+/admin/products
+/api/auth/customer/status
+```
+
+Apply the reviewed non-destructive performance index migration manually after taking a database backup:
+
+```txt
+supabase/migrations/20260605_optimize_admin_performance.sql
+```
+
+## Homepage duplicate-request diagnostics
+
+The storefront shares customer auth status and footer categories through layout-level providers so the loading shell and resolved page do not independently refetch the same data. For the audit details and runtime verification commands, see `docs/HOMEPAGE_DUPLICATE_REQUEST_FIX_REPORT.md`.
+
+Run the dependency-free structural check with:
+
+```bash
+pnpm debug:homepage-request-sources
+```
+
+
+## Admin new-product route diagnostics
+
+For a dependency-free source audit of `/admin/products/new`, run:
+
+```bash
+pnpm debug:admin-new-product-route
+```
+
+Enable temporary server-stage logging with:
+
+```env
+DEBUG_PERFORMANCE=true
+EXTERNAL_REQUEST_TIMEOUT_MS=20000
+AUTH_REQUEST_TIMEOUT_MS=25000
+PUBLIC_DATA_TIMEOUT_MS=20000
+ADMIN_MUTATION_TIMEOUT_MS=30000
+FILE_OPERATION_TIMEOUT_MS=15000
+```
+
+
+## Runtime timeout profiles for slow networks
+
+The application keeps bounded timeout protection while allowing slower hosting connections. Configure these values in production:
+
+```env
+EXTERNAL_REQUEST_TIMEOUT_MS=20000
+AUTH_REQUEST_TIMEOUT_MS=25000
+PUBLIC_DATA_TIMEOUT_MS=20000
+ADMIN_MUTATION_TIMEOUT_MS=30000
+FILE_OPERATION_TIMEOUT_MS=15000
+```
+
+Timeout purposes:
+
+- `EXTERNAL_REQUEST_TIMEOUT_MS`: default fallback for external requests without a more specific profile.
+- `AUTH_REQUEST_TIMEOUT_MS`: Supabase Auth validation and authenticated profile lookups.
+- `PUBLIC_DATA_TIMEOUT_MS`: public storefront reads such as settings, categories, banners, and footer data.
+- `ADMIN_MUTATION_TIMEOUT_MS`: protected admin create, update, delete, and toggle operations.
+- `FILE_OPERATION_TIMEOUT_MS`: local filesystem media directory creation, writes, replacement cleanup, and deletes.
+
+Missing, non-numeric, unreasonably small, or excessively large values fall back to safe bounded defaults. Timeouts are never unlimited. Compatible Supabase PostgREST requests receive abort signals so timed-out network work is cancelled rather than left running in the background.

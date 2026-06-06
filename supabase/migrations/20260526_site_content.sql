@@ -86,11 +86,10 @@ on site_banners for all to authenticated
 using (exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role = 'admin'))
 with check (exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role = 'admin'));
 
--- Storage bucket should be created in the dashboard as public bucket: site-media.
--- Add matching storage policies if uploads fail with RLS:
--- create policy "Public read site media" on storage.objects for select to public using (bucket_id = 'site-media');
--- create policy "Admins upload site media" on storage.objects for insert to authenticated with check (bucket_id = 'site-media' and exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role = 'admin'));
--- create policy "Admins update site media" on storage.objects for update to authenticated using (bucket_id = 'site-media' and exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role = 'admin')) with check (bucket_id = 'site-media' and exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role = 'admin'));
+-- Historical note: this project originally used a public Supabase Storage bucket
+-- named site-media. New uploads now go to the persistent host filesystem. Keep old
+-- URLs readable when legacy rows still reference them, but do not create a bucket
+-- or add Storage write policies for the current upload pipeline.
 
 -- Normalize older homepage banner placement names so public homepage and admin use one value.
 update site_banners
@@ -100,7 +99,5 @@ where placement in ('promo_banner', 'homepage_banner', 'home_promo', 'homepage-p
 create index if not exists idx_site_banners_public_lookup
 on site_banners (placement, is_active, sort_order, created_at desc);
 
--- Optional: use this if you want SQL to create the bucket instead of the dashboard.
--- insert into storage.buckets (id, name, public)
--- values ('site-media', 'site-media', true)
--- on conflict (id) do update set public = true;
+-- Historical bucket-creation example intentionally removed. Host-backed uploads
+-- are configured with MEDIA_UPLOAD_DIR and NEXT_PUBLIC_MEDIA_BASE_URL instead.

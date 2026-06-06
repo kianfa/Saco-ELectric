@@ -8,7 +8,7 @@ The admin product form supports selecting multiple JPG, PNG or WebP files at onc
 - One non-deleted image is normalized as the main image.
 - The admin can select another main image or remove images individually.
 - Existing edit-page images and newly selected images share the same preview-card UX.
-- Files are uploaded to `product-images/products/{slug}/` with unique safe filenames.
+- Files are uploaded to `/uploads/products/{slug}/` on the persistent host filesystem with unique safe filenames.
 - Each successful upload is inserted immediately into `product_images`, so a later failed file does not silently discard previously saved records.
 - Explicitly removed existing images are deleted from Storage and `product_images`.
 

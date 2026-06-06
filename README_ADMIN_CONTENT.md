@@ -1,50 +1,21 @@
-# Admin content/media management
+# Admin site content media
 
-This update adds editable homepage/content management while keeping Supabase access out of UI components.
+Homepage hero images, slider images, promo banners, notices, footer trust badges, brand logos, and category images are written to the persistent host filesystem through protected server actions.
 
-## New admin routes
+Configure production with:
 
-- `/admin/content`
-- `/admin/content/homepage`
-- `/admin/content/banners`
-- `/admin/content/settings`
-
-## Supabase setup
-
-Run this file in Supabase SQL Editor before saving content:
-
-```txt
-supabase/migrations/20260526_site_content.sql
+```env
+MEDIA_UPLOAD_DIR=/home/USERNAME/public_html/uploads
+NEXT_PUBLIC_MEDIA_BASE_URL=/uploads
 ```
 
-Create a public Supabase Storage bucket named:
+Examples of new public database URLs:
 
 ```txt
-site-media
+/uploads/site-media/homepage/hero/hero-main.webp
+/uploads/site-media/homepage/hero/hero-mobile.webp
+/uploads/site-media/banners/promo-main.webp
+/uploads/site-media/footer/trust-badge.webp
 ```
 
-Suggested folders are created automatically by upload paths:
-
-```txt
-site-media/homepage/hero/hero-main.webp
-site-media/homepage/hero/hero-mobile.webp
-site-media/banners/promo-main.webp
-site-media/footer/trust-badge.webp
-```
-
-If Storage upload fails with RLS, add policies for `storage.objects` as described at the bottom of the migration file.
-
-## Architecture
-
-Supabase-specific code is isolated in:
-
-```txt
-lib/repositories/site-content-repository.ts
-```
-
-UI calls server actions/services only:
-
-```txt
-lib/services/site-content-service.ts
-lib/actions/site-content-actions.ts
-```
+The Node.js process needs write permission and the web server must expose the configured directory at `/uploads`. Legacy Supabase Storage URLs remain supported for display.

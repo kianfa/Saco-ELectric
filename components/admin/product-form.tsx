@@ -8,9 +8,6 @@ import { toast } from "sonner"
 import type { AdminActionState, AdminProduct, AdminProductFormOptions, AdminProductImage, AdminProductSpec } from "@/types/admin-product"
 import type { Brand, BrandActionState } from "@/types/brand"
 import type { Category, CategoryActionState } from "@/types/category"
-import { createProductAction, updateProductAction } from "@/lib/actions/admin-products-actions"
-import { quickCreateBrandAction } from "@/lib/actions/admin-brand-actions"
-import { quickCreateCategoryAction } from "@/lib/actions/admin-category-actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -57,14 +54,28 @@ function createPendingImageId() {
     : `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-export function ProductForm({ options, product = null }: { options: AdminProductFormOptions; product?: AdminProduct | null }) {
+type ProductSubmitAction = (prevState: AdminActionState, formData: FormData) => Promise<AdminActionState>
+type QuickCreateBrandSubmitAction = (prevState: BrandActionState, formData: FormData) => Promise<BrandActionState>
+type QuickCreateCategorySubmitAction = (prevState: CategoryActionState, formData: FormData) => Promise<CategoryActionState>
+
+type ProductFormProps = {
+  options: AdminProductFormOptions
+  product?: AdminProduct | null
+  submitAction: ProductSubmitAction
+  quickCreateBrandSubmitAction: QuickCreateBrandSubmitAction
+  quickCreateCategorySubmitAction: QuickCreateCategorySubmitAction
+}
+
+export function ProductForm({
+  options,
+  product = null,
+  submitAction,
+  quickCreateBrandSubmitAction,
+  quickCreateCategorySubmitAction,
+}: ProductFormProps) {
   const router = useRouter()
   const isEdit = Boolean(product)
-  const action = (isEdit && product ? updateProductAction.bind(null, product.id) : createProductAction) as (
-    prevState: AdminActionState,
-    formData: FormData
-  ) => Promise<AdminActionState>
-  const [state, formAction, pending] = useActionState<AdminActionState, FormData>(action, initialState())
+  const [state, formAction, pending] = useActionState<AdminActionState, FormData>(submitAction, initialState())
   const [name, setName] = useState(product?.name ?? "")
   const [model, setModel] = useState(product?.model ?? "")
   const [slug, setSlug] = useState(product?.slug ?? "")
@@ -250,7 +261,7 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
                     {brands.map((brand) => <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <QuickCreateBrandDialog onCreated={(brand) => { setBrands((items) => [...items, brand].sort((a, b) => a.name.localeCompare(b.name, "fa"))); setBrandId(brand.id) }} />
+                <QuickCreateBrandDialog action={quickCreateBrandSubmitAction} onCreated={(brand) => { setBrands((items) => [...items, brand].sort((a, b) => a.name.localeCompare(b.name, "fa"))); setBrandId(brand.id) }} />
               </div>
             </Field>
             <Field label="دسته‌بندی" error={state.fieldErrors?.categoryId}>
@@ -262,7 +273,7 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
                     {categories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <QuickCreateCategoryDialog categories={categories} onCreated={(category) => { setCategories((items) => [...items, category].sort((a, b) => a.name.localeCompare(b.name, "fa"))); setCategoryId(category.id) }} />
+                <QuickCreateCategoryDialog action={quickCreateCategorySubmitAction} categories={categories} onCreated={(category) => { setCategories((items) => [...items, category].sort((a, b) => a.name.localeCompare(b.name, "fa"))); setCategoryId(category.id) }} />
               </div>
             </Field>
             <Field label="توضیح کوتاه" className="md:col-span-2">
@@ -319,7 +330,7 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
                 className="rounded-xl bg-card"
               />
               <p className="mt-2 text-xs leading-6 text-muted-foreground">می‌توانید چند تصویر را هم‌زمان انتخاب کنید یا بعداً تصاویر بیشتری اضافه کنید. تصویر اول به‌صورت پیش‌فرض تصویر اصلی است و از داخل کارت‌ها قابل تغییر خواهد بود.</p>
-              <p className="mt-1 text-xs text-muted-foreground">مسیر ذخیره‌سازی: product-images/products/{slug || "product-slug"}/</p>
+              <p className="mt-1 text-xs text-muted-foreground">مسیر ذخیره‌سازی روی هاست: uploads/products/{slug || "product-slug"}/</p>
               <p className="mt-1 text-xs font-medium text-primary">پیشنهاد: تصویر محصول با پس‌زمینه سفید یا روشن و نسبت ۱:۱ آپلود شود.</p>
             </div>
 
@@ -436,24 +447,24 @@ export function ProductForm({ options, product = null }: { options: AdminProduct
 }
 
 
-function QuickCreateBrandDialog({ onCreated }: { onCreated: (brand: Brand) => void }) {
+function QuickCreateBrandDialog({ action: submitAction, onCreated }: { action: QuickCreateBrandSubmitAction; onCreated: (brand: Brand) => void }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [slugTouched, setSlugTouched] = useState(false)
-  const [state, action, pending] = useActionState<BrandActionState, FormData>(quickCreateBrandAction, { ok: false, message: "" })
+  const [state, action, pending] = useActionState<BrandActionState, FormData>(submitAction, { ok: false, message: "" })
   const handledBrandId = useRef<string | null>(null)
   useEffect(() => { if (!slugTouched) setSlug(slugify(name)) }, [name, slugTouched])
   useEffect(() => { if (!state.message) return; if (state.ok && state.createdBrand && handledBrandId.current !== state.createdBrand.id) { handledBrandId.current = state.createdBrand.id; toast.success(state.message); onCreated(state.createdBrand); setOpen(false); setName(""); setSlug(""); setSlugTouched(false) } else if (!state.ok) toast.error(state.message) }, [onCreated, state])
   return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button type="button" variant="ghost" size="sm" className="h-auto px-1 text-xs text-primary"><Plus className="h-3.5 w-3.5" /> افزودن برند جدید</Button></DialogTrigger><DialogContent dir="rtl"><DialogHeader><DialogTitle>افزودن سریع برند</DialogTitle><DialogDescription>برای تنظیم لوگو و توضیحات کامل بعداً به صفحه مدیریت برندها بروید.</DialogDescription></DialogHeader><form action={action} className="space-y-4"><div className="space-y-2"><Label>نام برند</Label><Input name="name" value={name} onChange={(e) => setName(e.target.value)} required className="rounded-xl" /></div><div className="space-y-2"><Label>slug</Label><Input name="slug" value={slug} onChange={(e) => { setSlug(slugify(e.target.value)); setSlugTouched(true) }} required dir="ltr" className="rounded-xl text-left" /></div><DialogFooter><Button type="submit" disabled={pending} className="rounded-xl">{pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} ذخیره برند</Button></DialogFooter></form></DialogContent></Dialog>
 }
 
-function QuickCreateCategoryDialog({ categories, onCreated }: { categories: Category[]; onCreated: (category: Category) => void }) {
+function QuickCreateCategoryDialog({ action: submitAction, categories, onCreated }: { action: QuickCreateCategorySubmitAction; categories: Category[]; onCreated: (category: Category) => void }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [slugTouched, setSlugTouched] = useState(false)
-  const [state, action, pending] = useActionState<CategoryActionState, FormData>(quickCreateCategoryAction, { ok: false, message: "" })
+  const [state, action, pending] = useActionState<CategoryActionState, FormData>(submitAction, { ok: false, message: "" })
   const handledCategoryId = useRef<string | null>(null)
   useEffect(() => { if (!slugTouched) setSlug(slugify(name)) }, [name, slugTouched])
   useEffect(() => { if (!state.message) return; if (state.ok && state.createdCategory && handledCategoryId.current !== state.createdCategory.id) { handledCategoryId.current = state.createdCategory.id; toast.success(state.message); onCreated(state.createdCategory); setOpen(false); setName(""); setSlug(""); setSlugTouched(false) } else if (!state.ok) toast.error(state.message) }, [onCreated, state])

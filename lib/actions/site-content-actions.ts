@@ -1,6 +1,6 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidatePath, revalidateTag } from "next/cache"
 import { requireAdminAccess } from "@/lib/auth/admin-auth"
 import { removeBanner, saveBanner, saveHomepageSection, saveSiteSettings, uploadWebsiteMedia } from "@/lib/services/site-content-service"
 import { storeContactConfig } from "@/lib/store-contact-config"
@@ -14,7 +14,28 @@ function text(formData: FormData, key: string): string | null {
 }
 
 function bool(formData: FormData, key: string): boolean {
-  return formData.get(key) === "on"
+  return formData
+    .getAll(key)
+    .some((value) => ["on", "true", "1", "yes"].includes(String(value).trim().toLowerCase()))
+}
+
+function optionalDateTime(formData: FormData, key: string): string | null {
+  const value = text(formData, key)
+  if (!value) return null
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error("تاریخ شروع یا پایان بنر نامعتبر است")
+  }
+
+  return parsed.toISOString()
+}
+
+function invalidateHomepageBanners() {
+  // Homepage banners are intentionally read without unstable_cache because
+  // their start/end windows are time-sensitive. Revalidate the homepage after
+  // every mutation so a newly active banner appears immediately.
+  revalidatePath("/")
 }
 
 function numberValue(formData: FormData, key: string, fallback = 0): number {
@@ -168,14 +189,14 @@ export async function saveBannerAction(
       badgeText: text(formData, "badgeText"),
       placement: text(formData, "placement") ?? "homepage_promo",
       isActive: bool(formData, "isActive"),
-      startsAt: text(formData, "startsAt"),
-      endsAt: text(formData, "endsAt"),
+      startsAt: optionalDateTime(formData, "startsAt"),
+      endsAt: optionalDateTime(formData, "endsAt"),
       sortOrder: numberValue(formData, "sortOrder", 0),
     }
 
     const result = await saveBanner(input)
     if (!result.ok) return result
-    revalidatePath("/")
+    invalidateHomepageBanners()
     revalidatePath("/products")
     revalidatePath("/checkout")
     revalidatePath("/contact")
@@ -193,7 +214,7 @@ export async function deleteBannerAction(formData: FormData) {
   await requireAdminAccess()
   const id = text(formData, "id")
   if (id) await removeBanner(id)
-  revalidatePath("/")
+  invalidateHomepageBanners()
   revalidatePath("/admin/content/banners")
 }
 
@@ -240,6 +261,7 @@ export async function saveSiteSettingsAction(
       },
     }
     const result = await saveSiteSettings(settings)
+    revalidateTag("public-site-settings", "max")
     revalidatePath("/")
     revalidatePath("/checkout")
     revalidatePath("/contact")

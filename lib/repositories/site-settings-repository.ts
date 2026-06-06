@@ -1,7 +1,14 @@
 import { getSupabaseClient } from "@/lib/supabase/client"
 
+const PUBLIC_SITE_SETTING_KEYS = [
+  "contact_info",
+  "site_contact",
+  "site_info",
+  "footer_info",
+  "manual_checkout",
+] as const
+
 type RawSiteSetting = {
-  id: string | number
   key: string | null
   value: Record<string, unknown> | null
 }
@@ -11,11 +18,18 @@ function isMissingTableOrColumn(message: string) {
   return lower.includes("does not exist") || lower.includes("schema cache")
 }
 
-// Public read repository. Supabase remains isolated here so this can later be
-// replaced with a custom API or another database provider.
-export async function fetchPublicSiteSettingsRows(): Promise<Record<string, Record<string, unknown>>> {
+// One browser-safe anonymous database request for storefront-only settings.
+// `site_settings.key` is already UNIQUE in the schema, which creates the
+// supporting index used by this filtered query.
+export async function fetchPublicSiteSettingsRows(signal?: AbortSignal): Promise<Record<string, Record<string, unknown>>> {
   const supabase = getSupabaseClient()
-  const { data, error } = await supabase.from("site_settings").select("id,key,value")
+  let query = supabase
+    .from("site_settings")
+    .select("key,value")
+    .in("key", [...PUBLIC_SITE_SETTING_KEYS])
+
+  if (signal) query = query.abortSignal(signal)
+  const { data, error } = await query
 
   if (error) {
     if (isMissingTableOrColumn(error.message)) return {}

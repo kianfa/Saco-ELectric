@@ -1,10 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
 import { LogOut, User, UserCircle } from "lucide-react"
 import { logoutCustomerAction } from "@/lib/actions/auth-actions"
 import { Button } from "@/components/ui/button"
+import { useCustomerAuthStatus } from "@/components/auth/customer-auth-status-provider"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,34 +14,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-type CustomerStatus = {
-  isLoggedIn: boolean
-  user: {
-    email: string | null
-    fullName: string | null
-    phone: string | null
-  } | null
-}
-
 export function CustomerAuthButton() {
-  const [status, setStatus] = useState<CustomerStatus | null>(null)
+  const status = useCustomerAuthStatus()
 
-  useEffect(() => {
-    let mounted = true
-    fetch("/api/auth/customer/status", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data: CustomerStatus) => {
-        if (mounted) setStatus(data)
-      })
-      .catch(() => {
-        if (mounted) setStatus({ isLoggedIn: false, user: null })
-      })
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  if (!status?.isLoggedIn) {
+  if (!status?.authenticated) {
     return (
       <>
         <Button asChild variant="outline" className="hidden sm:flex items-center gap-2 rounded-xl">
@@ -59,7 +35,7 @@ export function CustomerAuthButton() {
     )
   }
 
-  const displayName = status.user?.fullName || status.user?.email || "حساب کاربری"
+  const displayName = status.user?.fullName || "حساب کاربری"
 
   return (
     <DropdownMenu>
@@ -69,7 +45,7 @@ export function CustomerAuthButton() {
           <span className="hidden lg:inline max-w-32 truncate">{displayName}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56" dir="rtl">
+      <DropdownMenuContent align="end" className="w-56" style={{ direction: "rtl" }}>
         <DropdownMenuLabel className="truncate">{displayName}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>

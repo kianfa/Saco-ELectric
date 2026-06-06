@@ -1,6 +1,6 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidatePath, revalidateTag } from "next/cache"
 import { requireAdminAccess } from "@/lib/auth/admin-auth"
 import {
   updateCategoryHomepageSettings,
@@ -9,6 +9,7 @@ import {
   uploadCategoryHomepageImage,
 } from "@/lib/services/categories-service"
 import type { CategoryActionState } from "@/types/category"
+import { withAdminMutationTimeout } from "@/lib/performance/server-timing"
 
 const emptyState: CategoryActionState = { ok: false, message: "" }
 
@@ -31,20 +32,25 @@ function fileValue(formData: FormData, key: string): File | null {
   return value instanceof File && value.size > 0 ? value : null
 }
 
+function revalidatePublicCategoryData() {
+  revalidateTag("public-categories", "max")
+  revalidatePath("/")
+  revalidatePath("/admin/content/homepage-categories")
+}
+
 export async function saveHomepageCategorySectionAction(
   _prevState: CategoryActionState = emptyState,
   formData: FormData,
 ): Promise<CategoryActionState> {
   await requireAdminAccess()
   try {
-    const result = await updateHomepageCategorySectionSettings({
+    const result = await withAdminMutationTimeout("save homepage category section", updateHomepageCategorySectionSettings({
       title: text(formData, "title") ?? "",
       subtitle: text(formData, "subtitle") ?? "",
       isActive: bool(formData, "isActive"),
-    })
+    }))
 
-    revalidatePath("/")
-    revalidatePath("/admin/content/homepage-categories")
+    revalidatePublicCategoryData()
     return result
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "خطا در ذخیره تنظیمات بخش دسته‌بندی‌ها" }
@@ -71,7 +77,7 @@ export async function saveCategoryHomepageSettingsAction(
     const iconFile = fileValue(formData, "homepageIcon")
     if (iconFile) homepageIconUrl = await uploadCategoryHomepageIcon(slug, iconFile)
 
-    const result = await updateCategoryHomepageSettings({
+    const result = await withAdminMutationTimeout("save homepage category settings", updateCategoryHomepageSettings({
       id,
       slug,
       homepageTitle: text(formData, "homepageTitle"),
@@ -83,10 +89,9 @@ export async function saveCategoryHomepageSettingsAction(
       showOnHomepage: bool(formData, "showOnHomepage"),
       homepageSortOrder: numberValue(formData, "homepageSortOrder", 0),
       isActive: bool(formData, "isActive"),
-    })
+    }))
 
-    revalidatePath("/")
-    revalidatePath("/admin/content/homepage-categories")
+    revalidatePublicCategoryData()
     return result
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "خطا در ذخیره تنظیمات دسته‌بندی" }
@@ -100,7 +105,7 @@ export async function toggleCategoryHomepageVisibilityAction(formData: FormData)
   const currentShowOnHomepage = bool(formData, "currentShowOnHomepage")
   const currentIsActive = bool(formData, "currentIsActive")
 
-  await updateCategoryHomepageSettings({
+  await withAdminMutationTimeout("toggle homepage category visibility", updateCategoryHomepageSettings({
     id,
     slug,
     homepageTitle: text(formData, "homepageTitle"),
@@ -112,10 +117,9 @@ export async function toggleCategoryHomepageVisibilityAction(formData: FormData)
     showOnHomepage: !currentShowOnHomepage,
     homepageSortOrder: numberValue(formData, "homepageSortOrder", 0),
     isActive: currentIsActive,
-  })
+  }))
 
-  revalidatePath("/")
-  revalidatePath("/admin/content/homepage-categories")
+  revalidatePublicCategoryData()
 }
 
 export async function toggleCategoryActiveAction(formData: FormData) {
@@ -125,7 +129,7 @@ export async function toggleCategoryActiveAction(formData: FormData) {
   const currentShowOnHomepage = bool(formData, "currentShowOnHomepage")
   const currentIsActive = bool(formData, "currentIsActive")
 
-  await updateCategoryHomepageSettings({
+  await withAdminMutationTimeout("toggle homepage category active", updateCategoryHomepageSettings({
     id,
     slug,
     homepageTitle: text(formData, "homepageTitle"),
@@ -137,8 +141,7 @@ export async function toggleCategoryActiveAction(formData: FormData) {
     showOnHomepage: currentShowOnHomepage,
     homepageSortOrder: numberValue(formData, "homepageSortOrder", 0),
     isActive: !currentIsActive,
-  })
+  }))
 
-  revalidatePath("/")
-  revalidatePath("/admin/content/homepage-categories")
+  revalidatePublicCategoryData()
 }

@@ -9,7 +9,7 @@ const cards = [
   { href: "/admin/content/banners", title: "مدیریت بنرها", text: "افزودن و ویرایش بنرهای تبلیغاتی برای صفحه اصلی، محصولات و checkout", icon: Megaphone },
   { href: "/admin/content/homepage-categories", title: "دسته‌بندی‌های صفحه اصلی", text: "مدیریت عنوان بخش، تصاویر، ترتیب و نمایش کارت‌های دسته‌بندی زیر هیرو", icon: Grid3X3 },
   { href: "/admin/content/settings", title: "تنظیمات تماس و فوتر", text: "اطلاعات تماس، شبکه‌های اجتماعی، فوتر و متن پرداخت دستی", icon: Settings },
-  { href: "/admin/content/homepage", title: "مدیریت عکس‌های سایت", text: "آپلود تصاویر عمومی سایت در bucket جداگانه site-media", icon: ImagePlus },
+  { href: "/admin/content/homepage", title: "مدیریت عکس‌های سایت", text: "آپلود تصاویر عمومی سایت روی فضای پایدار هاست", icon: ImagePlus },
 ]
 
 export default function AdminContentPage() {
@@ -31,7 +31,7 @@ export default function AdminContentPage() {
         })}
       </div>
       <div className="mt-6 rounded-2xl border border-accent/30 bg-accent/10 p-5 text-sm leading-7 text-muted-foreground">
-        رسانه‌های عمومی سایت در bucket جداگانه <span dir="ltr" className="font-mono text-primary">site-media</span> ذخیره می‌شوند و از bucket محصولات استفاده نمی‌شود.
+        تصاویر عمومی سایت مستقیماً روی فضای پایدار هاست ذخیره می‌شوند و فقط آدرس عمومی آن‌ها در دیتابیس ثبت می‌شود. مسیر عمومی رسانه‌ها با <span dir="ltr" className="font-mono text-primary">/uploads</span> آغاز می‌شود.
       </div>
     </AdminLayout>
   )

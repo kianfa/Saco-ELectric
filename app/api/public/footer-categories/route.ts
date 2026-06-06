@@ -1,24 +1,21 @@
 import { NextResponse } from "next/server"
-import { getHomepageCategories, getCategories } from "@/lib/services/categories-service"
+import { getFooterCategoryLinks } from "@/lib/services/categories-service"
+import { createRequestTraceId, traceLog, withRequestTraceTiming } from "@/lib/performance/request-tracing"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
+  const requestId = createRequestTraceId()
+  traceLog(`footer-categories request started requestId=${requestId}`)
+
   try {
-    const homepageCategories = await getHomepageCategories().catch(() => [])
-    const source = homepageCategories.length ? homepageCategories : await getCategories().catch(() => [])
-
-    const categories = source
-      .filter((category) => category.isActive !== false)
-      .slice(0, 8)
-      .map((category) => ({
-        name: category.homepageTitle || category.name,
-        slug: category.slug,
-        href: category.homepageUrl || `/products?category=${encodeURIComponent(category.slug)}`,
-      }))
-
+    const categories = await withRequestTraceTiming("footer-categories query", requestId, () =>
+      getFooterCategoryLinks("footer-api"),
+    )
+    traceLog(`footer-categories request completed requestId=${requestId} count=${categories.length}`)
     return NextResponse.json({ categories })
   } catch {
+    traceLog(`footer-categories request completed requestId=${requestId} count=0 fallback=true`)
     return NextResponse.json({ categories: [] })
   }
 }

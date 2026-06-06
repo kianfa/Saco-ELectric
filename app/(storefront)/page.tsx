@@ -12,11 +12,11 @@ import { Footer } from "@/components/footer"
 import { getBrands } from "@/lib/services/brands-service"
 import { getHomepageCategories, getHomepageCategorySectionSettings } from "@/lib/services/categories-service"
 import { getFeaturedProducts } from "@/lib/services/products-service"
-import { getActiveBannersByPlacement, getHomepageSection, getSiteSettings } from "@/lib/services/site-content-service"
+import { getActiveBannersByPlacement, getHomepageSection } from "@/lib/services/site-content-service"
 import type { Brand } from "@/types/brand"
 import type { Category, HomepageCategorySectionSettings } from "@/types/category"
 import type { Product } from "@/types/product"
-import type { HomepageSection, SiteBanner, SiteSettingsBundle } from "@/types/site-content"
+import type { HomepageSection, SiteBanner } from "@/types/site-content"
 
 type SettledHomeData<T> = {
   data: T
@@ -33,16 +33,15 @@ function normalizeSettledResult<T>(result: PromiseSettledResult<T>, fallback: T)
 }
 
 export default async function HomePage() {
-  const [featuredProductsResult, categoriesResult, categorySettingsResult, brandsResult, heroResult, promoResult, promoBannersResult, settingsResult] =
+  const [featuredProductsResult, categoriesResult, categorySettingsResult, brandsResult, heroResult, promoResult, promoBannersResult] =
     await Promise.allSettled([
       getFeaturedProducts(),
-      getHomepageCategories(),
+      getHomepageCategories("homepage-page"),
       getHomepageCategorySectionSettings(),
       getBrands(),
       getHomepageSection("hero"),
       getHomepageSection("promo_banner"),
       getActiveBannersByPlacement("homepage_promo"),
-      getSiteSettings(),
     ])
 
   const featuredProducts = normalizeSettledResult<Product[]>(featuredProductsResult, [])
@@ -56,12 +55,6 @@ export default async function HomePage() {
   const hero = normalizeSettledResult<HomepageSection | null>(heroResult, null)
   const promo = normalizeSettledResult<HomepageSection | null>(promoResult, null)
   const promoBanners = normalizeSettledResult<SiteBanner[]>(promoBannersResult, [])
-  const settings = normalizeSettledResult<SiteSettingsBundle>(settingsResult, {
-    contactInfo: {},
-    footerInfo: {},
-    manualCheckout: {},
-  })
-
   return (
     <div className="flex min-h-screen flex-col">
       <TopBar />
@@ -74,7 +67,7 @@ export default async function HomePage() {
         <BrandStrip brands={brands.data} error={brands.error} />
         <TrustFeatures />
       </main>
-      <Footer settings={settings.data} />
+      <Footer />
     </div>
   )
 }

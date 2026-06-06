@@ -1,3 +1,5 @@
+import { cache } from "react"
+import { unstable_cache } from "next/cache"
 import {
   fetchAllCategoriesForAdmin,
   fetchCategories,
@@ -8,7 +10,10 @@ import {
 } from "@/lib/repositories/categories-repository"
 import { fetchAdminHomepageSections, fetchHomepageSection, upsertHomepageSection } from "@/lib/repositories/site-content-repository"
 import { uploadWebsiteMedia } from "@/lib/services/site-content-service"
+import { performanceDebugEnabled, safePerformanceError, withPublicDataTimeout, withServerTiming } from "@/lib/performance/server-timing"
+import { traceLog } from "@/lib/performance/request-tracing"
 import type { AdminCategoryHomepageSettingsInput, Category, HomepageCategorySectionSettings } from "@/types/category"
+import type { FooterCategoryLink } from "@/types/storefront"
 import { toSafePathSegment } from "@/lib/security/file-upload"
 
 const DEFAULT_HOMEPAGE_CATEGORY_SETTINGS: HomepageCategorySectionSettings = {
@@ -17,11 +22,55 @@ const DEFAULT_HOMEPAGE_CATEGORY_SETTINGS: HomepageCategorySectionSettings = {
   isActive: true,
 }
 
+async function fetchPublicCategoriesUncached(): Promise<Category[]> {
+  try {
+    return await withPublicDataTimeout("public categories lookup", (signal) => fetchCategories(signal))
+  } catch (error) {
+    if (performanceDebugEnabled()) {
+      console.log(`[perf] public categories fallback ${safePerformanceError(error)}`)
+    }
+    return []
+  }
+}
+
+async function fetchHomepageCategoriesUncached(): Promise<Category[]> {
+  try {
+    const categories = await withPublicDataTimeout("homepage categories lookup", (signal) => fetchHomepageCategories(signal))
+    if (performanceDebugEnabled()) {
+      console.log(`[perf] homepage categories mapped count=${categories.length}`)
+    }
+    return categories
+  } catch (error) {
+    if (performanceDebugEnabled()) {
+      console.log(`[perf] homepage categories fallback ${safePerformanceError(error)}`)
+    }
+    return []
+  }
+}
+
+const getCachedPublicCategories = unstable_cache(
+  async () => fetchPublicCategoriesUncached(),
+  ["public-categories-v1"],
+  { revalidate: 300, tags: ["public-categories"] },
+)
+
+const getCachedHomepageCategories = unstable_cache(
+  async () => fetchHomepageCategoriesUncached(),
+  ["public-homepage-categories-v1"],
+  { revalidate: 300, tags: ["public-categories"] },
+)
+
+// React cache deduplicates callers within one Server Component render request.
+// unstable_cache handles reuse across requests and controlled revalidation.
+const getRequestScopedPublicCategories = cache(async () => getCachedPublicCategories())
+const getRequestScopedHomepageCategories = cache(async () => getCachedHomepageCategories())
+
 // Application service API used by pages/components.
 // Keep this provider-agnostic so a future PostgreSQL/API provider can replace
 // the repository without changing homepage or admin UI.
-export async function getCategories(): Promise<Category[]> {
-  return fetchCategories()
+export async function getCategories(requestedBy = "unspecified-call-site"): Promise<Category[]> {
+  traceLog(`fetchPublicCategories caller=${requestedBy}`)
+  return withServerTiming(`getCategories ${requestedBy}`, () => getRequestScopedPublicCategories())
 }
 
 export async function getCategoriesWithProductCounts(): Promise<Category[]> {
@@ -32,27 +81,22 @@ export async function getCategoryProductCounts(): Promise<Record<string, number>
   return fetchCategoryProductCounts()
 }
 
-export async function getHomepageCategories(): Promise<Category[]> {
-  const categories = await fetchHomepageCategories()
+export async function getHomepageCategories(requestedBy = "unspecified-call-site"): Promise<Category[]> {
+  traceLog(`fetchHomepageCategories caller=${requestedBy}`)
+  return withServerTiming(`getHomepageCategories ${requestedBy}`, () => getRequestScopedHomepageCategories())
+}
 
-  if (process.env.NODE_ENV === "development") {
-    console.log(
-      "Homepage categories mapped:",
-      categories.map((category) => ({
-        name: category.name,
-        slug: category.slug,
-        homepageImageUrl: category.homepageImageUrl,
-        homepageIconUrl: category.homepageIconUrl,
-        homepageImageAltText: category.homepageImageAltText,
-        homepageIconAltText: category.homepageIconAltText,
-        imageUrl: category.imageUrl,
-        displayImageUrl: category.displayImageUrl,
-        displayImageAltText: category.displayImageAltText,
-      })),
-    )
-  }
-
+export async function getFooterCategoryLinks(requestedBy = "unspecified-call-site"): Promise<FooterCategoryLink[]> {
+  const homepageCategories = await getHomepageCategories(`${requestedBy}:homepage`)
+  const categories = homepageCategories.length ? homepageCategories : await getCategories(`${requestedBy}:fallback`)
   return categories
+    .filter((category) => category.isActive !== false)
+    .slice(0, 8)
+    .map((category) => ({
+      name: category.homepageTitle || category.name,
+      slug: category.slug,
+      href: category.homepageUrl || `/products?category=${encodeURIComponent(category.slug)}`,
+    }))
 }
 
 export async function getAllCategoriesForAdmin(): Promise<Category[]> {

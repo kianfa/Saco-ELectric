@@ -16,6 +16,7 @@ export type PublicFooterInfo = {
   description: string
   copyright: string
   trustBadgeImageUrl: string | null
+  trustBadgeImageAltText: string | null
   instagramUrl: string | null
   telegramUrl: string
   baleUrl: string | null

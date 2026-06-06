@@ -1,59 +1,35 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { createServerClient } from "@supabase/ssr"
 
-// Lightweight admin gate for /admin routes.
-// The protected admin route layout still performs the authoritative server-side role check.
-export async function proxy(request: NextRequest) {
+function hasSupabaseAuthCookie(request: NextRequest): boolean {
+  return request.cookies.getAll().some(({ name, value }) => {
+    return name.startsWith("sb-") && name.includes("auth-token") && Boolean(value)
+  })
+}
+
+// Lightweight cookie-presence gate only. It deliberately performs no network or
+// database request. Protected layouts and Server Actions remain authoritative.
+export function proxy(request: NextRequest) {
+  const startedAt = performance.now()
   const { pathname } = request.nextUrl
 
   if (!pathname.startsWith("/admin") || pathname.startsWith("/admin/login")) {
     return NextResponse.next()
   }
 
-  let response = NextResponse.next({ request })
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return response
-  }
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-        response = NextResponse.next({ request })
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
-      },
-    },
-  })
-
-  const { data: userResult } = await supabase.auth.getUser()
-  if (!userResult.user) {
+  if (!hasSupabaseAuthCookie(request)) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = "/admin/login"
     loginUrl.searchParams.set("next", pathname)
+    if (process.env.DEBUG_PERFORMANCE === "true") {
+      console.log("[perf] proxy.ts", Math.round(performance.now() - startedAt), "ms")
+    }
     return NextResponse.redirect(loginUrl)
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", userResult.user.id)
-    .maybeSingle()
-
-  if (profile?.role !== "admin") {
-    await supabase.auth.signOut()
-    const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = "/admin/login"
-    loginUrl.searchParams.set("error", "access-denied")
-    return NextResponse.redirect(loginUrl)
+  if (process.env.DEBUG_PERFORMANCE === "true") {
+    console.log("[perf] proxy.ts", Math.round(performance.now() - startedAt), "ms")
   }
-
-  return response
+  return NextResponse.next()
 }
 
 export const config = {

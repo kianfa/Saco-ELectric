@@ -118,14 +118,16 @@ const legacyHomepageCategorySelect =
 // Repository boundary: Supabase-specific category queries belong here only.
 // To migrate away from Supabase later, replace this repository implementation and
 // keep the Category type and categories-service API unchanged.
-export async function fetchCategories(): Promise<Category[]> {
+export async function fetchCategories(signal?: AbortSignal): Promise<Category[]> {
   const supabase = getSupabaseClient()
 
-  const primaryResult = await supabase
+  let primaryQuery = supabase
     .from("categories")
     .select(fullCategorySelect)
     .eq("is_active", true)
     .order("name", { ascending: true })
+  if (signal) primaryQuery.abortSignal(signal)
+  const primaryResult = await primaryQuery
 
   if (!primaryResult.error) {
     return ((primaryResult.data ?? []) as RawCategoryRow[]).map(mapCategory)
@@ -135,23 +137,29 @@ export async function fetchCategories(): Promise<Category[]> {
     throw new Error(`Failed to fetch categories: ${primaryResult.error.message}`)
   }
 
-  const legacyResult = await supabase
+  let legacyQuery = supabase
     .from("categories")
     .select(legacyHomepageCategorySelect)
     .eq("is_active", true)
     .order("name", { ascending: true })
+  if (signal) legacyQuery.abortSignal(signal)
+  const legacyResult = await legacyQuery
 
   if (!legacyResult.error) {
     return ((legacyResult.data ?? []) as RawCategoryRow[]).map(mapCategory)
   }
 
-  const fallbackResult = await supabase
+  let fallbackQuery = supabase
     .from("categories")
     .select("id, name, slug, description, image_url")
     .order("name", { ascending: true })
+  if (signal) fallbackQuery.abortSignal(signal)
+  const fallbackResult = await fallbackQuery
 
   if (fallbackResult.error) {
-    const minimalResult = await supabase.from("categories").select("id, name, slug").order("name", { ascending: true })
+    let minimalQuery = supabase.from("categories").select("id, name, slug").order("name", { ascending: true })
+    if (signal) minimalQuery.abortSignal(signal)
+    const minimalResult = await minimalQuery
     if (minimalResult.error) throw new Error(`Failed to fetch categories: ${minimalResult.error.message}`)
     return ((minimalResult.data ?? []) as RawCategoryRow[]).map(mapCategory)
   }
@@ -188,16 +196,18 @@ export async function fetchCategoriesWithProductCounts(): Promise<Category[]> {
   return categories.map((category) => ({ ...category, productCount: counts[category.id] ?? 0 }))
 }
 
-export async function fetchHomepageCategories(): Promise<Category[]> {
+export async function fetchHomepageCategories(signal?: AbortSignal): Promise<Category[]> {
   const supabase = getSupabaseClient()
 
-  const result = await supabase
+  let query = supabase
     .from("categories")
     .select(fullCategorySelect)
     .eq("is_active", true)
     .eq("show_on_homepage", true)
     .order("homepage_sort_order", { ascending: true })
     .order("name", { ascending: true })
+  if (signal) query.abortSignal(signal)
+  const result = await query
 
   if (!result.error) return ((result.data ?? []) as RawCategoryRow[]).map(mapCategory)
 
@@ -205,13 +215,15 @@ export async function fetchHomepageCategories(): Promise<Category[]> {
     throw new Error(`Failed to fetch homepage categories: ${result.error.message}`)
   }
 
-  const legacyResult = await supabase
+  let legacyQuery = supabase
     .from("categories")
     .select(legacyHomepageCategorySelect)
     .eq("is_active", true)
     .eq("show_on_homepage", true)
     .order("homepage_sort_order", { ascending: true })
     .order("name", { ascending: true })
+  if (signal) legacyQuery.abortSignal(signal)
+  const legacyResult = await legacyQuery
 
   if (!legacyResult.error) {
     return ((legacyResult.data ?? []) as RawCategoryRow[]).map(mapCategory)
@@ -219,7 +231,7 @@ export async function fetchHomepageCategories(): Promise<Category[]> {
 
   // Backward-compatible fallback for databases that have not run the homepage
   // category migration yet. Public homepage still renders instead of breaking.
-  return fetchCategories()
+  return fetchCategories(signal)
 }
 
 export async function fetchAllCategoriesForAdmin(): Promise<Category[]> {

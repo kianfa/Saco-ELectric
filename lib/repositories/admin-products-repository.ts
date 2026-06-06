@@ -1,15 +1,15 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
-import { assertSafeImageFile, buildSafeStoragePath, getSafeImageExtension, toSafePathSegment } from "@/lib/security/file-upload"
+import { createRequestTimeoutSignal, withExternalRequestTimeout, withServerTiming } from "@/lib/performance/server-timing"
+import { toSafePathSegment } from "@/lib/security/file-upload"
+import { deleteLocalMediaByPublicUrl, relativePathFromLocalPublicUrl, uploadLocalMedia } from "@/lib/storage/local-media-storage"
 import type { AdminProduct, AdminProductFormInput, AdminProductImage, AdminProductSpec } from "@/types/admin-product"
 import type { Product } from "@/types/product"
-import { fetchProducts } from "@/lib/repositories/products-repository"
 
-const PRODUCT_IMAGES_BUCKET = "product-images"
 
 // Admin write operations are intentionally centralized here.
 // When tightening Supabase RLS for production, restrict INSERT/UPDATE/DELETE
-// on products, inventory, product_images, product_specs, and storage.objects
-// to authenticated users whose profiles.role = 'admin'.
+// on products, inventory, product_images, and product_specs
+// to authenticated users whose profiles.role = 'admin'. Local files are handled by the server-only storage module.
 
 type Relation<T> = T | T[] | null
 
@@ -105,6 +105,48 @@ const ADMIN_PRODUCT_SELECT_FALLBACK = `
   inventory(quantity, stock_quantity),
   product_images(id, url, image_url, alt_text, sort_order, is_main),
   product_specs(id, spec_name, spec_value, name, label, value, sort_order)
+`
+
+// The admin table only needs summary columns. Edit pages keep using the richer
+// select above; the list no longer transfers descriptions or technical specs.
+const ADMIN_PRODUCT_LIST_SELECT = `
+  id,
+  name,
+  slug,
+  model,
+  sku,
+  price,
+  old_price,
+  discount_percent,
+  brand_id,
+  category_id,
+  is_active,
+  is_featured,
+  has_warranty,
+  brands(name),
+  categories(name),
+  inventory(quantity, stock_quantity),
+  product_images(id, image_url, url, alt_text, sort_order, is_main)
+`
+
+const ADMIN_PRODUCT_LIST_SELECT_FALLBACK = `
+  id,
+  name,
+  slug,
+  model,
+  sku,
+  price,
+  old_price,
+  discount_percent,
+  brand_id,
+  category_id,
+  is_active,
+  is_featured,
+  has_warranty,
+  brands(name),
+  categories(name),
+  inventory(quantity, stock_quantity),
+  product_images(id, url, alt_text, sort_order, is_main)
 `
 
 function toArray<T>(value: Relation<T>): T[] {
@@ -210,8 +252,64 @@ function productPayload(input: AdminProductFormInput, includeOptionalColumns = t
   return payload
 }
 
+function mapAdminProductListItem(row: RawAdminProductRow): Product {
+  const product = mapAdminProduct(row)
+  const mainImage = product.images.find((image) => image.isMain) ?? product.images[0]
+
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    model: product.model,
+    sku: product.sku,
+    shortDescription: product.shortDescription,
+    description: product.description,
+    price: product.price,
+    oldPrice: product.oldPrice,
+    discountPercent: product.discountPercent,
+    brandName: product.brandName,
+    categoryName: product.categoryName,
+    stockQuantity: product.quantity,
+    mainImageUrl: mainImage?.imageUrl || null,
+    mainImageAlt: mainImage?.altText ?? null,
+    isFeatured: product.isFeatured,
+    isActive: product.isActive,
+    rating: 0,
+    reviewCount: 0,
+    hasWarranty: product.hasWarranty,
+    specs: product.specs
+      .map((spec) => [spec.specName, spec.specValue].filter(Boolean).join(": "))
+      .filter(Boolean),
+  }
+}
+
 export async function fetchAdminProducts(): Promise<Product[]> {
-  return fetchProducts({})
+  const supabase = await getSupabaseServerClient()
+  return withServerTiming("admin product list query", async () => {
+    const primaryResult = await withExternalRequestTimeout(
+      "admin product list query",
+      supabase.from("products").select(ADMIN_PRODUCT_LIST_SELECT).order("id", { ascending: false }),
+    )
+
+    if (!primaryResult.error) {
+      return ((primaryResult.data ?? []) as RawAdminProductRow[]).map(mapAdminProductListItem)
+    }
+
+    if (!isMissingColumnError(primaryResult.error.message)) {
+      throw new Error(`خطا در دریافت فهرست محصولات: ${primaryResult.error.message}`)
+    }
+
+    const fallbackResult = await withExternalRequestTimeout(
+      "admin product list fallback query",
+      supabase.from("products").select(ADMIN_PRODUCT_LIST_SELECT_FALLBACK).order("id", { ascending: false }),
+    )
+
+    if (fallbackResult.error) {
+      throw new Error(`خطا در دریافت فهرست محصولات: ${fallbackResult.error.message}`)
+    }
+
+    return ((fallbackResult.data ?? []) as RawAdminProductRow[]).map(mapAdminProductListItem)
+  })
 }
 
 export async function fetchAdminProductById(id: string): Promise<AdminProduct | null> {
@@ -251,28 +349,28 @@ export async function ensureSkuIsUnique(sku: string, excludeProductId?: string):
 
 export async function insertProduct(input: AdminProductFormInput): Promise<string> {
   const supabase = await getSupabaseServerClient()
-  const primary = await supabase.from("products").insert(productPayload(input, true)).select("id").single()
+  const primary = await supabase.from("products").insert(productPayload(input, true)).select("id").abortSignal(createRequestTimeoutSignal("adminMutation")).single()
 
   if (!primary.error) return String(primary.data.id)
   if (!isMissingColumnError(primary.error.message)) {
     throw new Error(`Failed to create product: ${primary.error.message}`)
   }
 
-  const fallback = await supabase.from("products").insert(productPayload(input, false)).select("id").single()
+  const fallback = await supabase.from("products").insert(productPayload(input, false)).select("id").abortSignal(createRequestTimeoutSignal("adminMutation")).single()
   if (fallback.error) throw new Error(`Failed to create product: ${fallback.error.message}`)
   return String(fallback.data.id)
 }
 
 export async function updateProductRecord(id: string, input: AdminProductFormInput): Promise<void> {
   const supabase = await getSupabaseServerClient()
-  const primary = await supabase.from("products").update(productPayload(input, true)).eq("id", id)
+  const primary = await supabase.from("products").update(productPayload(input, true)).eq("id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
 
   if (!primary.error) return
   if (!isMissingColumnError(primary.error.message)) {
     throw new Error(`Failed to update product: ${primary.error.message}`)
   }
 
-  const fallback = await supabase.from("products").update(productPayload(input, false)).eq("id", id)
+  const fallback = await supabase.from("products").update(productPayload(input, false)).eq("id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (fallback.error) throw new Error(`Failed to update product: ${fallback.error.message}`)
 }
 
@@ -317,7 +415,7 @@ export async function upsertInventory(productId: string, quantity: number, lowSt
 
 export async function replaceProductSpecs(productId: string, specs: AdminProductSpec[]): Promise<void> {
   const supabase = await getSupabaseServerClient()
-  const deleteResult = await supabase.from("product_specs").delete().eq("product_id", productId)
+  const deleteResult = await supabase.from("product_specs").delete().eq("product_id", productId).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (deleteResult.error) throw new Error(`Failed to clear specs: ${deleteResult.error.message}`)
 
   const rows = specs
@@ -334,7 +432,7 @@ export async function replaceProductSpecs(productId: string, specs: AdminProduct
 
   if (!rows.length) return
 
-  const result = await supabase.from("product_specs").insert(rows)
+  const result = await supabase.from("product_specs").insert(rows).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (result.error) throw new Error(`Failed to save specs: ${result.error.message}`)
 }
 
@@ -354,10 +452,7 @@ export type UploadedProductImage = {
 }
 
 function storagePathFromPublicUrl(url: string): string | null {
-  const marker = `/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/`
-  const markerIndex = url.indexOf(marker)
-  if (markerIndex < 0) return null
-  return decodeURIComponent(url.slice(markerIndex + marker.length)).replace(/^\/+/, "") || null
+  return relativePathFromLocalPublicUrl(url)
 }
 
 /**
@@ -365,23 +460,12 @@ function storagePathFromPublicUrl(url: string): string | null {
  * Database writes remain outside UI components and are centralized in this repository.
  */
 export async function uploadProductImageFile(file: File, productSlug: string, index: number): Promise<{ publicUrl: string; storagePath: string }> {
-  assertSafeImageFile(file)
-
-  const supabase = await getSupabaseServerClient()
-  const extension = getSafeImageExtension(file)
-  const uniqueSuffix = `${Date.now()}-${index + 1}-${Math.random().toString(36).slice(2, 10)}`
-  const safeFileName = `${toSafePathSegment(uniqueSuffix, `image-${index + 1}`)}.${extension}`
-  const storagePath = buildSafeStoragePath(["products", productSlug, safeFileName])
-
-  const upload = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(storagePath, file, {
-    upsert: false,
-    contentType: file.type,
+  const safeSlug = toSafePathSegment(productSlug, "product")
+  const uploaded = await uploadLocalMedia(file, {
+    folder: `products/${safeSlug}`,
+    preferredBaseName: `image-${index + 1}`,
   })
-
-  if (upload.error) throw new Error(`Failed to upload image: ${upload.error.message}`)
-
-  const publicUrl = supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(storagePath).data.publicUrl
-  return { publicUrl, storagePath }
+  return { publicUrl: uploaded.publicUrl, storagePath: uploaded.relativePath }
 }
 
 /** Backwards-compatible wrapper kept for older service callers. */
@@ -408,6 +492,7 @@ export async function insertProductImages(productId: string, images: Omit<AdminP
     .from("product_images")
     .insert(rows)
     .select("id, url, image_url, alt_text, sort_order, is_main")
+    .abortSignal(createRequestTimeoutSignal("adminMutation"))
 
   if (result.error) {
     throw new Error(`Failed to save product images: ${result.error.message}`)
@@ -531,16 +616,14 @@ export async function deleteProductImages(imageIds: string[]): Promise<void> {
   const existing = await supabase.from("product_images").select("id, image_url, url").in("id", imageIds)
   if (existing.error) throw new Error(`Failed to read images before deletion: ${existing.error.message}`)
 
-  const storagePaths = (existing.data ?? [])
-    .map((image: { image_url?: string | null; url?: string | null }) => storagePathFromPublicUrl(String(image.image_url || image.url || "")))
-    .filter((path: string | null): path is string => Boolean(path))
-
-  if (storagePaths.length) {
-    const removeStorage = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove(storagePaths)
-    if (removeStorage.error) throw new Error(`Failed to remove image files: ${removeStorage.error.message}`)
+  for (const image of existing.data ?? []) {
+    const publicUrl = String((image as { image_url?: string | null; url?: string | null }).image_url || (image as { url?: string | null }).url || "")
+    if (storagePathFromPublicUrl(publicUrl)) {
+      await deleteLocalMediaByPublicUrl(publicUrl)
+    }
   }
 
-  const removeRows = await supabase.from("product_images").delete().in("id", imageIds)
+  const removeRows = await supabase.from("product_images").delete().in("id", imageIds).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (removeRows.error) throw new Error(`Failed to remove images: ${removeRows.error.message}`)
 }
 
@@ -586,15 +669,70 @@ export async function toggleProductActiveRecord(id: string): Promise<void> {
   if (update.error) throw new Error(`Failed to toggle product status: ${update.error.message}`)
 }
 
+function logDeleteProductFailure(productId: string, stage: string, error: unknown): void {
+  const databaseError = error as { code?: string; message?: string }
+  console.error("Product deletion failed", {
+    productId,
+    stage,
+    code: databaseError?.code ?? "UNKNOWN",
+    message: databaseError?.message ?? "Unknown product deletion error",
+  })
+}
+
 export async function deleteProductRecord(id: string): Promise<void> {
   const supabase = await getSupabaseServerClient()
-  await supabase.from("product_specs").delete().eq("product_id", id)
 
-  const imageRows = await supabase.from("product_images").select("id").eq("product_id", id)
-  if (imageRows.error) throw new Error(`Failed to read product images before deletion: ${imageRows.error.message}`)
-  await deleteProductImages((imageRows.data ?? []).map((image: { id: string | number }) => String(image.id)))
+  const productResult = await supabase.from("products").select("id").eq("id", id).abortSignal(createRequestTimeoutSignal("adminMutation")).maybeSingle()
+  if (productResult.error) {
+    logDeleteProductFailure(id, "read-product", productResult.error)
+    throw new Error("خواندن اطلاعات محصول پیش از حذف ناموفق بود.")
+  }
+  if (!productResult.data) throw new Error("محصول موردنظر پیدا نشد.")
 
-  await supabase.from("inventory").delete().eq("product_id", id)
-  const result = await supabase.from("products").delete().eq("id", id)
-  if (result.error) throw new Error(`Failed to delete product: ${result.error.message}`)
+  const imageRows = await supabase
+    .from("product_images")
+    .select("id, image_url, url")
+    .eq("product_id", id)
+    .abortSignal(createRequestTimeoutSignal("adminMutation"))
+  if (imageRows.error) {
+    logDeleteProductFailure(id, "read-images", imageRows.error)
+    throw new Error("خواندن تصاویر محصول پیش از حذف ناموفق بود.")
+  }
+
+  try {
+    for (const image of imageRows.data ?? []) {
+      const publicUrl = String(image.image_url || image.url || "")
+      await deleteLocalMediaByPublicUrl(publicUrl)
+    }
+  } catch (error) {
+    logDeleteProductFailure(id, "delete-local-images", error)
+    throw new Error("حذف فایل‌های محلی محصول ناموفق بود؛ رکوردهای دیتابیس برای بررسی مدیر حفظ شدند.")
+  }
+
+  const deleteImages = await supabase.from("product_images").delete().eq("product_id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
+  if (deleteImages.error) {
+    logDeleteProductFailure(id, "delete-image-rows", deleteImages.error)
+    throw new Error("فایل‌های محلی حذف شدند، اما حذف رکورد تصاویر از دیتابیس ناموفق بود.")
+  }
+
+  const deleteSpecs = await supabase.from("product_specs").delete().eq("product_id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
+  if (deleteSpecs.error) {
+    logDeleteProductFailure(id, "delete-specs", deleteSpecs.error)
+    throw new Error("تصاویر حذف شدند، اما حذف مشخصات فنی محصول ناموفق بود.")
+  }
+
+  const deleteInventory = await supabase.from("inventory").delete().eq("product_id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
+  if (deleteInventory.error) {
+    logDeleteProductFailure(id, "delete-inventory", deleteInventory.error)
+    throw new Error("تصاویر حذف شدند، اما حذف اطلاعات موجودی محصول ناموفق بود.")
+  }
+
+  const deleteProduct = await supabase.from("products").delete().eq("id", id).select("id").abortSignal(createRequestTimeoutSignal("adminMutation"))
+  if (deleteProduct.error) {
+    logDeleteProductFailure(id, "delete-product", deleteProduct.error)
+    throw new Error("حذف رکورد محصول ناموفق بود. وابستگی‌های دیتابیس را بررسی کنید.")
+  }
+  if (!(deleteProduct.data ?? []).length) {
+    throw new Error("محصول موردنظر پیدا نشد یا حذف نشد.")
+  }
 }

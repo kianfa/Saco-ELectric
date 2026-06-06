@@ -23,6 +23,7 @@ export const publicSiteSettingsFallback: PublicSiteSettings = {
     description: storeContactConfig.defaultFooterDescription,
     copyright: storeContactConfig.defaultCopyright,
     trustBadgeImageUrl: null,
+    trustBadgeImageAltText: "نشان اعتماد ساکو الکتریک",
     instagramUrl: null,
     telegramUrl: storeContactConfig.telegram.url,
     baleUrl: null,

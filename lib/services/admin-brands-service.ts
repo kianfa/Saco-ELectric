@@ -1,6 +1,7 @@
 import {
   brandSlugExists,
   fetchAdminBrandById,
+  fetchAdminBrandOptions,
   fetchAdminBrands,
   insertBrand,
   patchBrand,
@@ -20,6 +21,7 @@ function validate(input: AdminBrandInput) {
 }
 
 export const getAdminBrands = fetchAdminBrands
+export const getAdminBrandOptions = fetchAdminBrandOptions
 export const getAdminBrandById = fetchAdminBrandById
 
 export async function createBrand(input: AdminBrandInput) {
