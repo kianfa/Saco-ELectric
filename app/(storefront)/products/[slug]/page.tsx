@@ -32,15 +32,16 @@ function toRelatedProduct(product: Product) {
     id: product.id,
     name: product.name,
     model: product.model ?? product.sku ?? "—",
-    price: product.price,
-    oldPrice: product.oldPrice,
-    discount: product.discountPercent || null,
+    price: product.minVariantPrice ?? product.price,
+    oldPrice: product.hasActiveVariants ? null : product.oldPrice,
+    discount: product.hasActiveVariants ? null : product.discountPercent || null,
     rating: product.rating,
     reviewCount: product.reviewCount,
     image: product.mainImageUrl,
     imageAlt: product.mainImageAlt,
     brand: product.brandName ?? "برند نامشخص",
     slug: product.slug,
+    hasActiveVariants: product.hasActiveVariants,
   }
 }
 
@@ -251,6 +252,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                   oldPrice={product.oldPrice}
                   discount={discount}
                   mainImageUrl={product.images[0]?.imageUrl ?? null}
+                  variants={product.variants}
                 />
               </div>
             </section>
@@ -298,6 +300,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           discount={discount}
           mainImageUrl={product.images[0]?.imageUrl ?? null}
           stockQuantity={product.stockQuantity}
+          variants={product.variants}
         />
       </div>
     )

@@ -36,7 +36,7 @@ To learn more, take a look at the following resources:
 
 ## Host filesystem media storage
 
-Supabase remains the database and authentication provider. New image uploads are no longer written to Supabase Storage. They are saved on the hosting server and their public `/uploads/...` URLs are stored in PostgreSQL.
+Supabase temporarily remains the PostgreSQL/PostgREST provider for application tables only. Runtime authentication is handled exclusively by Better Auth. New image uploads are saved on the hosting server and their public `/uploads/...` URLs are stored in the database.
 
 Configure production with an absolute persistent directory:
 
@@ -73,7 +73,7 @@ Measure Supabase network latency independently from Next.js rendering:
 pnpm debug:supabase-latency
 ```
 
-The diagnostic script reports repeated DNS, Supabase Auth settings endpoint, and lightweight database-query timings with min, max, and average durations. It does not print credentials.
+The diagnostic script reports repeated DNS and lightweight Supabase table-query timings with min, max, and average durations. It does not call Supabase Auth endpoints or print credentials.
 
 Compare development and production behavior:
 
@@ -152,7 +152,7 @@ Missing, non-numeric, unreasonably small, or excessively large values fall back 
 
 ## Better Auth authentication
 
-Runtime authentication is handled by Better Auth with PostgreSQL-backed sessions and secure HTTP-only cookies. Supabase remains in use for database hosting and public catalog/content queries, but not for login, registration, logout, session reads, or password reset.
+Runtime authentication is handled by Better Auth with PostgreSQL-backed sessions and secure HTTP-only cookies. Supabase remains temporarily in use for application-table queries through PostgREST, but not for login, registration, logout, session reads, password reset, cookie handling, or new media storage. Replace the remaining `supabase.from(...)` calls with direct PostgreSQL queries or an ORM when moving the application database to the self-hosted PostgreSQL server.
 
 Required server environment values:
 

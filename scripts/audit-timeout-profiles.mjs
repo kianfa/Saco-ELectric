@@ -33,7 +33,7 @@ check(helper.includes('publicData: 20_000'), "default public-data timeout is 200
 check(helper.includes('adminMutation: 30_000'), "default admin-mutation timeout is 30000ms")
 check(helper.includes('fileOperation: 15_000'), "default file-operation timeout is 15000ms")
 check(helper.includes('AbortSignal.timeout(getRequestTimeoutMs(profile))'), "compatible Supabase queries can use AbortSignal.timeout")
-check(auth.includes('withAuthRequestTimeout("supabase.auth.getUser"'), "Supabase Auth uses auth timeout profile")
+check(auth.includes('withAuthRequestTimeout("better-auth.getSession"'), "Better Auth session reads use auth timeout profile")
 check(settings.includes('withPublicDataTimeout('), "site settings use public-data timeout profile")
 check(categories.includes('withPublicDataTimeout("public categories lookup"'), "public categories use public-data timeout profile")
 check(storage.includes('withFileOperationTimeout("write local media file"'), "local media writes use file-operation timeout profile")

@@ -108,14 +108,6 @@ async function parallel(label, operation) {
   })
 }
 
-async function authSettingsRequest() {
-  const response = await fetch(`${url.replace(/\/$/, "")}/auth/v1/settings`, {
-    headers: { apikey: anonKey },
-  })
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  await response.text()
-}
-
 async function siteSettingsQuery() {
   const { error } = await supabase
     .from("site_settings")
@@ -134,7 +126,6 @@ console.log({ hostname, runs, parallelConcurrency, timeoutMs })
 console.log("This measures raw network/query latency only. It does not render Next.js routes or inspect cache hit latency.")
 
 await sequential("dns lookup", async () => lookup(hostname))
-await sequential("auth settings request", authSettingsRequest)
 await sequential("site_settings filtered query", siteSettingsQuery)
 await sequential("lightweight database query", lightweightDatabaseQuery)
 await parallel("site_settings filtered query", siteSettingsQuery)

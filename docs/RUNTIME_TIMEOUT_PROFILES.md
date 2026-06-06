@@ -15,7 +15,7 @@ FILE_OPERATION_TIMEOUT_MS=15000
 | Variable | Default | Applied to |
 | --- | ---: | --- |
 | `EXTERNAL_REQUEST_TIMEOUT_MS` | 20000 ms | Default fallback for external operations without a narrower profile |
-| `AUTH_REQUEST_TIMEOUT_MS` | 25000 ms | Supabase Auth validation and authenticated profile lookups |
+| `AUTH_REQUEST_TIMEOUT_MS` | 25000 ms | Better Auth session validation and authenticated profile lookups |
 | `PUBLIC_DATA_TIMEOUT_MS` | 20000 ms | Public settings, categories, banners, footer-related reads |
 | `ADMIN_MUTATION_TIMEOUT_MS` | 30000 ms | Protected admin create, update, delete, and toggle operations |
 | `FILE_OPERATION_TIMEOUT_MS` | 15000 ms | Local image directory creation, writes, cleanup, and deletes |

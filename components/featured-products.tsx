@@ -53,6 +53,8 @@ export function FeaturedProducts({ products, error }: FeaturedProductsProps) {
               imageAlt={product.mainImageAlt}
               brand={product.brandName}
               stockQuantity={product.stockQuantity}
+              minVariantPrice={product.minVariantPrice}
+              hasActiveVariants={product.hasActiveVariants}
             />
           ))}
         </div>

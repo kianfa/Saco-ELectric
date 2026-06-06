@@ -71,7 +71,7 @@ export function CartDrawer({ trigger }: CartDrawerProps) {
                 <CartWarnings priceUpdated={priceUpdated} hasOutOfStock={hasOutOfStock} />
                 {items.map((item) => (
                   <CartItemCard
-                    key={item.productId}
+                    key={item.lineId}
                     item={item}
                     compact
                     onQuantityChange={handleQuantityChange}

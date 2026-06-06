@@ -19,6 +19,7 @@ interface RelatedProduct {
   imageAlt?: string | null
   brand: string
   slug: string
+  hasActiveVariants?: boolean
 }
 
 interface RelatedProductsProps {
@@ -93,10 +94,9 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
 
               {/* Price */}
               <div className="mt-auto">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-base font-bold text-foreground">
-                    {formatPrice(product.price)}
-                  </span>
+                <div className="flex flex-wrap items-baseline gap-2">
+                  {product.hasActiveVariants ? <span className="text-xs font-medium text-primary">شروع قیمت از</span> : null}
+                  <span className="text-base font-bold text-foreground">{formatPrice(product.price)}</span>
                   <span className="text-xs text-muted-foreground">تومان</span>
                 </div>
                 {product.oldPrice && (
@@ -113,7 +113,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
                 size="sm"
               >
                 <ShoppingCart className="w-4 h-4" />
-                <span>افزودن به سبد</span>
+                <span>{product.hasActiveVariants ? "انتخاب گزینه‌ها" : "مشاهده محصول"}</span>
               </Button>
             </div>
           </Link>

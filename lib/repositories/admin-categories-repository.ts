@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { deleteLocalMediaByPublicUrl } from "@/lib/storage/local-media-storage"
 import { createRequestTimeoutSignal, performanceDebugEnabled, safePerformanceError, withExternalRequestTimeout, withServerTiming } from "@/lib/performance/server-timing"
 import type { AdminCategoryInput, Category } from "@/types/category"
 
@@ -39,6 +40,15 @@ function normalizeMediaUrl(value: string | null | undefined): string | null {
   if (!base) return trimmed
   const path = trimmed.replace(/^site-media\//, "").replace(/^\/+/, "")
   return `${base}/storage/v1/object/public/site-media/${path}`
+}
+
+
+async function deleteCategoryLocalMedia(row: Pick<RawCategory, "image_url" | "homepage_image_url" | "homepage_icon_url"> | null | undefined, keep: Array<string | null | undefined> = []): Promise<void> {
+  if (!row) return
+  const keepSet = new Set(keep.filter((value): value is string => Boolean(value)))
+  for (const value of [row.image_url, row.homepage_image_url, row.homepage_icon_url]) {
+    if (typeof value === "string" && !keepSet.has(value)) await deleteLocalMediaByPublicUrl(value)
+  }
 }
 
 function mapCategory(row: RawCategory, parentName: string | null, productCount = 0, childCount = 0): Category {
@@ -198,19 +208,25 @@ export async function insertCategory(input: AdminCategoryInput): Promise<Categor
 export async function patchCategory(id: string, input: AdminCategoryInput): Promise<Category> {
   if (await createsCycle(id, input.parentId)) throw new Error("دسته‌بندی والد نمی‌تواند باعث حلقه در ساختار دسته‌بندی‌ها شود")
   const supabase = await getSupabaseServerClient()
+  const existing = await supabase.from("categories").select("image_url, homepage_image_url, homepage_icon_url").eq("id", id).maybeSingle()
+  if (existing.error) throw new Error(`Failed to read category before update: ${existing.error.message}`)
   const { data, error } = await supabase.from("categories").update(payload(input)).eq("id", id).select(CATEGORY_SELECT).abortSignal(createRequestTimeoutSignal("adminMutation")).single()
   if (error) throw new Error(`Failed to update category: ${error.message}`)
+  await deleteCategoryLocalMedia(existing.data as RawCategory | null, [input.imageUrl, input.homepageImageUrl, input.homepageIconUrl])
   return mapCategory(data as RawCategory, null)
 }
 
 export async function removeCategory(id: string): Promise<void> {
   const supabase = await getSupabaseServerClient()
+  const existing = await supabase.from("categories").select("image_url, homepage_image_url, homepage_icon_url").eq("id", id).maybeSingle()
+  if (existing.error) throw new Error(`Failed to read category before deletion: ${existing.error.message}`)
   const detachProducts = await supabase.from("products").update({ category_id: null }).eq("category_id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (detachProducts.error) throw new Error(`Failed to detach category products: ${detachProducts.error.message}`)
   const detachChildren = await supabase.from("categories").update({ parent_id: null }).eq("parent_id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (detachChildren.error) throw new Error(`Failed to detach child categories: ${detachChildren.error.message}`)
   const { error } = await supabase.from("categories").delete().eq("id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (error) throw new Error(`Failed to delete category: ${error.message}`)
+  await deleteCategoryLocalMedia(existing.data as RawCategory | null)
 }
 
 export async function setCategoryActive(id: string, isActive: boolean): Promise<void> {

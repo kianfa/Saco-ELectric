@@ -20,7 +20,7 @@ export function CallbackRequestCard({ items }: { items: CartItem[] }) {
   const [submitted, setSubmitted] = useState(false)
 
   const cartItemsJson = useMemo(
-    () => JSON.stringify(items.map((item) => ({ productId: item.productId, quantity: item.quantity }))),
+    () => JSON.stringify(items.map((item) => ({ productId: item.productId, variantId: item.selectedVariantId, quantity: item.quantity }))),
     [items],
   )
 

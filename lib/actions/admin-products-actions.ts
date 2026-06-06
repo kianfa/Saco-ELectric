@@ -7,7 +7,7 @@ import {
   toggleAdminProductActive,
   updateAdminProduct,
 } from "@/lib/services/admin-products-service"
-import type { AdminActionState, AdminProductFormInput, AdminProductImage, AdminProductSpec, NewProductImageMetadata } from "@/types/admin-product"
+import type { AdminActionState, AdminProductFormInput, AdminProductImage, AdminProductSpec, AdminProductVariant, NewProductImageMetadata } from "@/types/admin-product"
 import { requireAdminAccess } from "@/lib/auth/admin-auth"
 import { withAdminMutationTimeout } from "@/lib/performance/server-timing"
 
@@ -55,6 +55,13 @@ function parseProductInput(formData: FormData): AdminProductFormInput {
     warranty: nullableText(formData.get("warranty")),
     originCountry: nullableText(formData.get("originCountry")),
     specs: jsonValue<AdminProductSpec[]>(formData.get("specsJson"), []),
+    variants: jsonValue<AdminProductVariant[]>(formData.get("variantsJson"), []).map((variant, index) => ({
+      id: variant.id,
+      label: String(variant.label ?? "").trim(),
+      price: numberValue(String(variant.price ?? "")),
+      sortOrder: Number.isFinite(Number(variant.sortOrder)) ? Number(variant.sortOrder) : index + 1,
+      isActive: variant.isActive !== false,
+    })),
     existingImages: jsonValue<AdminProductImage[]>(formData.get("existingImagesJson"), []),
     removedImageIds: jsonValue<string[]>(formData.get("removedImageIdsJson"), []),
     mainExistingImageId: nullableText(formData.get("mainExistingImageId")),

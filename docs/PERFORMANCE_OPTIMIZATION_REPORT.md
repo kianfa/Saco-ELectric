@@ -18,7 +18,7 @@ The customer auth button issued the status request from a client effect. Its res
 ## Applied changes
 
 - Root layout is network-free. Storefront-only cached settings loading moved to `app/(storefront)/layout.tsx`.
-- `/admin/login` no longer performs pre-submit Supabase Auth or profile queries.
+- Historical note: `/admin/login` no longer performs pre-submit authentication-provider or profile queries. Runtime authentication is now handled by Better Auth.
 - Proxy is a cookie-presence gate only and performs no network request.
 - Supabase server client, authenticated profile read, admin read, and admin guard are request-scoped memoized with React `cache()`.
 - `/admin/products` uses a slim joined product query and two small filter-option queries in parallel.

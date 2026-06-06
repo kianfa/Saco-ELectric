@@ -1,3 +1,10 @@
+export interface ProductVariant {
+  id: string
+  label: string
+  price: number
+  sortOrder: number
+}
+
 export interface Product {
   id: string
   name: string
@@ -25,6 +32,9 @@ export interface Product {
   reviewCount: number
   hasWarranty: boolean
   specs: string[]
+  variants: ProductVariant[]
+  minVariantPrice: number | null
+  hasActiveVariants: boolean
 }
 
 export interface ProductDetailImage {
@@ -61,6 +71,9 @@ export interface ProductDetail {
   stockQuantity: number
   images: ProductDetailImage[]
   specs: ProductDetailSpec[]
+  variants: ProductVariant[]
+  minVariantPrice: number | null
+  hasActiveVariants: boolean
 
   // UI-only compatibility fields for the existing product detail components.
   rating: number
@@ -94,6 +107,7 @@ export interface ProductSearchSuggestion {
   model: string | null
   sku: string | null
   price: number
+  hasActiveVariants: boolean
   brandName: string | null
   categoryName: string | null
   mainImageUrl: string | null

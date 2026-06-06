@@ -19,7 +19,9 @@
     "auth:create-admin": "tsx scripts/create-admin.ts",
     "debug:better-auth-cutover": "node scripts/audit-better-auth-cutover.mjs",
     "debug:admin-login-rate-limit": "node scripts/audit-admin-login-rate-limit.mjs",
-    "debug:admin-login-rate-limit:static": "node scripts/audit-admin-login-rate-limit-static.mjs"
+    "debug:admin-login-rate-limit:static": "node scripts/audit-admin-login-rate-limit-static.mjs",
+    "debug:supabase-auth-storage-removal": "node scripts/audit-supabase-auth-storage-removal.mjs",
+    "debug:product-variants": "node scripts/audit-product-variants.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

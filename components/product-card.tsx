@@ -23,6 +23,8 @@ interface ProductCardProps {
   imageAlt?: string | null
   brand: string | null
   stockQuantity: number
+  minVariantPrice?: number | null
+  hasActiveVariants?: boolean
 }
 
 export function ProductCard({
@@ -40,12 +42,15 @@ export function ProductCard({
   imageAlt,
   brand,
   stockQuantity,
+  minVariantPrice = null,
+  hasActiveVariants = false,
 }: ProductCardProps) {
   const { addToCart } = useCart()
   const safeStockQuantity = typeof stockQuantity === "number" ? stockQuantity : -1
   const inStock = safeStockQuantity !== 0
 
   const handleAddToCart = () => {
+    if (hasActiveVariants) { window.location.href = `/products/${slug}`; return }
     if (!inStock) {
       toast.error("این محصول در حال حاضر ناموجود است")
       return
@@ -53,6 +58,8 @@ export function ProductCard({
 
     addToCart({
       productId: id,
+      selectedVariantId: null,
+      selectedVariantLabel: null,
       slug,
       name,
       model,
@@ -68,7 +75,7 @@ export function ProductCard({
   return (
     <div className="group bg-card border border-border rounded-2xl p-4 hover:border-primary hover:shadow-xl transition-all duration-300 flex flex-col">
       <div className="relative mb-4">
-        {discount ? (
+        {!hasActiveVariants && discount ? (
           <span className="absolute top-2 right-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded-lg z-10">
             {discount}٪
           </span>
@@ -106,13 +113,12 @@ export function ProductCard({
         </div>
 
         <div className="mt-auto">
-          <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-lg font-bold text-foreground">
-              {formatPrice(price)}
-            </span>
+          <div className="flex flex-wrap items-baseline gap-2 mb-3">
+            {hasActiveVariants ? <span className="text-xs font-medium text-primary">شروع قیمت از</span> : null}
+            <span className="text-lg font-bold text-foreground">{formatPrice(minVariantPrice ?? price)}</span>
             <span className="text-sm text-muted-foreground">تومان</span>
           </div>
-          {oldPrice ? (
+          {!hasActiveVariants && oldPrice ? (
             <span className="text-sm text-muted-foreground line-through">
               {formatPrice(oldPrice)} تومان
             </span>
@@ -126,7 +132,7 @@ export function ProductCard({
           onClick={handleAddToCart}
         >
           <ShoppingCart className="w-4 h-4" />
-          <span>{inStock ? "افزودن به سبد خرید" : "ناموجود"}</span>
+          <span>{!inStock ? "ناموجود" : hasActiveVariants ? "انتخاب گزینه‌ها" : "افزودن به سبد خرید"}</span>
         </Button>
       </div>
     </div>

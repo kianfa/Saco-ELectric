@@ -30,6 +30,8 @@ export type PurchaseRequestItem = {
   productName: string
   productModel: string | null
   productSku: string | null
+  variantId: string | null
+  variantLabel: string | null
   brandName: string | null
   quantity: number
   unitPrice: number
@@ -83,6 +85,7 @@ export type PurchaseRequestCreateInput = {
 
 export type PurchaseRequestCartItemInput = {
   productId: string
+  variantId: string | null
   quantity: number
 }
 

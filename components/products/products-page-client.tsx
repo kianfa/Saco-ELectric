@@ -220,7 +220,7 @@ export function ProductsPageClient({
         }
       }
 
-      if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
+      if ((product.minVariantPrice ?? product.price) < filters.priceRange[0] || (product.minVariantPrice ?? product.price) > filters.priceRange[1]) {
         return false
       }
 
@@ -240,9 +240,9 @@ export function ProductsPageClient({
     return [...filteredProducts].sort((a, b) => {
       switch (sortBy) {
         case "cheapest":
-          return a.price - b.price
+          return (a.minVariantPrice ?? a.price) - (b.minVariantPrice ?? b.price)
         case "expensive":
-          return b.price - a.price
+          return (b.minVariantPrice ?? b.price) - (a.minVariantPrice ?? a.price)
         case "discount":
           return b.discountPercent - a.discountPercent
         case "newest":

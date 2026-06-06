@@ -29,13 +29,18 @@ export function ProductListItem({ product }: ProductListItemProps) {
     mainImageAlt,
     slug,
     specs,
+    minVariantPrice,
+    hasActiveVariants,
   } = product
   const safeStockQuantity = typeof stockQuantity === "number" ? stockQuantity : -1
   const inStock = safeStockQuantity !== 0
 
   const handleAddToCart = () => {
+    if (hasActiveVariants) { window.location.href = `/products/${slug}`; return }
     addToCart({
       productId: product.id,
+      selectedVariantId: null,
+      selectedVariantLabel: null,
       slug,
       name,
       model,
@@ -53,7 +58,7 @@ export function ProductListItem({ product }: ProductListItemProps) {
       {/* Image Container - Right side in RTL */}
       <div className="relative w-full sm:w-48 shrink-0">
         {/* Discount Badge */}
-        {discountPercent > 0 && (
+        {!hasActiveVariants && discountPercent > 0 && (
           <span className="absolute top-2 right-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded-lg z-10">
             {discountPercent}٪
           </span>
@@ -129,15 +134,14 @@ export function ProductListItem({ product }: ProductListItemProps) {
       <div className="sm:w-48 shrink-0 flex flex-col items-start sm:items-end justify-between border-t sm:border-t-0 sm:border-r border-border pt-4 sm:pt-0 sm:pr-4">
         {/* Price */}
         <div className="text-left sm:text-right">
-          {oldPrice && (
+          {!hasActiveVariants && oldPrice && (
             <span className="text-sm text-muted-foreground line-through block mb-1">
               {formatPrice(oldPrice)} تومان
             </span>
           )}
           <div className="flex items-baseline gap-1 flex-wrap">
-            <span className="text-xl font-bold text-foreground">
-              {formatPrice(price)}
-            </span>
+            {hasActiveVariants ? <span className="text-xs font-medium text-primary">شروع قیمت از</span> : null}
+            <span className="text-xl font-bold text-foreground">{formatPrice(minVariantPrice ?? price)}</span>
             <span className="text-sm text-muted-foreground">تومان</span>
           </div>
         </div>
@@ -151,7 +155,7 @@ export function ProductListItem({ product }: ProductListItemProps) {
             onClick={handleAddToCart}
           >
             <ShoppingCart className="w-4 h-4" />
-            <span>{inStock ? "افزودن به سبد" : "ناموجود"}</span>
+            <span>{!inStock ? "ناموجود" : hasActiveVariants ? "انتخاب گزینه‌ها" : "افزودن به سبد"}</span>
           </Button>
           <Button variant="outline" className="rounded-xl gap-2" asChild>
             <Link href={`/products/${slug}`}>
