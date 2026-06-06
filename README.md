@@ -34,6 +34,17 @@ To learn more, take a look at the following resources:
 
 <a href="https://v0.app/chat/api/kiro/clone/kianfa/v0-industrial-electrical-homepage" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
 
+
+## Dynamic sitemap and robots.txt
+
+Configure the canonical public deployment URL:
+
+```env
+NEXT_PUBLIC_SITE_URL=https://example.com
+```
+
+Set this to the real production domain in deployment. Next.js dynamically generates `/sitemap.xml` and `/robots.txt` from `app/sitemap.ts` and `app/robots.ts`; do not add a physical XML file. The sitemap includes real public storefront routes, active product pages, and active category destinations using the existing filtered-products URL pattern. Successful admin product and category mutations invalidate the sitemap cache automatically. Private `/admin/`, `/account/`, `/auth/`, and `/api/` routes are excluded from crawler access.
+
 ## Host filesystem media storage
 
 Supabase temporarily remains the PostgreSQL/PostgREST provider for application tables only. Runtime authentication is handled exclusively by Better Auth. New image uploads are saved on the hosting server and their public `/uploads/...` URLs are stored in the database.
@@ -160,7 +171,7 @@ Required server environment values:
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
 BETTER_AUTH_SECRET=replace-with-a-long-random-secret-at-least-32-characters
 BETTER_AUTH_URL=http://localhost:3000
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL=https://example.com
 SUPABASE_SECRET_KEY=your-server-only-supabase-secret-key
 SMTP_HOST=
 SMTP_PORT=587
