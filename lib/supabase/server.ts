@@ -1,33 +1,25 @@
-import { cache } from "react"
-import { cookies } from "next/headers"
-import { createServerClient } from "@supabase/ssr"
+import "server-only"
 
-// Request-scoped server client. React cache avoids recreating an identical
-// cookie-aware Supabase client multiple times during one server render.
-export const getSupabaseServerClient = cache(async function getSupabaseServerClient() {
+import { createClient, type SupabaseClient } from "@supabase/supabase-js"
+
+let serverDatabaseClient: SupabaseClient | null = null
+
+// Trusted application-server database client. Better Auth sessions do not
+// populate Supabase auth.uid(), so protected server actions authorize first and
+// then use this server-only client for the existing Supabase database queries.
+export async function getSupabaseServerClient(): Promise<SupabaseClient> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const secretKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      "Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
-    )
+  if (!supabaseUrl || !secretKey) {
+    throw new Error("Missing Supabase server database environment variables")
   }
 
-  const cookieStore = await cookies()
+  if (!serverDatabaseClient) {
+    serverDatabaseClient = createClient(supabaseUrl, secretKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    })
+  }
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-        } catch {
-          // Server Components cannot always write cookies. Proxy/server actions can.
-        }
-      },
-    },
-  })
-})
+  return serverDatabaseClient
+}

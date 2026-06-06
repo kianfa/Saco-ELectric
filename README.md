@@ -57,7 +57,7 @@ For an existing Supabase deployment, apply `supabase/migrations/20260604_disable
 
 ## Performance diagnostics
 
-Admin login routes intentionally use a minimal root layout and do not fetch storefront settings. Storefront routes load cached public settings from `app/(storefront)/layout.tsx` with a 60-second revalidation window. Protected admin pages still perform an authoritative Supabase Auth and `profiles.role = 'admin'` check in the protected server layout and in protected Server Actions.
+Admin login routes intentionally use a minimal root layout and do not fetch storefront settings. Storefront routes load cached public settings from `app/(storefront)/layout.tsx` with a 60-second revalidation window. Protected admin pages perform an authoritative Better Auth session check and `profiles.role = 'admin'` verification in the protected server layout and in protected Server Actions.
 
 To print concise server-side timings temporarily:
 
@@ -143,9 +143,39 @@ FILE_OPERATION_TIMEOUT_MS=15000
 Timeout purposes:
 
 - `EXTERNAL_REQUEST_TIMEOUT_MS`: default fallback for external requests without a more specific profile.
-- `AUTH_REQUEST_TIMEOUT_MS`: Supabase Auth validation and authenticated profile lookups.
+- `AUTH_REQUEST_TIMEOUT_MS`: Better Auth session validation and authenticated profile lookups.
 - `PUBLIC_DATA_TIMEOUT_MS`: public storefront reads such as settings, categories, banners, and footer data.
 - `ADMIN_MUTATION_TIMEOUT_MS`: protected admin create, update, delete, and toggle operations.
 - `FILE_OPERATION_TIMEOUT_MS`: local filesystem media directory creation, writes, replacement cleanup, and deletes.
 
 Missing, non-numeric, unreasonably small, or excessively large values fall back to safe bounded defaults. Timeouts are never unlimited. Compatible Supabase PostgREST requests receive abort signals so timed-out network work is cancelled rather than left running in the background.
+
+## Better Auth authentication
+
+Runtime authentication is handled by Better Auth with PostgreSQL-backed sessions and secure HTTP-only cookies. Supabase remains in use for database hosting and public catalog/content queries, but not for login, registration, logout, session reads, or password reset.
+
+Required server environment values:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
+BETTER_AUTH_SECRET=replace-with-a-long-random-secret-at-least-32-characters
+BETTER_AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+SUPABASE_SECRET_KEY=your-server-only-supabase-secret-key
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=
+MEDIA_UPLOAD_DIR=./public/uploads
+NEXT_PUBLIC_MEDIA_BASE_URL=/uploads
+```
+
+Back up the PostgreSQL database, then apply:
+
+```bash
+psql "$DATABASE_URL" -f supabase/migrations/20260606_replace_supabase_auth_with_better_auth.sql
+```
+
+Create the first admin with environment variables and `npm run auth:create-admin`. See `docs/BETTER_AUTH_CUTOVER.md` for the cutover and future PostgreSQL-host move instructions.

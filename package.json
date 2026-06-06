@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -14,7 +14,12 @@
     "debug:admin-new-product-route": "node scripts/audit-admin-new-product-route.mjs",
     "debug:turbopack-new-product-imports": "node scripts/audit-turbopack-new-product-imports.mjs",
     "debug:timeout-profiles": "node scripts/audit-timeout-profiles.mjs",
-    "debug:homepage-banner-flow": "node scripts/audit-homepage-banner-flow.mjs"
+    "debug:homepage-banner-flow": "node scripts/audit-homepage-banner-flow.mjs",
+    "auth:migrate": "npx @better-auth/cli@latest migrate --config lib/auth/better-auth.ts",
+    "auth:create-admin": "tsx scripts/create-admin.ts",
+    "debug:better-auth-cutover": "node scripts/audit-better-auth-cutover.mjs",
+    "debug:admin-login-rate-limit": "node scripts/audit-admin-login-rate-limit.mjs",
+    "debug:admin-login-rate-limit:static": "node scripts/audit-admin-login-rate-limit-static.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -68,7 +73,10 @@
     "vaul": "^1.1.2",
     "zod": "^3.24.1",
     "@supabase/supabase-js": "^2.87.1",
-    "@supabase/ssr": "^0.7.0"
+    "better-auth": "^1.5.5",
+    "pg": "^8.16.3",
+    "nodemailer": "^8.0.10",
+    "kysely": "0.28.17"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.0",
@@ -78,6 +86,12 @@
     "postcss": "^8.5",
     "tailwindcss": "^4.2.0",
     "tw-animate-css": "1.3.3",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "@types/pg": "^8.15.6",
+    "@types/nodemailer": "^7.0.4",
+    "tsx": "^4.20.6"
+  },
+  "overrides": {
+    "kysely": "0.28.17"
   }
 }
