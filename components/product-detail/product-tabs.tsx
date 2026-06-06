@@ -1,5 +1,6 @@
 "use client"
 
+import { BookOpenText, FileText, HelpCircle, MessageSquareText, SlidersHorizontal } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SpecTable } from "./spec-table"
 import { DocumentCard } from "./document-card"
@@ -24,83 +25,35 @@ interface ProductTabsProps {
   totalReviews: number
 }
 
-export function ProductTabs({
-  fullSpecs,
-  description,
-  documents,
-  reviews,
-  faqs,
-  averageRating,
-  totalReviews,
-}: ProductTabsProps) {
+const tabClassName = "gap-2 rounded-xl px-4 py-3 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm sm:text-sm"
+
+export function ProductTabs({ fullSpecs, description, documents, reviews, faqs, averageRating, totalReviews }: ProductTabsProps) {
   return (
     <Tabs defaultValue="specs" className="w-full">
-      <TabsList className="w-full h-auto flex-wrap justify-start gap-2 bg-transparent p-0 mb-6">
-        <TabsTrigger
-          value="specs"
-          className="rounded-xl px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-        >
-          مشخصات فنی
-        </TabsTrigger>
-        <TabsTrigger
-          value="description"
-          className="rounded-xl px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-        >
-          توضیحات محصول
-        </TabsTrigger>
-        <TabsTrigger
-          value="documents"
-          className="rounded-xl px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-        >
-          دیتاشیت و مستندات
-        </TabsTrigger>
-        <TabsTrigger
-          value="reviews"
-          className="rounded-xl px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-        >
-          نظرات کاربران
-        </TabsTrigger>
-        <TabsTrigger
-          value="faq"
-          className="rounded-xl px-6 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-        >
-          سوالات متداول
-        </TabsTrigger>
+      <div className="mb-5 border-b border-border pb-5">
+        <p className="text-xs font-bold text-primary">اطلاعات کامل محصول</p>
+        <h2 className="mt-1 text-xl font-black text-foreground">بررسی مشخصات و جزئیات فنی</h2>
+      </div>
+
+      <TabsList className="mb-6 flex h-auto w-full flex-wrap justify-start gap-2 rounded-2xl bg-muted/50 p-2">
+        <TabsTrigger value="specs" className={tabClassName}><SlidersHorizontal className="h-4 w-4" />مشخصات فنی</TabsTrigger>
+        <TabsTrigger value="description" className={tabClassName}><BookOpenText className="h-4 w-4" />توضیحات</TabsTrigger>
+        <TabsTrigger value="documents" className={tabClassName}><FileText className="h-4 w-4" />مستندات</TabsTrigger>
+        <TabsTrigger value="reviews" className={tabClassName}><MessageSquareText className="h-4 w-4" />نظرات</TabsTrigger>
+        <TabsTrigger value="faq" className={tabClassName}><HelpCircle className="h-4 w-4" />سوالات متداول</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="specs" className="mt-0">
-        <SpecTable specs={fullSpecs} />
-      </TabsContent>
+      <TabsContent value="specs" className="mt-0"><SpecTable specs={fullSpecs} /></TabsContent>
 
       <TabsContent value="description" className="mt-0">
-        <div className="prose prose-sm md:prose-base max-w-none text-muted-foreground leading-relaxed">
-          {description.split("\n\n").map((paragraph, index) => (
-            <p key={index} className="mb-4 whitespace-pre-line">
-              {paragraph}
-            </p>
-          ))}
+        <div className="rounded-2xl border border-border bg-muted/20 p-4 text-sm leading-8 text-muted-foreground sm:p-5 sm:text-base">
+          {description ? description.split("\n\n").map((paragraph, index) => <p key={index} className="mb-4 whitespace-pre-line last:mb-0">{paragraph}</p>) : <p>توضیحات تکمیلی این محصول در حال آماده‌سازی است.</p>}
         </div>
       </TabsContent>
 
-      <TabsContent value="documents" className="mt-0">
-        <div className="space-y-3">
-          {documents.map((doc, index) => (
-            <DocumentCard key={index} {...doc} />
-          ))}
-        </div>
-      </TabsContent>
-
-      <TabsContent value="reviews" className="mt-0">
-        <ReviewSection
-          reviews={reviews}
-          averageRating={averageRating}
-          totalReviews={totalReviews}
-        />
-      </TabsContent>
-
-      <TabsContent value="faq" className="mt-0">
-        <FAQSection faqs={faqs} />
-      </TabsContent>
+      <TabsContent value="documents" className="mt-0"><div className="space-y-3">{documents.map((doc, index) => <DocumentCard key={index} name={doc.name} type={doc.type} size={doc.size} />)}</div></TabsContent>
+      <TabsContent value="reviews" className="mt-0"><ReviewSection reviews={reviews} averageRating={averageRating} totalReviews={totalReviews} /></TabsContent>
+      <TabsContent value="faq" className="mt-0"><FAQSection faqs={faqs} /></TabsContent>
     </Tabs>
   )
 }
