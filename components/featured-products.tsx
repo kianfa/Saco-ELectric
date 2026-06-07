@@ -35,7 +35,7 @@ export function FeaturedProducts({ products, error }: FeaturedProductsProps) {
           هنوز محصول ویژه‌ای ثبت نشده است.
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 gap-3 min-[769px]:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
           {products.map((product) => (
             <ProductCard
               key={product.id}
@@ -53,8 +53,6 @@ export function FeaturedProducts({ products, error }: FeaturedProductsProps) {
               imageAlt={product.mainImageAlt}
               brand={product.brandName}
               stockQuantity={product.stockQuantity}
-              minVariantPrice={product.minVariantPrice}
-              hasActiveVariants={product.hasActiveVariants}
             />
           ))}
         </div>

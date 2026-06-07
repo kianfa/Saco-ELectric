@@ -102,25 +102,25 @@ export function CategoriesPage({ categories }: CategoriesPageProps) {
         ) : filteredCategories.length === 0 ? (
           <div className="rounded-3xl border border-dashed bg-card p-10 text-center text-muted-foreground shadow-sm">دسته‌بندی‌ای با این جستجو پیدا نشد.</div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {filteredCategories.map((category) => {
               const title = category.homepageTitle || category.name
               const href = category.homepageUrl || `/products?category=${encodeURIComponent(category.slug)}`
               return (
                 <Card key={category.id} className="group overflow-hidden rounded-3xl border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl">
-                  <CardContent className="flex h-full flex-col p-4">
+                  <CardContent className="flex h-full min-w-0 flex-col p-2.5 sm:p-4">
                     <CategoryVisual category={category} />
                     <div className="flex flex-1 flex-col p-2 pt-4">
                       <div className="mb-2 flex items-center justify-between gap-3">
-                        <h3 className="line-clamp-2 text-lg font-black text-primary">{title}</h3>
-                        <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">
+                        <h3 className="line-clamp-2 text-sm font-black text-primary sm:text-lg">{title}</h3>
+                        <span className="hidden shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground sm:inline-flex">
                           {category.productCount ?? 0} محصول
                         </span>
                       </div>
-                      <p className="line-clamp-3 min-h-[72px] text-sm leading-6 text-muted-foreground">
+                      <p className="line-clamp-2 min-h-10 text-xs leading-5 text-muted-foreground sm:line-clamp-3 sm:min-h-[72px] sm:text-sm sm:leading-6">
                         {category.description || "مشاهده محصولات مرتبط با این دسته‌بندی برای پروژه‌های برق صنعتی، اتوماسیون و تابلو برق."}
                       </p>
-                      <Button asChild className="mt-5 rounded-2xl bg-primary hover:bg-primary/90">
+                      <Button asChild className="mt-3 w-full rounded-2xl bg-primary px-2 text-xs hover:bg-primary/90 sm:mt-5 sm:px-4 sm:text-sm">
                         <Link href={href}>
                           مشاهده محصولات این دسته
                           <ArrowLeft className="mr-2 h-4 w-4" />

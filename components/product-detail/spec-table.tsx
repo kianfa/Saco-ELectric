@@ -4,13 +4,24 @@ interface SpecTableProps {
 
 export function SpecTable({ specs }: SpecTableProps) {
   return (
-    <div className="grid overflow-hidden rounded-2xl border border-border bg-card md:grid-cols-2">
-      {specs.map((spec, index) => (
-        <div key={`${spec.label}-${index}`} className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] border-b border-border last:border-b-0 md:[&:nth-last-child(-n+2)]:border-b-0 md:odd:border-l">
-          <div className="bg-muted/45 px-4 py-3 text-sm font-bold leading-6 text-muted-foreground">{spec.label}</div>
-          <div className="px-4 py-3 text-sm font-medium leading-6 text-foreground">{spec.value}</div>
-        </div>
-      ))}
+    <div dir="rtl" className="border border-border rounded-2xl overflow-hidden text-right">
+      <table className="w-full text-right">
+        <tbody>
+          {specs.map((spec, index) => (
+            <tr
+              key={index}
+              className={`${
+                index % 2 === 0 ? "bg-muted/30" : "bg-card"
+              } block sm:table-row hover:bg-muted/50 transition-colors`}
+            >
+              <td className="block w-full px-4 pt-3 pb-1 text-right text-muted-foreground font-medium sm:table-cell sm:w-1/3 sm:border-l sm:border-border sm:py-3">
+                {spec.label}
+              </td>
+              <td className="block w-full px-4 pt-1 pb-3 text-right text-foreground sm:table-cell sm:py-3">{spec.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

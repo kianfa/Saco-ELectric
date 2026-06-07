@@ -68,7 +68,7 @@ export function SiteSettingsForm({ settings }: { settings: SiteSettingsBundle })
         <div className="space-y-2"><Label>متن غیرفعال بودن پرداخت اینترنتی</Label><Textarea name="onlinePaymentDisabledText" defaultValue={settings.manualCheckout.onlinePaymentDisabledText ?? ""} className="rounded-xl" /></div>
       </CardContent></Card>
 
-      <div className="sticky bottom-4 flex justify-end rounded-2xl border bg-card/95 p-4 shadow-lg backdrop-blur"><AdminSubmitButton>ذخیره تنظیمات سایت</AdminSubmitButton></div>
+      <div className="sticky bottom-4 flex justify-end rounded-2xl border bg-card/95 p-3 shadow-lg backdrop-blur sm:p-4 [&_button]:w-full sm:[&_button]:w-auto"><AdminSubmitButton>ذخیره تنظیمات سایت</AdminSubmitButton></div>
     </form>
   )
 }

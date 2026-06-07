@@ -114,7 +114,7 @@ export function ContactPage() {
             <h2 className="text-2xl font-black text-foreground md:text-3xl">راه‌های ارتباطی</h2>
             <p className="mt-2 text-sm leading-7 text-muted-foreground">برای ثبت سفارش، پیگیری خرید یا دریافت مشاوره فنی از یکی از روش‌های زیر استفاده کنید.</p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 md:gap-4 xl:grid-cols-4">
             <ContactCard
               icon={Phone}
               title="تلفن ثابت"

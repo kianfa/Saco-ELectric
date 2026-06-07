@@ -2,7 +2,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { createRequestTimeoutSignal, withExternalRequestTimeout, withServerTiming } from "@/lib/performance/server-timing"
 import { toSafePathSegment } from "@/lib/security/file-upload"
 import { deleteLocalMediaByPublicUrl, relativePathFromLocalPublicUrl, uploadLocalMedia } from "@/lib/storage/local-media-storage"
-import type { AdminProduct, AdminProductFormInput, AdminProductImage, AdminProductSpec, AdminProductVariant } from "@/types/admin-product"
+import type { AdminProduct, AdminProductFormInput, AdminProductImage, AdminProductSpec } from "@/types/admin-product"
 import type { Product } from "@/types/product"
 
 
@@ -20,14 +20,6 @@ type RawAdminImageRow = {
   alt_text?: string | null
   sort_order?: number | string | null
   is_main?: boolean | null
-}
-
-type RawAdminVariantRow = {
-  id?: string | number
-  label?: string | null
-  price?: number | string | null
-  sort_order?: number | string | null
-  is_active?: boolean | null
 }
 
 type RawAdminSpecRow = {
@@ -67,7 +59,6 @@ type RawAdminProductRow = {
   }>
   product_images?: Relation<RawAdminImageRow>
   product_specs?: Relation<RawAdminSpecRow>
-  product_variants?: Relation<RawAdminVariantRow>
 }
 
 const ADMIN_PRODUCT_SELECT = `
@@ -92,8 +83,7 @@ const ADMIN_PRODUCT_SELECT = `
   categories(name),
   inventory(quantity, stock_quantity, low_stock_threshold),
   product_images(id, image_url, url, alt_text, sort_order, is_main),
-  product_specs(id, spec_name, spec_value, name, label, value, sort_order),
-  product_variants(id, label, price, sort_order, is_active)
+  product_specs(id, spec_name, spec_value, name, label, value, sort_order)
 `
 
 const ADMIN_PRODUCT_SELECT_FALLBACK = `
@@ -114,8 +104,7 @@ const ADMIN_PRODUCT_SELECT_FALLBACK = `
   categories(name),
   inventory(quantity, stock_quantity),
   product_images(id, url, image_url, alt_text, sort_order, is_main),
-  product_specs(id, spec_name, spec_value, name, label, value, sort_order),
-  product_variants(id, label, price, sort_order, is_active)
+  product_specs(id, spec_name, spec_value, name, label, value, sort_order)
 `
 
 // The admin table only needs summary columns. Edit pages keep using the richer
@@ -137,8 +126,7 @@ const ADMIN_PRODUCT_LIST_SELECT = `
   brands(name),
   categories(name),
   inventory(quantity, stock_quantity),
-  product_images(id, image_url, url, alt_text, sort_order, is_main),
-  product_variants(id, label, price, sort_order, is_active)
+  product_images(id, image_url, url, alt_text, sort_order, is_main)
 `
 
 const ADMIN_PRODUCT_LIST_SELECT_FALLBACK = `
@@ -158,8 +146,7 @@ const ADMIN_PRODUCT_LIST_SELECT_FALLBACK = `
   brands(name),
   categories(name),
   inventory(quantity, stock_quantity),
-  product_images(id, url, alt_text, sort_order, is_main),
-  product_variants(id, label, price, sort_order, is_active)
+  product_images(id, url, alt_text, sort_order, is_main)
 `
 
 function toArray<T>(value: Relation<T>): T[] {
@@ -201,17 +188,6 @@ function mapAdminProduct(row: RawAdminProductRow): AdminProduct {
     isMain: Boolean(image.is_main ?? index === 0),
   }))
 
-
-  const variants: AdminProductVariant[] = toArray(row.product_variants)
-    .sort((a, b) => toNumber(a?.sort_order, 999) - toNumber(b?.sort_order, 999))
-    .map((variant, index) => ({
-      id: variant?.id ? String(variant.id) : undefined,
-      label: variant?.label?.trim() ?? "",
-      price: toNumber(variant?.price),
-      sortOrder: toNumber(variant?.sort_order, index + 1),
-      isActive: Boolean(variant?.is_active ?? true),
-    }))
-
   const specs: AdminProductSpec[] = toArray(row.product_specs)
     .sort((a, b) => toNumber(a?.sort_order, 999) - toNumber(b?.sort_order, 999))
     .map((spec, index) => ({
@@ -245,7 +221,6 @@ function mapAdminProduct(row: RawAdminProductRow): AdminProduct {
     hasWarranty: Boolean(row.has_warranty ?? true),
     images,
     specs,
-    variants,
   }
 }
 
@@ -281,9 +256,6 @@ function mapAdminProductListItem(row: RawAdminProductRow): Product {
   const product = mapAdminProduct(row)
   const mainImage = product.images.find((image) => image.isMain) ?? product.images[0]
 
-  const activeVariants = product.variants.filter((variant) => variant.isActive)
-  const minVariantPrice = activeVariants.length ? Math.min(...activeVariants.map((variant) => variant.price)) : null
-
   return {
     id: product.id,
     name: product.name,
@@ -308,9 +280,6 @@ function mapAdminProductListItem(row: RawAdminProductRow): Product {
     specs: product.specs
       .map((spec) => [spec.specName, spec.specValue].filter(Boolean).join(": "))
       .filter(Boolean),
-    variants: activeVariants.map(({ id, label, price, sortOrder }) => ({ id: id ?? "", label, price, sortOrder })).filter((variant) => variant.id),
-    minVariantPrice,
-    hasActiveVariants: activeVariants.length > 0,
   }
 }
 
@@ -465,24 +434,6 @@ export async function replaceProductSpecs(productId: string, specs: AdminProduct
 
   const result = await supabase.from("product_specs").insert(rows).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (result.error) throw new Error(`Failed to save specs: ${result.error.message}`)
-}
-
-export async function replaceProductVariants(productId: string, variants: AdminProductVariant[]): Promise<void> {
-  const supabase = await getSupabaseServerClient()
-  const deleteResult = await supabase.from("product_variants").delete().eq("product_id", productId).abortSignal(createRequestTimeoutSignal("adminMutation"))
-  if (deleteResult.error) throw new Error(`Failed to clear variants: ${deleteResult.error.message}`)
-
-  const rows = variants.map((variant, index) => ({
-    product_id: productId,
-    label: variant.label.trim(),
-    price: variant.price,
-    sort_order: Number.isFinite(variant.sortOrder) ? variant.sortOrder : index + 1,
-    is_active: variant.isActive,
-  }))
-
-  if (!rows.length) return
-  const result = await supabase.from("product_variants").insert(rows).abortSignal(createRequestTimeoutSignal("adminMutation"))
-  if (result.error) throw new Error(`Failed to save variants: ${result.error.message}`)
 }
 
 export type ProductImageUploadInput = {

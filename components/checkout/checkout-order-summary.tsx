@@ -41,7 +41,7 @@ export function CheckoutOrderSummary({ items, subtotal, discount, payable, shipp
 
       <div className="space-y-3 rounded-2xl bg-muted/35 p-3">
         {items.map((item) => (
-          <div key={item.lineId} className="flex items-start justify-between gap-3 text-sm">
+          <div key={item.productId} className="flex items-start justify-between gap-3 text-sm">
             <div className="flex min-w-0 gap-3">
               <ProductImage src={item.mainImageUrl} alt={item.name} size="cart" className="h-14 w-14" />
               <div className="min-w-0">
@@ -49,7 +49,6 @@ export function CheckoutOrderSummary({ items, subtotal, discount, payable, shipp
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span dir="ltr">{item.model ?? item.sku ?? "—"}</span>
                   <span>{item.brandName ?? "برند نامشخص"}</span>
-                  {item.selectedVariantLabel ? <span className="font-bold text-foreground">گزینه: {item.selectedVariantLabel}</span> : null}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {item.quantity.toLocaleString("fa-IR")} × {formatPrice(item.price)} تومان

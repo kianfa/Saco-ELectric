@@ -5,17 +5,24 @@ import { loginAdminWithEmailPassword, loginCustomerWithEmailPassword, registerCu
 import { signOutAdmin } from "@/lib/auth/admin-auth"
 import { signOutCustomer } from "@/lib/auth/customer-auth"
 import { verifyTurnstileToken } from "@/lib/auth/turnstile"
-import { ADMIN_LOGIN_RATE_LIMIT_MESSAGE, clearAdminLoginAttempts, consumeAdminLoginAttempt } from "@/lib/auth/admin-login-rate-limit"
+import { checkAdminLoginRateLimit, clearAdminLoginRateLimit } from "@/lib/auth/admin-login-rate-limit"
 
 export type LoginActionState = { ok: boolean; message: string }
 export type AuthActionState = { ok: boolean; message: string }
 
 export async function loginAdminAction(_prevState: LoginActionState, formData: FormData): Promise<LoginActionState> {
-  const email=String(formData.get("email")??"").trim(), password=String(formData.get("password")??"")
-  if(!email||!password) return {ok:false,message:"ایمیل و رمز عبور الزامی است"}
-  const rateLimit=await consumeAdminLoginAttempt(); if(!rateLimit.allowed) return {ok:false,message:ADMIN_LOGIN_RATE_LIMIT_MESSAGE}
-  const result=await loginAdminWithEmailPassword(email,password); if(!result.ok) return result
-  await clearAdminLoginAttempts(rateLimit.key)
+  const email = String(formData.get("email") ?? "").trim()
+  const password = String(formData.get("password") ?? "")
+
+  if (!email || !password) return { ok: false, message: "ایمیل و رمز عبور الزامی است" }
+
+  const rateLimit = await checkAdminLoginRateLimit(email)
+  if (!rateLimit.allowed) return { ok: false, message: rateLimit.message }
+
+  const result = await loginAdminWithEmailPassword(email, password)
+  if (!result.ok) return result
+
+  await clearAdminLoginRateLimit(email)
   redirect("/admin/products")
 }
 export async function logoutAdminAction(){ await signOutAdmin(); redirect("/admin/login") }

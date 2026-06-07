@@ -260,7 +260,7 @@ export function HomepageCategoriesManagement({ categories, settings }: { categor
                   <p className="text-xs text-muted-foreground">اختیاری؛ اگر تصویر اصلی در دسترس نباشد برای آیکن جایگزین استفاده می‌شود.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>ترتیب نمایش</Label>
                     <Input name="homepageSortOrder" type="number" defaultValue={editing.homepageSortOrder} className="rounded-xl" />

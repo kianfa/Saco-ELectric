@@ -15,7 +15,7 @@ type ProductImageProps = {
 }
 
 const sizeClasses: Record<ProductImageSize, string> = {
-  card: "aspect-square rounded-xl p-4 sm:p-5",
+  card: "h-[150px] rounded-xl p-2 min-[769px]:h-auto min-[769px]:aspect-square min-[769px]:p-5",
   detail: "aspect-square rounded-2xl p-6 sm:p-8",
   thumbnail: "aspect-square rounded-xl p-2",
   search: "h-12 w-12 rounded-xl p-1.5",

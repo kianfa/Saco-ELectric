@@ -27,7 +27,7 @@ function parseCartItems(value: FormDataEntryValue | null): PurchaseRequestCartIt
     const parsed = JSON.parse(value)
     if (!Array.isArray(parsed)) return []
     return parsed
-      .map((item) => ({ productId: String(item?.productId ?? ""), variantId: item?.variantId ? String(item.variantId) : null, quantity: Number(item?.quantity ?? 0) }))
+      .map((item) => ({ productId: String(item?.productId ?? ""), quantity: Number(item?.quantity ?? 0) }))
       .filter((item) => item.productId && Number.isInteger(item.quantity) && item.quantity > 0)
   } catch {
     return []

@@ -23,7 +23,7 @@ export function PromoBanner({ section, banners = [] }: { section?: HomepageSecti
 
   return (
     <section className="container mx-auto px-4 py-8" data-homepage-promo-banner={banner?.id ?? "fallback"}>
-      <div className="relative overflow-hidden rounded-3xl bg-primary p-8 shadow-sm md:p-12">
+      <div className="relative overflow-hidden rounded-3xl bg-primary p-5 shadow-sm sm:p-8 md:p-12">
         <div className="absolute inset-0">
           <SafeImageWithFallback
             src={imageUrl}

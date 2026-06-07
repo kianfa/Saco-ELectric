@@ -15,7 +15,7 @@ interface HeaderSearchProps {
 }
 
 function formatPrice(price: number): string {
-  return `${price.toLocaleString("fa-IR")} تومان`
+  return `${price.toLocaleString("en-US")} تومان`
 }
 
 function getSuggestionMeta(product: ProductSearchSuggestion): string {

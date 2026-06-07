@@ -34,7 +34,7 @@ The public request uses a configurable timeout (`EXTERNAL_REQUEST_TIMEOUT_MS`, d
 
 ## Customer status
 
-**Historical implementation note, no longer active:** an earlier revision checked a Supabase session cookie and called the Supabase Auth user endpoint. The current implementation checks the Better Auth cookie and validates the Better Auth session server-side before querying only `profiles.full_name` for the header status payload.
+Anonymous customer-status requests now check for the Supabase auth cookie before creating a Supabase client or calling Supabase Auth. Cookie presence is a fast negative optimization only and is never accepted as authorization. Authenticated requests still call `supabase.auth.getUser()` and then query only `profiles.full_name` for the header status payload.
 
 ## Local production measurements
 
@@ -62,5 +62,5 @@ These local values prove the route separation and cache-hit path. Raw Supabase l
 - `pnpm exec tsc --noEmit`: passed.
 - `pnpm build`: passed with exit code 0.
 - `pnpm lint`: could not start because the existing project declares `eslint .` but does not include `eslint` or an ESLint configuration file. This is a pre-existing tooling gap, not a lint finding introduced by this change.
-- Runtime source scan: no active Supabase Storage client calls. New media writes use the host filesystem.
+- Runtime source scan: no active `supabase.storage` calls.
 - Runtime source scan: no public site-settings imports under `app/admin` or `app/api`.

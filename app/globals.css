@@ -119,8 +119,18 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground;
+  }
+  img, svg, video, canvas {
+    max-width: 100%;
+  }
+  input, textarea, select, button {
+    max-width: 100%;
   }
 }
 

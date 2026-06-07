@@ -39,8 +39,6 @@ type RawItem = {
   product_name: string
   product_model: string | null
   product_sku: string | null
-  variant_id?: string | null
-  variant_label?: string | null
   brand_name: string | null
   quantity: number | string
   unit_price: number | string
@@ -94,8 +92,6 @@ function mapItem(row: RawItem): PurchaseRequestItem {
     productName: row.product_name,
     productModel: row.product_model,
     productSku: row.product_sku,
-    variantId: row.variant_id ?? null,
-    variantLabel: row.variant_label ?? null,
     brandName: row.brand_name,
     quantity: toNumber(row.quantity),
     unitPrice: toNumber(row.unit_price),

@@ -32,16 +32,15 @@ function toRelatedProduct(product: Product) {
     id: product.id,
     name: product.name,
     model: product.model ?? product.sku ?? "—",
-    price: product.minVariantPrice ?? product.price,
-    oldPrice: product.hasActiveVariants ? null : product.oldPrice,
-    discount: product.hasActiveVariants ? null : product.discountPercent || null,
+    price: product.price,
+    oldPrice: product.oldPrice,
+    discount: product.discountPercent || null,
     rating: product.rating,
     reviewCount: product.reviewCount,
     image: product.mainImageUrl,
     imageAlt: product.mainImageAlt,
     brand: product.brandName ?? "برند نامشخص",
     slug: product.slug,
-    hasActiveVariants: product.hasActiveVariants,
   }
 }
 
@@ -59,7 +58,7 @@ function buildQuickSpecs(product: ProductDetail) {
     { label: "دسته‌بندی", value: product.categoryName ?? "تجهیزات برق صنعتی" },
     {
       label: "وضعیت موجودی",
-      value: product.stockQuantity > 0 ? `${product.stockQuantity.toLocaleString("fa-IR")} عدد` : "ناموجود",
+      value: product.stockQuantity > 0 ? `${product.stockQuantity.toLocaleString("en-US")} عدد` : "ناموجود",
     },
   ]
 }
@@ -184,10 +183,10 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
         <main className="pb-24 md:pb-0">
           {/* Breadcrumb */}
-          <div className="border-b border-border bg-card/70">
-            <div className="container mx-auto px-4 py-3">
-              <Breadcrumb>
-                <BreadcrumbList className="text-xs text-muted-foreground sm:text-sm">
+          <div className="bg-muted/30 border-b border-border">
+            <div className="container mx-auto overflow-x-auto px-4 py-4 scrollbar-hide">
+              <Breadcrumb className="min-w-max">
+                <BreadcrumbList>
                   <BreadcrumbItem>
                     <BreadcrumbLink asChild>
                       <Link href="/" className="flex items-center gap-1">
@@ -221,10 +220,10 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             </div>
           </div>
 
-          <div className="container mx-auto space-y-8 px-4 py-6 md:space-y-10 md:py-10">
-            {/* Product Main Section: gallery on the left, product purchase information on the right in RTL desktop layout. */}
-            <section className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)] lg:gap-8 xl:gap-10">
-              {/* Left Side - Gallery */}
+          <div className="container mx-auto px-4 py-6 md:py-10 space-y-10 md:space-y-16">
+            {/* Product Main Section */}
+            <section className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-12">
+              {/* Right Side - Gallery */}
               <div className="order-1 lg:order-2">
                 <ProductGallery
                   images={product.images}
@@ -233,7 +232,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                 />
               </div>
 
-              {/* Right Side - Product information and purchase card */}
+              {/* Left Side - Info */}
               <div className="order-2 lg:order-1">
                 <ProductInfo
                   id={product.id}
@@ -252,16 +251,17 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                   oldPrice={product.oldPrice}
                   discount={discount}
                   mainImageUrl={product.images[0]?.imageUrl ?? null}
-                  variants={product.variants}
                 />
               </div>
             </section>
 
-            {/* Scan-friendly product summary */}
-            <SpecsSummary specs={quickSpecs} />
+            {/* Technical Specs Summary */}
+            <section>
+              <SpecsSummary specs={quickSpecs} />
+            </section>
 
-            {/* Structured technical and supporting content */}
-            <section className="rounded-3xl border border-border bg-card p-4 shadow-sm sm:p-6 md:p-8">
+            {/* Product Tabs */}
+            <section className="max-w-full overflow-hidden rounded-2xl border border-border bg-card p-3 sm:p-4 md:p-8">
               <ProductTabs
                 fullSpecs={fullSpecs}
                 description={product.description ?? ""}
@@ -298,7 +298,6 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           discount={discount}
           mainImageUrl={product.images[0]?.imageUrl ?? null}
           stockQuantity={product.stockQuantity}
-          variants={product.variants}
         />
       </div>
     )

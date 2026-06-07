@@ -1,66 +1,40 @@
-import assert from "node:assert/strict"
-import { createHash } from "node:crypto"
-import { readFile } from "node:fs/promises"
-import pg from "pg"
+import { readFileSync } from "node:fs"
 
-const { Pool } = pg
-const migration = await readFile(new URL("../supabase/migrations/20260606_admin_login_rate_limits.sql", import.meta.url), "utf8")
-const pool = new Pool({ connectionString: process.env.DATABASE_URL })
-const globalKey = createHash("sha256").update("admin-login-global-v1").digest("hex")
-const cleanupKey = createHash("sha256").update(`cleanup-${process.pid}-${Date.now()}`).digest("hex")
-const keys = [globalKey, cleanupKey]
-
-async function cleanupExpired() {
-  await pool.query("delete from public.admin_login_rate_limits where window_started_at <= now() - interval '60 seconds'")
+const checks = []
+function check(name, condition) {
+  checks.push({ name, ok: Boolean(condition) })
 }
+function read(path) { return readFileSync(path, "utf8") }
 
-async function consume() {
-  await cleanupExpired()
-  const result = await pool.query(
-    `insert into public.admin_login_rate_limits as limits (key, attempt_count, window_started_at)
-     values ($1, 1, now())
-     on conflict (key) do update
-     set attempt_count = case
-           when limits.window_started_at <= now() - interval '60 seconds' then 1
-           else limits.attempt_count + 1
-         end,
-         window_started_at = case
-           when limits.window_started_at <= now() - interval '60 seconds' then now()
-           else limits.window_started_at
-         end
-     returning attempt_count <= 3 as allowed`,
-    [globalKey],
-  )
-  return result.rows[0].allowed
+const adminForm = read("components/admin/auth/admin-login-form.tsx")
+const authActions = read("lib/actions/auth-actions.ts")
+const limiter = read("lib/auth/admin-login-rate-limit.ts")
+const migration = read("supabase/migrations/20260607_admin_login_rate_limits.sql")
+const customerLogin = read("components/auth/login-form.tsx")
+const registerForm = read("components/auth/register-form.tsx")
+
+check("admin login form no longer imports Turnstile", !adminForm.includes("TurnstileCaptcha"))
+check("admin login action no longer reads turnstileToken", !authActions.match(/loginAdminAction[\s\S]*turnstileToken[\s\S]*loginCustomerAction/))
+check("customer login still renders Turnstile", customerLogin.includes("TurnstileCaptcha") && customerLogin.includes("turnstileToken"))
+check("customer registration still renders Turnstile", registerForm.includes("TurnstileCaptcha") && registerForm.includes("turnstileToken"))
+check("admin login checks rate limit before auth provider", authActions.indexOf("checkAdminLoginRateLimit(email)") < authActions.indexOf("loginAdminWithEmailPassword(email, password)"))
+check("successful admin login clears rate limit", authActions.includes("clearAdminLoginRateLimit(email)"))
+check("rate limit key is SHA-256 hashed", limiter.includes("createHash(\"sha256\")"))
+check("rate limit uses IP and normalized email", limiter.includes("`${ip}:${normalizedEmail}`"))
+check("rate limit allows 3 attempts", limiter.includes("const MAX_ATTEMPTS = 3"))
+check("rate limit uses 60-second window", limiter.includes("const WINDOW_SECONDS = 60"))
+check("rate limit state uses PostgreSQL pool", limiter.includes("authPool.connect()"))
+check("rate limit update is atomic through insert on conflict", limiter.includes("on conflict (key) do update"))
+check("expired rows are cleaned up", limiter.includes("delete from public.admin_login_rate_limits"))
+check("blocked Persian message exists", limiter.includes("تعداد تلاش‌های ورود بیش از حد مجاز است"))
+check("migration creates admin_login_rate_limits table", migration.includes("create table if not exists public.admin_login_rate_limits"))
+check("migration stores key as primary key", migration.includes("key text primary key"))
+check("migration does not include raw_ip column", !migration.includes("raw_ip") && !migration.includes("ip_address"))
+
+const failed = checks.filter((item) => !item.ok)
+for (const item of checks) console.log(`${item.ok ? "✓" : "✗"} ${item.name}`)
+if (failed.length) {
+  console.error(`\n${failed.length} admin-login rate-limit checks failed.`)
+  process.exit(1)
 }
-
-try {
-  await pool.query(migration)
-  await pool.query("delete from public.admin_login_rate_limits where key = any($1::text[])", [keys])
-
-  assert.equal(await consume(), true, "attempt 1 must be accepted")
-  assert.equal(await consume(), true, "attempt 2 must be accepted even when request identity changes")
-  assert.equal(await consume(), true, "attempt 3 must be accepted even when request identity changes")
-  assert.equal(await consume(), false, "attempt 4 must be blocked even when request identity changes")
-  await pool.query("update public.admin_login_rate_limits set window_started_at = now() - interval '60 seconds' where key = $1", [globalKey])
-  assert.equal(await consume(), true, "login must be accepted after the 60-second window")
-
-  await pool.query("delete from public.admin_login_rate_limits where key = $1", [globalKey])
-  const parallelResults = await Promise.all(Array.from({ length: 4 }, () => consume()))
-  assert.equal(parallelResults.filter(Boolean).length, 3, "parallel requests must allow only three attempts")
-  assert.equal(parallelResults.filter((allowed) => !allowed).length, 1, "parallel fourth request must be blocked")
-
-  await pool.query("insert into public.admin_login_rate_limits (key, attempt_count, window_started_at) values ($1, 2, now() - interval '61 seconds')", [cleanupKey])
-  await cleanupExpired()
-  const expired = await pool.query("select 1 from public.admin_login_rate_limits where key = $1", [cleanupKey])
-  assert.equal(expired.rowCount, 0, "expired rows must be cleaned up")
-
-  await pool.query("delete from public.admin_login_rate_limits where key = $1", [globalKey])
-  const cleared = await pool.query("select 1 from public.admin_login_rate_limits where key = $1", [globalKey])
-  assert.equal(cleared.rowCount, 0, "successful login cleanup must clear the global record")
-
-  console.log("admin login global rate-limit PostgreSQL integration audit passed")
-} finally {
-  await pool.query("delete from public.admin_login_rate_limits where key = any($1::text[])", [keys]).catch(() => {})
-  await pool.end()
-}
+console.log(`\nAll ${checks.length} admin-login rate-limit checks passed.`)

@@ -2,7 +2,7 @@
 
 ## Scope
 
-This change removes duplicate storefront browser requests without disabling React Strict Mode and without changing the authentication architecture, the database schema, or the local media-storage implementation. Authentication is now handled by Better Auth.
+This change removes duplicate storefront browser requests without disabling React Strict Mode and without changing Supabase Auth, the database schema, or the local media-storage implementation.
 
 ## Confirmed root causes
 
@@ -80,8 +80,8 @@ Expected safe trace examples:
 
 ```txt
 [trace] customer-status request started requestId=...
-[trace] customer-status better-auth.getSession started requestId=...
-[trace] customer-status better-auth.getSession completed requestId=... durationMs=...
+[trace] customer-status auth.getUser started requestId=...
+[trace] customer-status auth.getUser completed requestId=... durationMs=...
 [trace] footer-categories request started requestId=...
 [trace] fetchHomepageCategories caller=storefront-layout:homepage
 [trace] fetchHomepageCategories caller=homepage-page

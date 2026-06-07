@@ -2,11 +2,13 @@ import "server-only"
 
 import { betterAuth } from "better-auth"
 import { nextCookies } from "better-auth/next-js"
+import { Pool } from "pg"
 import { sendPasswordResetEmail } from "@/lib/auth/password-reset-email"
-import { databasePool } from "@/lib/db/postgres"
+
+export const authPool = new Pool({ connectionString: process.env.DATABASE_URL })
 
 export const auth = betterAuth({
-  database: databasePool,
+  database: authPool,
   baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   secret: process.env.BETTER_AUTH_SECRET,
   emailAndPassword: {

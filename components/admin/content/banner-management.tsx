@@ -153,7 +153,7 @@ export function BannerManagement({ banners }: { banners: SiteBanner[] }) {
               <Label>توضیح</Label>
               <Textarea name="description" value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="rounded-xl" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>متن دکمه</Label>
                 <Input name="buttonText" value={editing.buttonText ?? ""} onChange={(e) => setEditing({ ...editing, buttonText: e.target.value })} className="rounded-xl" />
@@ -167,7 +167,7 @@ export function BannerManagement({ banners }: { banners: SiteBanner[] }) {
               <Label>لینک دکمه</Label>
               <Input name="buttonUrl" dir="ltr" value={editing.buttonUrl ?? ""} onChange={(e) => setEditing({ ...editing, buttonUrl: e.target.value })} className="rounded-xl" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>محل نمایش</Label>
                 <Select name="placement" value={editing.placement || "homepage_promo"} onValueChange={(value) => setEditing({ ...editing, placement: value })}>
@@ -203,7 +203,7 @@ export function BannerManagement({ banners }: { banners: SiteBanner[] }) {
               <input type="hidden" name="isActive" value={editing.isActive ? "true" : "false"} />
               <Switch checked={editing.isActive} onCheckedChange={(value) => setEditing({ ...editing, isActive: value })} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>شروع</Label>
                 <Input
@@ -225,7 +225,7 @@ export function BannerManagement({ banners }: { banners: SiteBanner[] }) {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row [&_button]:w-full sm:[&_button]:w-auto">
               <AdminSubmitButton>{editing.id ? "ذخیره تغییرات" : "افزودن بنر"}</AdminSubmitButton>
               <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditing(emptyBanner())}>فرم جدید</Button>
             </div>

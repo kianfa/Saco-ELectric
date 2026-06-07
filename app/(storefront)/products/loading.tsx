@@ -30,7 +30,7 @@ export default function ProductsLoading() {
             <div className="mb-6 rounded-2xl border border-border bg-card p-4">
               <Skeleton className="h-12 w-full rounded-xl" />
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 min-[769px]:grid-cols-3 lg:grid-cols-4">
               {Array.from({ length: 8 }).map((_, index) => (
                 <div key={index} className="rounded-2xl border border-border bg-card p-4">
                   <Skeleton className="mb-4 aspect-square w-full rounded-xl" />

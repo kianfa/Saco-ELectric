@@ -15,7 +15,7 @@ export async function loginAdminWithEmailPassword(email: string, password: strin
     const supabase = await getSupabaseServerClient()
     const { data: profile, error } = await supabase.from("profiles").select("id, role").eq("id", result.user.id).maybeSingle()
     if (error) { await signOutCurrentSession(); return { ok: false, message: "خطا در بررسی دسترسی مدیر" } }
-    if (!profile || !(profile.role === "admin")) { await signOutCurrentSession(); return { ok: false, message: "شما دسترسی مدیر ندارید" } }
+    if (profile?.role !== "admin") { await signOutCurrentSession(); return { ok: false, message: "شما دسترسی مدیر ندارید" } }
     return { ok: true }
   } catch {
     return { ok: false, message: "ایمیل یا رمز عبور اشتباه است" }

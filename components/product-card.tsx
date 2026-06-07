@@ -1,10 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { Heart, Star, ShoppingCart } from "lucide-react"
+import { Check, Heart, Star, ShoppingCart, X } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { formatPrice } from "@/lib/data"
+import { formatEnglishPrice } from "@/lib/data"
 import { ProductImage } from "@/components/common/product-image"
 import { useCart } from "@/lib/cart/cart-store"
 
@@ -23,8 +23,6 @@ interface ProductCardProps {
   imageAlt?: string | null
   brand: string | null
   stockQuantity: number
-  minVariantPrice?: number | null
-  hasActiveVariants?: boolean
 }
 
 export function ProductCard({
@@ -42,15 +40,12 @@ export function ProductCard({
   imageAlt,
   brand,
   stockQuantity,
-  minVariantPrice = null,
-  hasActiveVariants = false,
 }: ProductCardProps) {
   const { addToCart } = useCart()
   const safeStockQuantity = typeof stockQuantity === "number" ? stockQuantity : -1
   const inStock = safeStockQuantity !== 0
 
   const handleAddToCart = () => {
-    if (hasActiveVariants) { window.location.href = `/products/${slug}`; return }
     if (!inStock) {
       toast.error("این محصول در حال حاضر ناموجود است")
       return
@@ -58,8 +53,6 @@ export function ProductCard({
 
     addToCart({
       productId: id,
-      selectedVariantId: null,
-      selectedVariantLabel: null,
       slug,
       name,
       model,
@@ -73,9 +66,9 @@ export function ProductCard({
   }
 
   return (
-    <div className="group bg-card border border-border rounded-2xl p-4 hover:border-primary hover:shadow-xl transition-all duration-300 flex flex-col">
-      <div className="relative mb-4">
-        {!hasActiveVariants && discount ? (
+    <div className="group flex min-w-0 flex-col rounded-2xl border border-border bg-card p-2.5 transition-all duration-300 hover:border-primary hover:shadow-xl min-[769px]:p-4">
+      <div className="relative mb-2 min-[769px]:mb-4">
+        {discount ? (
           <span className="absolute top-2 right-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded-lg z-10">
             {discount}٪
           </span>
@@ -97,7 +90,7 @@ export function ProductCard({
 
       <div className="flex-1 flex flex-col">
         <Link href={`/products/${slug}`}>
-          <h3 className="font-semibold text-foreground mb-1 line-clamp-2 text-sm md:text-base hover:text-primary transition-colors">
+          <h3 className="mb-1 line-clamp-2 min-h-10 text-xs font-semibold leading-5 text-foreground transition-colors hover:text-primary min-[769px]:min-h-0 min-[769px]:text-base">
             {name}
           </h3>
         </Link>
@@ -106,33 +99,48 @@ export function ProductCard({
         </p>
         {brand ? <p className="text-xs text-primary mb-2">{brand}</p> : null}
 
-        <div className="flex items-center gap-1 mb-3">
+        <div className="mb-2 hidden items-center gap-1 min-[769px]:flex">
           <Star className="w-4 h-4 fill-accent text-accent" />
           <span className="text-sm font-medium">{rating}</span>
           <span className="text-xs text-muted-foreground">({reviewCount})</span>
         </div>
 
-        <div className="mt-auto">
-          <div className="flex flex-wrap items-baseline gap-2 mb-3">
-            {hasActiveVariants ? <span className="text-xs font-medium text-primary">شروع قیمت از</span> : null}
-            <span className="text-lg font-bold text-foreground">{formatPrice(minVariantPrice ?? price)}</span>
-            <span className="text-sm text-muted-foreground">تومان</span>
-          </div>
-          {!hasActiveVariants && oldPrice ? (
-            <span className="text-sm text-muted-foreground line-through">
-              {formatPrice(oldPrice)} تومان
+        <div className="mb-2 flex items-center gap-1 text-xs">
+          {inStock ? (
+            <>
+              <Check className="h-3.5 w-3.5 shrink-0 text-green-600" />
+              <span className="truncate text-green-600">موجود</span>
+            </>
+          ) : (
+            <>
+              <X className="h-3.5 w-3.5 shrink-0 text-destructive" />
+              <span className="truncate text-destructive">ناموجود</span>
+            </>
+          )}
+        </div>
+
+        <div className="mt-auto min-w-0">
+          {oldPrice ? (
+            <span className="block truncate text-[11px] text-muted-foreground line-through min-[769px]:text-sm">
+              {formatEnglishPrice(oldPrice)} تومان
             </span>
           ) : null}
+          <div className="flex min-w-0 flex-wrap items-baseline gap-1 min-[769px]:gap-2">
+            <span className="truncate text-base font-bold text-foreground min-[769px]:text-lg">
+              {formatEnglishPrice(price)}
+            </span>
+            <span className="text-[11px] text-muted-foreground min-[769px]:text-sm">تومان</span>
+          </div>
         </div>
 
         <Button
           type="button"
-          className="w-full mt-3 bg-primary hover:bg-primary/90 rounded-xl gap-2"
+          className="mt-3 w-full gap-1 rounded-xl bg-primary px-2 text-xs hover:bg-primary/90 min-[769px]:gap-2 min-[769px]:px-4 min-[769px]:text-sm"
           disabled={!inStock}
           onClick={handleAddToCart}
         >
-          <ShoppingCart className="w-4 h-4" />
-          <span>{!inStock ? "ناموجود" : hasActiveVariants ? "انتخاب گزینه‌ها" : "افزودن به سبد خرید"}</span>
+          <ShoppingCart className="h-4 w-4 shrink-0" />
+          <span className="truncate">{inStock ? "افزودن به سبد" : "ناموجود"}</span>
         </Button>
       </div>
     </div>

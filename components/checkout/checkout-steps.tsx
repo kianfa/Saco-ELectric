@@ -8,7 +8,7 @@ export function CheckoutSteps() {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-sm md:p-5">
-      <div className="grid grid-cols-4 gap-2 text-center">
+      <div className="grid grid-cols-4 gap-1 text-center sm:gap-2">
         {steps.map((step, index) => {
           const stepNumber = index + 1
           const isDone = stepNumber < currentStep

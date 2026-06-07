@@ -1,5 +1,4 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
-import { deleteLocalMediaByPublicUrl } from "@/lib/storage/local-media-storage"
 import { createRequestTimeoutSignal, performanceDebugEnabled, safePerformanceError, withExternalRequestTimeout, withServerTiming } from "@/lib/performance/server-timing"
 import type { AdminBrandInput, Brand } from "@/types/brand"
 
@@ -129,8 +128,6 @@ export async function insertBrand(input: AdminBrandInput): Promise<Brand> {
 
 export async function patchBrand(id: string, input: AdminBrandInput): Promise<Brand> {
   const supabase = await getSupabaseServerClient()
-  const existing = await supabase.from("brands").select("logo_url").eq("id", id).maybeSingle()
-  if (existing.error) throw new Error(`Failed to read brand before update: ${existing.error.message}`)
   const payload = {
     name: input.name,
     slug: input.slug,
@@ -142,20 +139,15 @@ export async function patchBrand(id: string, input: AdminBrandInput): Promise<Br
   }
   const { data, error } = await supabase.from("brands").update(payload).eq("id", id).select(BRAND_SELECT).abortSignal(createRequestTimeoutSignal("adminMutation")).single()
   if (error) throw new Error(`Failed to update brand: ${error.message}`)
-  const previousLogoUrl = typeof existing.data?.logo_url === "string" ? existing.data.logo_url : null
-  if (previousLogoUrl && previousLogoUrl !== input.logoUrl) await deleteLocalMediaByPublicUrl(previousLogoUrl)
   return mapBrand(data as RawBrand)
 }
 
 export async function removeBrand(id: string): Promise<void> {
   const supabase = await getSupabaseServerClient()
-  const existing = await supabase.from("brands").select("logo_url").eq("id", id).maybeSingle()
-  if (existing.error) throw new Error(`Failed to read brand before deletion: ${existing.error.message}`)
   const detach = await supabase.from("products").update({ brand_id: null }).eq("brand_id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (detach.error) throw new Error(`Failed to detach brand products: ${detach.error.message}`)
   const { error } = await supabase.from("brands").delete().eq("id", id).abortSignal(createRequestTimeoutSignal("adminMutation"))
   if (error) throw new Error(`Failed to delete brand: ${error.message}`)
-  await deleteLocalMediaByPublicUrl(typeof existing.data?.logo_url === "string" ? existing.data.logo_url : null)
 }
 
 export async function setBrandActive(id: string, isActive: boolean): Promise<void> {

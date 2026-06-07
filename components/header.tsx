@@ -19,12 +19,12 @@ export function Header() {
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50">
       {/* Main Header */}
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between gap-4">
+      <div className="container mx-auto max-w-full px-3 py-3 sm:px-4">
+        <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 shrink-0">
-            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-              <Zap className="w-7 h-7 text-accent" />
+          <Link href="/" className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary sm:h-12 sm:w-12">
+              <Zap className="h-6 w-6 text-accent sm:h-7 sm:w-7" />
             </div>
             <div className="hidden sm:block">
               <h1 className="text-xl font-bold text-primary">{brandName}</h1>
@@ -38,7 +38,7 @@ export function Header() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </Button>
@@ -81,7 +81,7 @@ export function Header() {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-card border-t border-border">
-          <div className="container mx-auto px-4 py-2">
+          <div className="container mx-auto max-h-[70vh] max-w-full overflow-y-auto px-3 py-2 sm:px-4">
             <Button asChild className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 rounded-xl mb-2">
               <Link href="/categories" onClick={() => setMobileMenuOpen(false)}>
                 <Menu className="w-5 h-5" />

@@ -1,5 +1,5 @@
 import { getSupabaseClient } from "@/lib/supabase/client"
-import type { Product, ProductDetail, ProductQueryOptions, ProductSearchSuggestion, ProductVariant } from "@/types/product"
+import type { Product, ProductDetail, ProductQueryOptions, ProductSearchSuggestion } from "@/types/product"
 
 type SupabaseRelation<T> = T | T[] | null
 
@@ -40,13 +40,6 @@ type RawProductRow = {
     is_main?: boolean | null
     sort_order?: number | string | null
   }>
-  product_variants?: SupabaseRelation<{
-    id?: string | number | null
-    label?: string | null
-    price?: number | string | null
-    sort_order?: number | string | null
-    is_active?: boolean | null
-  }>
   product_specs?: SupabaseRelation<{
     spec_name?: string | null
     spec_value?: string | null
@@ -77,8 +70,7 @@ const PRODUCTS_SELECT = `
   categories(name, slug),
   inventory(stock_quantity, quantity),
   product_images(id, url, image_url, alt_text, is_main, sort_order),
-  product_specs(label, name, value, sort_order),
-  product_variants(id, label, price, sort_order, is_active)
+  product_specs(label, name, value, sort_order)
 `
 
 
@@ -100,8 +92,7 @@ const PRODUCTS_SELECT_FALLBACK = `
   categories(name, slug),
   inventory(stock_quantity, quantity),
   product_images(id, url, image_url, alt_text, is_main, sort_order),
-  product_specs(label, name, value, sort_order),
-  product_variants(id, label, price, sort_order, is_active)
+  product_specs(label, name, value, sort_order)
 `
 
 const PRODUCT_DETAIL_SELECT = `
@@ -126,8 +117,7 @@ const PRODUCT_DETAIL_SELECT = `
   categories(name, slug),
   inventory(stock_quantity, quantity),
   product_images(id, url, image_url, alt_text, is_main, sort_order),
-  product_specs(spec_name, spec_value, label, name, value, sort_order),
-  product_variants(id, label, price, sort_order, is_active)
+  product_specs(spec_name, spec_value, label, name, value, sort_order)
 `
 
 // Fallback for schemas that have not added optional detail columns yet.
@@ -150,8 +140,7 @@ const PRODUCT_DETAIL_SELECT_FALLBACK = `
   categories(name, slug),
   inventory(stock_quantity, quantity),
   product_images(id, url, image_url, alt_text, is_main, sort_order),
-  product_specs(spec_name, spec_value, label, name, value, sort_order),
-  product_variants(id, label, price, sort_order, is_active)
+  product_specs(spec_name, spec_value, label, name, value, sort_order)
 `
 
 function toArray<T>(value: SupabaseRelation<T>): T[] {
@@ -221,27 +210,11 @@ function mapSpecs(specs: RawProductRow["product_specs"]): string[] {
     .filter((spec): spec is string => Boolean(spec))
 }
 
-
-function mapActiveVariants(variants: RawProductRow["product_variants"]): ProductVariant[] {
-  return toArray(variants)
-    .filter((variant) => Boolean(variant?.is_active ?? true))
-    .sort((a, b) => toNumber(a?.sort_order, 999) - toNumber(b?.sort_order, 999))
-    .map((variant, index) => ({
-      id: variant?.id ? String(variant.id) : `variant-${index}`,
-      label: variant?.label?.trim() ?? "",
-      price: toNumber(variant?.price),
-      sortOrder: toNumber(variant?.sort_order, index + 1),
-    }))
-    .filter((variant) => variant.label)
-}
-
 function mapProduct(row: RawProductRow): Product {
   const name = row.name ?? "محصول بدون نام"
   const model = row.model ?? null
   const inventory = toArray(row.inventory)[0]
   const mainImage = pickMainImage(row.product_images)
-  const variants = mapActiveVariants(row.product_variants)
-  const minVariantPrice = variants.length ? Math.min(...variants.map((variant) => variant.price)) : null
 
   return {
     id: String(row.id),
@@ -267,9 +240,6 @@ function mapProduct(row: RawProductRow): Product {
     reviewCount: toNumber(row.review_count, 0),
     hasWarranty: Boolean(row.has_warranty ?? true),
     specs: mapSpecs(row.product_specs),
-    variants,
-    minVariantPrice,
-    hasActiveVariants: variants.length > 0,
   }
 }
 
@@ -323,9 +293,6 @@ function mapProductDetail(row: RawProductRow): ProductDetail {
     stockQuantity: product.stockQuantity,
     images: mappedImages,
     specs: detailSpecs,
-    variants: product.variants,
-    minVariantPrice: product.minVariantPrice,
-    hasActiveVariants: product.hasActiveVariants,
     rating: product.rating,
     reviewCount: product.reviewCount,
     hasWarranty: product.hasWarranty,
@@ -494,8 +461,7 @@ export async function fetchProductSearchSuggestions(
     slug: product.slug,
     model: product.model,
     sku: product.sku,
-    price: product.minVariantPrice ?? product.price,
-    hasActiveVariants: product.hasActiveVariants,
+    price: product.price,
     brandName: product.brandName,
     categoryName: product.categoryName,
     mainImageUrl: product.mainImageUrl,

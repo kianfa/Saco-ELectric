@@ -9,6 +9,7 @@ interface QuantitySelectorProps {
   min?: number
   max?: number
   disabled?: boolean
+  numberLocale?: string
 }
 
 export function QuantitySelector({
@@ -17,6 +18,7 @@ export function QuantitySelector({
   min = 1,
   max = 99,
   disabled = false,
+  numberLocale = "fa-IR",
 }: QuantitySelectorProps) {
   const decrease = () => onChange(Math.max(min, value - 1))
   const increase = () => onChange(Math.min(max, value + 1))
@@ -34,8 +36,8 @@ export function QuantitySelector({
       >
         <Plus className="w-4 h-4" />
       </Button>
-      <span className="min-w-10 px-3 text-center text-sm font-bold text-foreground persian-num">
-        {value.toLocaleString("fa-IR")}
+      <span className="min-w-10 px-3 text-center text-sm font-bold text-foreground">
+        {value.toLocaleString(numberLocale)}
       </span>
       <Button
         type="button"

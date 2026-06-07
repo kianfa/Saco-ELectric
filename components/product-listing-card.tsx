@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Heart, Star, ShoppingCart, Eye, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/cart/cart-store"
-import { formatPrice } from "@/lib/data"
+import { formatEnglishPrice } from "@/lib/data"
 import { ProductImage } from "@/components/common/product-image"
 import type { Product } from "@/types/product"
 
@@ -28,18 +28,13 @@ export function ProductListingCard({ product }: ProductListingCardProps) {
     mainImageUrl,
     mainImageAlt,
     slug,
-    minVariantPrice,
-    hasActiveVariants,
   } = product
   const safeStockQuantity = typeof stockQuantity === "number" ? stockQuantity : -1
   const inStock = safeStockQuantity !== 0
 
   const handleAddToCart = () => {
-    if (hasActiveVariants) { window.location.href = `/products/${slug}`; return }
     addToCart({
       productId: product.id,
-      selectedVariantId: null,
-      selectedVariantLabel: null,
       slug,
       name,
       model,
@@ -53,11 +48,11 @@ export function ProductListingCard({ product }: ProductListingCardProps) {
   }
 
   return (
-    <div className="group bg-card border border-border rounded-2xl p-4 hover:border-primary hover:shadow-xl transition-all duration-300 flex flex-col">
+    <div className="group flex min-w-0 flex-col rounded-2xl border border-border bg-card p-2.5 transition-all duration-300 hover:border-primary hover:shadow-xl min-[769px]:p-4">
       {/* Image Container */}
-      <div className="relative mb-4">
+      <div className="relative mb-2 min-[769px]:mb-4">
         {/* Discount Badge */}
-        {!hasActiveVariants && discountPercent > 0 && (
+        {discountPercent > 0 && (
           <span className="absolute top-2 right-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded-lg z-10">
             {discountPercent}٪
           </span>
@@ -82,7 +77,7 @@ export function ProductListingCard({ product }: ProductListingCardProps) {
       {/* Product Info */}
       <div className="flex-1 flex flex-col">
         <Link href={`/products/${slug}`}>
-          <h3 className="font-semibold text-foreground mb-1 line-clamp-2 text-sm hover:text-primary transition-colors">
+          <h3 className="mb-1 line-clamp-2 min-h-10 text-xs font-semibold leading-5 text-foreground transition-colors hover:text-primary min-[769px]:min-h-0 min-[769px]:text-sm">
             {name}
           </h3>
         </Link>
@@ -92,7 +87,7 @@ export function ProductListingCard({ product }: ProductListingCardProps) {
         <p className="text-xs text-primary mb-2">{brandName ?? "برند نامشخص"}</p>
 
         {/* Rating */}
-        <div className="flex items-center gap-1 mb-2">
+        <div className="mb-2 hidden items-center gap-1 min-[769px]:flex">
           <Star className="w-3.5 h-3.5 fill-accent text-accent" />
           <span className="text-sm font-medium">{rating}</span>
           <span className="text-xs text-muted-foreground">({reviewCount})</span>
@@ -115,14 +110,15 @@ export function ProductListingCard({ product }: ProductListingCardProps) {
 
         {/* Price */}
         <div className="mt-auto">
-          {!hasActiveVariants && oldPrice && (
+          {oldPrice && (
             <span className="text-xs text-muted-foreground line-through block mb-1">
-              {formatPrice(oldPrice)} تومان
+              {formatEnglishPrice(oldPrice)} تومان
             </span>
           )}
-          <div className="flex flex-wrap items-baseline gap-1">
-            {hasActiveVariants ? <span className="text-xs font-medium text-primary">شروع قیمت از</span> : null}
-            <span className="text-lg font-bold text-foreground">{formatPrice(minVariantPrice ?? price)}</span>
+          <div className="flex min-w-0 flex-wrap items-baseline gap-1">
+            <span className="truncate text-base font-bold text-foreground min-[769px]:text-lg">
+              {formatEnglishPrice(price)}
+            </span>
             <span className="text-xs text-muted-foreground">تومان</span>
           </div>
         </div>
@@ -131,17 +127,17 @@ export function ProductListingCard({ product }: ProductListingCardProps) {
         <div className="flex flex-col gap-2 mt-3">
           <Button
             type="button"
-            className="w-full bg-primary hover:bg-primary/90 rounded-xl gap-2 text-sm"
+            className="w-full gap-1 rounded-xl bg-primary px-2 text-xs hover:bg-primary/90 min-[769px]:gap-2 min-[769px]:px-4 min-[769px]:text-sm"
             disabled={!inStock}
             onClick={handleAddToCart}
           >
             <ShoppingCart className="w-4 h-4" />
-            <span>{!inStock ? "ناموجود" : hasActiveVariants ? "انتخاب گزینه‌ها" : "افزودن به سبد"}</span>
+            <span className="truncate">{inStock ? "افزودن به سبد" : "ناموجود"}</span>
           </Button>
-          <Button variant="outline" className="w-full rounded-xl gap-2 text-sm" asChild>
+          <Button variant="outline" className="w-full gap-1 rounded-xl px-2 text-xs min-[769px]:gap-2 min-[769px]:px-4 min-[769px]:text-sm" asChild>
             <Link href={`/products/${slug}`}>
               <Eye className="w-4 h-4" />
-              <span>مشاهده جزئیات</span>
+              <span className="truncate">جزئیات</span>
             </Link>
           </Button>
         </div>

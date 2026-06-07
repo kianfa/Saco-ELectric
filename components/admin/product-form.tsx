@@ -3,9 +3,9 @@
 import { useActionState, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { AlertTriangle, ArrowDown, ArrowUp, ImagePlus, Loader2, Plus, Save, Trash2, X } from "lucide-react"
+import { AlertTriangle, ImagePlus, Loader2, Plus, Save, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
-import type { AdminActionState, AdminProduct, AdminProductFormOptions, AdminProductImage, AdminProductSpec, AdminProductVariant } from "@/types/admin-product"
+import type { AdminActionState, AdminProduct, AdminProductFormOptions, AdminProductImage, AdminProductSpec } from "@/types/admin-product"
 import type { Brand, BrandActionState } from "@/types/brand"
 import type { Category, CategoryActionState } from "@/types/category"
 import { Button } from "@/components/ui/button"
@@ -88,7 +88,6 @@ export function ProductForm({
   const [discountPercent, setDiscountPercent] = useState(String(product?.discountPercent ?? "0"))
   const [quantity, setQuantity] = useState(String(product?.quantity ?? "0"))
   const [specs, setSpecs] = useState<AdminProductSpec[]>(initialSpecs(product))
-  const [variants, setVariants] = useState<AdminProductVariant[]>(product?.variants ?? [])
   const [existingImages, setExistingImages] = useState<AdminProductImage[]>(product?.images ?? [])
   const [removedImageIds, setRemovedImageIds] = useState<string[]>([])
   const [mainExistingImageId, setMainExistingImageId] = useState<string | null>(product?.images.find((image) => image.isMain)?.id ?? null)
@@ -130,28 +129,6 @@ export function ProductForm({
 
   function removeSpec(index: number) {
     setSpecs((items) => items.filter((_, itemIndex) => itemIndex !== index).map((item, itemIndex) => ({ ...item, sortOrder: itemIndex + 1 })))
-  }
-
-  function addVariant() {
-    setVariants((items) => [...items, { label: "", price: 0, sortOrder: items.length + 1, isActive: true }])
-  }
-
-  function updateVariant(index: number, patch: Partial<AdminProductVariant>) {
-    setVariants((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item))
-  }
-
-  function removeVariant(index: number) {
-    setVariants((items) => items.filter((_, itemIndex) => itemIndex !== index).map((item, itemIndex) => ({ ...item, sortOrder: itemIndex + 1 })))
-  }
-
-  function moveVariant(index: number, direction: -1 | 1) {
-    setVariants((items) => {
-      const target = index + direction
-      if (target < 0 || target >= items.length) return items
-      const next = [...items]
-      ;[next[index], next[target]] = [next[target], next[index]]
-      return next.map((item, itemIndex) => ({ ...item, sortOrder: itemIndex + 1 }))
-    })
   }
 
   useEffect(() => {
@@ -249,7 +226,6 @@ export function ProductForm({
   return (
     <form action={formAction} className="grid gap-6 xl:grid-cols-[1fr_360px]">
       <input type="hidden" name="specsJson" value={JSON.stringify(specs)} />
-      <input type="hidden" name="variantsJson" value={JSON.stringify(variants)} />
       <input type="hidden" name="existingImagesJson" value={JSON.stringify(existingImages)} />
       <input type="hidden" name="removedImageIdsJson" value={JSON.stringify(removedImageIds)} />
       <input type="hidden" name="mainExistingImageId" value={mainExistingImageId ?? ""} />
@@ -339,35 +315,6 @@ export function ProductForm({
         </Card>
 
         <Card className="rounded-2xl shadow-sm">
-          <CardHeader className="flex-row items-center justify-between gap-3">
-            <CardTitle>تنوع‌ها و قیمت‌های محصول</CardTitle>
-            <Button type="button" variant="outline" onClick={addVariant} className="rounded-xl"><Plus className="h-4 w-4" /> افزودن گزینه جدید</Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {variants.length === 0 ? <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">این محصول ساده است و از قیمت اصلی استفاده می‌کند. برای تعریف قیمت‌های جداگانه، گزینه جدید اضافه کنید.</p> : null}
-            {variants.map((variant, index) => (
-              <div key={variant.id ?? `variant-${index}`} className="grid gap-2 rounded-xl border p-3 md:grid-cols-[minmax(0,1fr)_180px_auto_auto] md:items-center">
-                <Field label="عنوان گزینه">
-                  <Input value={variant.label} onChange={(event) => updateVariant(index, { label: event.target.value })} placeholder="مثلاً 16 آمپر" className="rounded-xl" />
-                </Field>
-                <Field label="قیمت">
-                  <Input value={variant.price} onChange={(event) => updateVariant(index, { price: Number(event.target.value.replace(/,/g, "")) })} inputMode="numeric" min="0" className="rounded-xl" />
-                </Field>
-                <label className="flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium">
-                  <Checkbox checked={variant.isActive} onCheckedChange={(checked) => updateVariant(index, { isActive: checked === true })} /> فعال
-                </label>
-                <div className="flex items-center gap-1">
-                  <Button type="button" variant="ghost" size="icon" onClick={() => moveVariant(index, -1)} disabled={index === 0} className="rounded-xl" aria-label="انتقال گزینه به بالا"><ArrowUp className="h-4 w-4" /></Button>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => moveVariant(index, 1)} disabled={index === variants.length - 1} className="rounded-xl" aria-label="انتقال گزینه به پایین"><ArrowDown className="h-4 w-4" /></Button>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeVariant(index)} className="rounded-xl text-destructive" aria-label="حذف گزینه"><Trash2 className="h-4 w-4" /></Button>
-                </div>
-              </div>
-            ))}
-            {state.fieldErrors?.variants ? <p className="text-xs text-destructive">{state.fieldErrors.variants}</p> : null}
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl shadow-sm">
           <CardHeader><CardTitle>تصاویر محصول</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-xl border border-dashed bg-muted/40 p-4">
@@ -445,7 +392,7 @@ export function ProductForm({
         </Card>
 
         <Card className="rounded-2xl shadow-sm">
-          <CardHeader className="flex-row items-center justify-between"><CardTitle>مشخصات فنی</CardTitle><Button type="button" variant="outline" onClick={addSpec} className="rounded-xl"><Plus className="h-4 w-4" /> افزودن ردیف</Button></CardHeader>
+          <CardHeader className="flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between"><CardTitle>مشخصات فنی</CardTitle><Button type="button" variant="outline" onClick={addSpec} className="w-full rounded-xl sm:w-auto"><Plus className="h-4 w-4" /> افزودن ردیف</Button></CardHeader>
           <CardContent className="space-y-3">
             {specs.map((spec, index) => (
               <div key={index} className="grid gap-2 rounded-xl border p-3 md:grid-cols-[1fr_1fr_100px_auto]">

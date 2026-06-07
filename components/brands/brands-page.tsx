@@ -113,21 +113,21 @@ export function BrandsPage({ brands }: BrandsPageProps) {
         ) : filteredBrands.length === 0 ? (
           <div className="rounded-3xl border border-dashed bg-card p-10 text-center text-muted-foreground shadow-sm">برندی با این جستجو پیدا نشد.</div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {filteredBrands.map((brand) => (
               <Card key={brand.id} className="group overflow-hidden rounded-3xl border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl">
-                <CardContent className="flex h-full flex-col p-5">
-                  <div className="mb-5 flex items-start justify-between gap-4">
+                <CardContent className="flex h-full min-w-0 flex-col p-3 sm:p-5">
+                  <div className="mb-3 flex items-start justify-between gap-2 sm:mb-5 sm:gap-4">
                     <BrandLogo brand={brand} />
-                    <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">
+                    <span className="hidden rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground sm:inline-flex">
                       {brand.productCount ?? 0} محصول
                     </span>
                   </div>
-                  <h3 className="text-lg font-black text-primary">{brand.name}</h3>
-                  <p className="mt-2 line-clamp-3 min-h-[72px] text-sm leading-6 text-muted-foreground">
+                  <h3 className="line-clamp-2 text-sm font-black text-primary sm:text-lg">{brand.name}</h3>
+                  <p className="mt-2 line-clamp-2 min-h-10 text-xs leading-5 text-muted-foreground sm:line-clamp-3 sm:min-h-[72px] sm:text-sm sm:leading-6">
                     {brand.description || "محصولات این برند در دسته‌بندی تجهیزات برق صنعتی، اتوماسیون و تابلو برق قابل بررسی هستند."}
                   </p>
-                  <Button asChild className="mt-5 rounded-2xl bg-primary hover:bg-primary/90">
+                  <Button asChild className="mt-3 w-full rounded-2xl bg-primary px-2 text-xs hover:bg-primary/90 sm:mt-5 sm:px-4 sm:text-sm">
                     <Link href={`/products?brand=${encodeURIComponent(brand.slug)}`}>
                       مشاهده محصولات
                       <ArrowLeft className="mr-2 h-4 w-4" />

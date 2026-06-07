@@ -1,7 +1,6 @@
 "use client"
 
-import Link from "next/link"
-import { Building2, FileText, Phone } from "lucide-react"
+import { Building2, Phone, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { storeContactConfig } from "@/lib/store-contact-config"
 import { useContactInfo } from "@/components/site-settings-provider"
@@ -9,37 +8,46 @@ import { useContactInfo } from "@/components/site-settings-provider"
 export function ProjectPurchaseBox() {
   const contact = useContactInfo()
   const supportPhone = contact.supportPhone || contact.mobile || storeContactConfig.mobile
-
   return (
-    <section className="overflow-hidden rounded-3xl border border-primary/15 bg-primary text-primary-foreground shadow-sm">
-      <div className="grid gap-6 p-6 md:grid-cols-[1fr_auto] md:items-center md:p-8">
+    <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-6 md:p-8 text-primary-foreground">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-start gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/[0.12]">
-            <Building2 className="h-7 w-7" />
+          <div className="w-14 h-14 bg-primary-foreground/20 rounded-2xl flex items-center justify-center shrink-0">
+            <Building2 className="w-7 h-7" />
           </div>
           <div>
-            <p className="text-xs font-bold text-white/70">تأمین تخصصی تجهیزات برق صنعتی</p>
-            <h2 className="mt-1 text-xl font-black">خرید پروژه‌ای و سفارش عمده</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-white/80">
-              برای بررسی موجودی، دریافت قیمت همکاری، تهیه پیش‌فاکتور رسمی و هماهنگی ارسال پروژه‌ای با کارشناسان فروش در ارتباط باشید.
+            <h3 className="text-xl font-bold mb-2">خرید پروژه‌ای و عمده</h3>
+            <p className="text-primary-foreground/80 text-sm md:text-base leading-relaxed">
+              برای سفارش تعداد بالا، تامین پروژه، یا دریافت پیش‌فاکتور با
+              کارشناسان ما تماس بگیرید.
             </p>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 md:min-w-[320px]">
-          <Button asChild variant="secondary" size="lg" className="h-12 rounded-xl bg-white font-bold text-primary hover:bg-white/90">
-            <Link href="/contact?subject=%D8%A7%D8%B3%D8%AA%D8%B9%D9%84%D8%A7%D9%85%20%D9%82%DB%8C%D9%85%D8%AA%20%D9%BE%D8%B1%D9%88%DA%98%D9%87%E2%80%8C%D8%A7%DB%8C">
-              <FileText className="h-4 w-4" />
-              <span>دریافت پیش‌فاکتور</span>
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg" className="h-12 rounded-xl border-white/30 bg-transparent font-bold text-white hover:bg-white/10 hover:text-white">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <Button
+            asChild
+            variant="secondary"
+            size="lg"
+            className="w-full gap-2 rounded-xl bg-primary-foreground text-primary hover:bg-primary-foreground/90 sm:w-auto"
+          >
             <a href={`tel:${supportPhone}`}>
-              <Phone className="h-4 w-4" />
+              <FileText className="w-5 h-5" />
+              <span>دریافت پیش‌فاکتور</span>
+            </a>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="w-full gap-2 rounded-xl border-white/60 bg-white/10 !text-white hover:bg-white/20 hover:!text-white sm:w-auto [&_svg]:text-white [&_svg]:opacity-100"
+          >
+            <a href={`tel:${supportPhone}`}>
+              <Phone className="w-5 h-5" />
               <span>تماس با کارشناس</span>
             </a>
           </Button>
         </div>
       </div>
-    </section>
+    </div>
   )
 }

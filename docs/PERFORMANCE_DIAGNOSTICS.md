@@ -29,7 +29,7 @@ Expected customer-status labels include:
 [perf] start customer auth cookie presence
 [perf] success customer auth cookie presence 1ms
 [perf] start create Supabase server client
-[perf] start better-auth.getSession timeout=25000ms
+[perf] start supabase.auth.getUser timeout=20000ms
 [perf] start minimal customer profile lookup timeout=20000ms
 [perf] success customer status response serialization 1ms
 ```
@@ -42,7 +42,7 @@ Run the network-only diagnostic separately:
 pnpm debug:supabase-latency
 ```
 
-It reports sequential and small-concurrency parallel measurements for DNS, the exact filtered public `site_settings` query, and a minimal public database query. It intentionally does not call authentication endpoints. It reports min, max, median, average, timeout count, and safe error summaries.
+It reports sequential and small-concurrency parallel measurements for DNS, the Supabase Auth settings endpoint, the exact filtered public `site_settings` query, and a minimal public database query. It reports min, max, median, average, timeout count, and safe error summaries.
 
 Compare development and production requests after configuring `.env.local`:
 

@@ -23,14 +23,6 @@ export interface AdminProductSpec {
   sortOrder: number
 }
 
-export interface AdminProductVariant {
-  id?: string
-  label: string
-  price: number
-  sortOrder: number
-  isActive: boolean
-}
-
 export interface AdminProduct {
   id: string
   name: string
@@ -55,7 +47,6 @@ export interface AdminProduct {
   hasWarranty: boolean
   images: AdminProductImage[]
   specs: AdminProductSpec[]
-  variants: AdminProductVariant[]
 }
 
 export interface AdminProductFormInput {
@@ -79,7 +70,6 @@ export interface AdminProductFormInput {
   warranty: string | null
   originCountry: string | null
   specs: AdminProductSpec[]
-  variants: AdminProductVariant[]
   existingImages?: AdminProductImage[]
   removedImageIds?: string[]
   mainExistingImageId?: string | null

@@ -9,7 +9,7 @@ export default function ProductDetailLoading() {
       <Header />
       <main className="container mx-auto px-4 py-8 space-y-10">
         <Skeleton className="h-8 w-72 rounded-xl" />
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-12">
           <Skeleton className="aspect-square rounded-2xl" />
           <div className="space-y-4">
             <Skeleton className="h-5 w-32 rounded-xl" />

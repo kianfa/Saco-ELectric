@@ -65,7 +65,6 @@ export default async function AdminPurchaseRequestDetailPage({ params }: { param
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-primary">{item.productName}</p>
                       <p className="mt-1 text-xs leading-6 text-muted-foreground">مدل: {item.productModel || "—"} | SKU: {item.productSku || "—"} | برند: {item.brandName || "—"}</p>
-                      {item.variantLabel ? <p className="mt-1 text-xs font-bold text-foreground">گزینه انتخاب‌شده: {item.variantLabel}</p> : null}
                     </div>
                     <div className="text-sm"><p>{item.quantity.toLocaleString("fa-IR")} × {formatPrice(item.unitPrice)} تومان</p><p className="mt-1 font-black text-primary">{formatPrice(item.totalPrice)} تومان</p></div>
                   </div>

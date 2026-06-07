@@ -132,7 +132,7 @@ export function Footer(_props: { settings?: unknown } = {}) {
         </div>
       </div>
 
-      <div className="relative container mx-auto px-4 py-12 lg:py-14">
+      <div className="relative container mx-auto px-4 py-8 sm:py-10 lg:py-14">
         <div className="grid grid-cols-1 gap-7 lg:grid-cols-12">
           <section className="rounded-3xl border border-white/10 bg-white/[0.06] p-6 shadow-2xl shadow-black/10 backdrop-blur lg:col-span-4">
             <Link href="/" className="mb-5 flex items-center gap-3">

@@ -11,12 +11,12 @@ export function TopBar() {
   const supportPhone = contact.supportPhone || contact.mobile || storeContactConfig.mobile
 
   return (
-    <div className="bg-primary text-primary-foreground py-2 text-sm">
-      <div className="container mx-auto px-4 flex flex-wrap items-center justify-between gap-2">
+    <div className="overflow-hidden bg-primary py-2 text-xs text-primary-foreground sm:text-sm">
+      <div className="container mx-auto flex max-w-full flex-wrap items-center justify-between gap-2 px-3 sm:px-4">
         <div className="flex items-center gap-1">
           <span>به فروشگاه {brandName} خوش آمدید</span>
         </div>
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-4">
           <a href="/projects" className="flex items-center gap-1.5 hover:text-accent transition-colors">
             <FileText className="w-4 h-4" />
             <span>اطلاعات پروژه‌شما</span>
@@ -29,7 +29,7 @@ export function TopBar() {
             <MessageCircle className="w-4 h-4" />
             <span dir="ltr">{supportPhone}</span>
           </a>
-          <div className="flex items-center gap-1.5">
+          <div className="hidden items-center gap-1.5 md:flex">
             <Clock className="w-4 h-4" />
             <span>{contact.workingHours || "پشتیبانی فروش و پروژه"}</span>
           </div>

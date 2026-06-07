@@ -37,22 +37,21 @@ export function CartItemCard({ item, onQuantityChange, onRemove, compact = false
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:text-destructive"
-                onClick={() => onRemove(item.lineId)}
+                onClick={() => onRemove(item.productId)}
                 aria-label="حذف کالا"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
             <p className="mb-1 text-xs text-muted-foreground" dir="ltr">{item.model ?? item.sku ?? "—"}</p>
-            <p className="mb-1 text-xs font-medium text-primary">{item.brandName ?? "برند نامشخص"}</p>
-            {item.selectedVariantLabel ? <p className="mb-2 text-xs font-bold text-foreground">گزینه: {item.selectedVariantLabel}</p> : null}
+            <p className="mb-2 text-xs font-medium text-primary">{item.brandName ?? "برند نامشخص"}</p>
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-sm font-extrabold text-foreground">{formatPrice(item.price)}</span>
               <span className="text-xs text-muted-foreground">تومان</span>
             </div>
             <QuantitySelector
               value={item.quantity}
-              onChange={(quantity) => onQuantityChange(item.lineId, quantity)}
+              onChange={(quantity) => onQuantityChange(item.productId, quantity)}
               disabled={!inStock}
               max={maxQuantity}
             />
@@ -74,7 +73,6 @@ export function CartItemCard({ item, onQuantityChange, onRemove, compact = false
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="rounded-lg bg-muted px-2 py-1" dir="ltr">{item.model ?? item.sku ?? "—"}</span>
                 <span className="rounded-lg bg-primary/10 px-2 py-1 font-medium text-primary">{item.brandName ?? "برند نامشخص"}</span>
-                {item.selectedVariantLabel ? <span className="rounded-lg bg-accent/15 px-2 py-1 font-bold text-foreground">گزینه: {item.selectedVariantLabel}</span> : null}
               </div>
             </div>
 
@@ -82,7 +80,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove, compact = false
               variant="ghost"
               size="sm"
               className="w-fit rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => onRemove(item.lineId)}
+              onClick={() => onRemove(item.productId)}
             >
               <Trash2 className="ml-1.5 h-4 w-4" />
               حذف
@@ -112,7 +110,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove, compact = false
                 <p className="mb-1 text-xs text-muted-foreground">تعداد</p>
                 <QuantitySelector
                   value={item.quantity}
-                  onChange={(quantity) => onQuantityChange(item.lineId, quantity)}
+                  onChange={(quantity) => onQuantityChange(item.productId, quantity)}
                   disabled={!inStock}
                   max={maxQuantity}
                 />

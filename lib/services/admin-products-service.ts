@@ -7,7 +7,6 @@ import {
   insertProduct,
   normalizeMainImage,
   replaceProductSpecs,
-  replaceProductVariants,
   toggleProductActiveRecord,
   updateExistingImages,
   updateProductRecord,
@@ -39,16 +38,6 @@ export async function validateAdminProductInput(input: AdminProductFormInput, pr
   if (!Number.isFinite(input.price) || input.price <= 0) fieldErrors.price = "قیمت باید عددی و بزرگ‌تر از صفر باشد."
   if (!input.categoryId) fieldErrors.categoryId = "انتخاب دسته‌بندی الزامی است."
   if (!Number.isFinite(input.quantity) || input.quantity < 0) fieldErrors.quantity = "موجودی باید عددی و صفر یا بیشتر باشد."
-
-  const seenVariantLabels = new Set<string>()
-  input.variants.forEach((variant, index) => {
-    const label = variant.label.trim()
-    if (!label) fieldErrors.variants = `عنوان گزینه در ردیف ${(index + 1).toLocaleString("fa-IR")} الزامی است.`
-    if (!Number.isFinite(variant.price) || variant.price < 0) fieldErrors.variants = `قیمت گزینه در ردیف ${(index + 1).toLocaleString("fa-IR")} باید عددی و صفر یا بیشتر باشد.`
-    const normalizedLabel = label.toLocaleLowerCase("fa-IR")
-    if (normalizedLabel && seenVariantLabels.has(normalizedLabel)) fieldErrors.variants = "عنوان گزینه‌های یک محصول نباید تکراری باشد."
-    if (normalizedLabel) seenVariantLabels.add(normalizedLabel)
-  })
 
   if (!fieldErrors.slug) {
     const isSlugUnique = await ensureSlugIsUnique(input.slug, productId)
@@ -99,7 +88,6 @@ export async function createAdminProduct(input: AdminProductFormInput, imageFile
     throw new Error(`محصول ذخیره شد، اما ثبت تصاویر با خطا مواجه شد. لطفاً تصاویر را دوباره بارگذاری کنید. ${details}`)
   }
   await replaceProductSpecs(productId, input.specs)
-  await replaceProductVariants(productId, input.variants)
 
   return {
     ok: true,
@@ -151,7 +139,6 @@ export async function updateAdminProduct(id: string, input: AdminProductFormInpu
     throw new Error(`محصول ذخیره شد، اما ثبت تصاویر جدید با خطا مواجه شد. لطفاً تصاویر را دوباره بارگذاری کنید. ${details}`)
   }
   await replaceProductSpecs(id, input.specs)
-  await replaceProductVariants(id, input.variants)
 
   return {
     ok: true,

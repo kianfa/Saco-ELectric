@@ -91,7 +91,7 @@ export function CartPage() {
                 <CartWarnings priceUpdated={priceUpdated} hasOutOfStock={hasOutOfStock} />
                 {items.map((item) => (
                   <CartItemCard
-                    key={item.lineId}
+                    key={item.productId}
                     item={item}
                     onQuantityChange={handleQuantityChange}
                     onRemove={handleRemove}

@@ -38,11 +38,6 @@ function revalidatePublicCategoryData() {
   revalidatePath("/admin/content/homepage-categories")
 }
 
-function revalidateCategorySitemap() {
-  revalidateTag("sitemap-data", "max")
-  revalidatePath("/sitemap.xml")
-}
-
 export async function saveHomepageCategorySectionAction(
   _prevState: CategoryActionState = emptyState,
   formData: FormData,
@@ -97,7 +92,6 @@ export async function saveCategoryHomepageSettingsAction(
     }))
 
     revalidatePublicCategoryData()
-    revalidateCategorySitemap()
     return result
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "خطا در ذخیره تنظیمات دسته‌بندی" }
@@ -126,7 +120,6 @@ export async function toggleCategoryHomepageVisibilityAction(formData: FormData)
   }))
 
   revalidatePublicCategoryData()
-  revalidateCategorySitemap()
 }
 
 export async function toggleCategoryActiveAction(formData: FormData) {
@@ -151,5 +144,4 @@ export async function toggleCategoryActiveAction(formData: FormData) {
   }))
 
   revalidatePublicCategoryData()
-  revalidateCategorySitemap()
 }

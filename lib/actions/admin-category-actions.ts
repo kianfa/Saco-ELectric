@@ -28,14 +28,12 @@ const file = (formData: FormData, key: string) => {
 
 function revalidateCategories() {
   revalidateTag("public-categories", "max")
-  revalidateTag("sitemap-data", "max")
   revalidatePath("/")
   revalidatePath("/categories")
   revalidatePath("/products")
   revalidatePath("/admin/categories")
   revalidatePath("/admin/products")
   revalidatePath("/admin/content/homepage-categories")
-  revalidatePath("/sitemap.xml")
 }
 
 function inputFrom(formData: FormData, urls: { imageUrl: string | null; homepageImageUrl: string | null; homepageIconUrl: string | null }): AdminCategoryInput {

@@ -374,3 +374,7 @@ export const footerLinks = {
 export function formatPrice(price: number): string {
   return price.toLocaleString('fa-IR')
 }
+
+export function formatEnglishPrice(price: number): string {
+  return price.toLocaleString('en-US')
+}

@@ -1,22 +1,17 @@
 "use server"
 
-import { revalidatePath, revalidateTag } from "next/cache"
+import { revalidatePath } from "next/cache"
 import {
   createAdminProduct,
   deleteAdminProduct,
   toggleAdminProductActive,
   updateAdminProduct,
 } from "@/lib/services/admin-products-service"
-import type { AdminActionState, AdminProductFormInput, AdminProductImage, AdminProductSpec, AdminProductVariant, NewProductImageMetadata } from "@/types/admin-product"
+import type { AdminActionState, AdminProductFormInput, AdminProductImage, AdminProductSpec, NewProductImageMetadata } from "@/types/admin-product"
 import { requireAdminAccess } from "@/lib/auth/admin-auth"
 import { withAdminMutationTimeout } from "@/lib/performance/server-timing"
 
 const emptyState: AdminActionState = { ok: false, message: "" }
-
-function revalidateProductSitemap() {
-  revalidateTag("sitemap-data", "max")
-  revalidatePath("/sitemap.xml")
-}
 
 function nullableText(value: FormDataEntryValue | null): string | null {
   const text = typeof value === "string" ? value.trim() : ""
@@ -60,13 +55,6 @@ function parseProductInput(formData: FormData): AdminProductFormInput {
     warranty: nullableText(formData.get("warranty")),
     originCountry: nullableText(formData.get("originCountry")),
     specs: jsonValue<AdminProductSpec[]>(formData.get("specsJson"), []),
-    variants: jsonValue<AdminProductVariant[]>(formData.get("variantsJson"), []).map((variant, index) => ({
-      id: variant.id,
-      label: String(variant.label ?? "").trim(),
-      price: numberValue(String(variant.price ?? "")),
-      sortOrder: Number.isFinite(Number(variant.sortOrder)) ? Number(variant.sortOrder) : index + 1,
-      isActive: variant.isActive !== false,
-    })),
     existingImages: jsonValue<AdminProductImage[]>(formData.get("existingImagesJson"), []),
     removedImageIds: jsonValue<string[]>(formData.get("removedImageIdsJson"), []),
     mainExistingImageId: nullableText(formData.get("mainExistingImageId")),
@@ -93,7 +81,6 @@ export async function createProductAction(_prevState: AdminActionState = emptySt
     revalidatePath("/")
     revalidatePath("/products")
     revalidatePath("/admin/products")
-    revalidateProductSitemap()
 
     return {
       ok: true,
@@ -119,7 +106,6 @@ export async function updateProductAction(productId: string, _prevState: AdminAc
     revalidatePath(`/products/${input.slug}`)
     revalidatePath("/admin/products")
     revalidatePath(`/admin/products/${productId}/edit`)
-    revalidateProductSitemap()
 
     return { ok: true, message: result.message, productId, redirectTo: "/admin/products" }
   } catch (error) {
@@ -133,7 +119,6 @@ export async function toggleProductActiveAction(formData: FormData) {
   if (id) await withAdminMutationTimeout("toggle product active", toggleAdminProductActive(id))
   revalidatePath("/products")
   revalidatePath("/admin/products")
-  revalidateProductSitemap()
 }
 
 const PRODUCT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -150,7 +135,6 @@ export async function deleteProductAction(productId: string): Promise<AdminActio
     revalidatePath("/")
     revalidatePath("/products")
     revalidatePath("/admin/products")
-    revalidateProductSitemap()
     return { ok: true, message: "محصول با موفقیت حذف شد." }
   } catch (error) {
     return {

@@ -220,7 +220,7 @@ export function ProductsPageClient({
         }
       }
 
-      if ((product.minVariantPrice ?? product.price) < filters.priceRange[0] || (product.minVariantPrice ?? product.price) > filters.priceRange[1]) {
+      if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
         return false
       }
 
@@ -240,9 +240,9 @@ export function ProductsPageClient({
     return [...filteredProducts].sort((a, b) => {
       switch (sortBy) {
         case "cheapest":
-          return (a.minVariantPrice ?? a.price) - (b.minVariantPrice ?? b.price)
+          return a.price - b.price
         case "expensive":
-          return (b.minVariantPrice ?? b.price) - (a.minVariantPrice ?? a.price)
+          return b.price - a.price
         case "discount":
           return b.discountPercent - a.discountPercent
         case "newest":
@@ -431,7 +431,7 @@ export function ProductsPageClient({
             {paginatedProducts.length > 0 ? (
               <>
                 {viewMode === "grid" ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 gap-3 min-[769px]:grid-cols-3 lg:grid-cols-4">
                     {paginatedProducts.map((product) => (
                       <ProductListingCard key={product.id} product={product} />
                     ))}
@@ -453,7 +453,7 @@ export function ProductsPageClient({
                 )}
               </>
             ) : hasUrlSearch ? (
-              <div className="bg-card border border-border rounded-2xl p-12 text-center">
+              <div className="bg-card border border-border rounded-2xl p-6 text-center sm:p-12">
                 <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
                   <SearchX className="w-10 h-10 text-muted-foreground" />
                 </div>
@@ -468,7 +468,7 @@ export function ProductsPageClient({
                 </Button>
               </div>
             ) : filters.categories.length > 0 || filters.brands.length > 0 ? (
-              <div className="bg-card border border-border rounded-2xl p-12 text-center">
+              <div className="bg-card border border-border rounded-2xl p-6 text-center sm:p-12">
                 <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
                   <SearchX className="w-10 h-10 text-muted-foreground" />
                 </div>

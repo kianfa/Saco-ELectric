@@ -256,7 +256,7 @@ export function AdminBulkPriceUpdate({ products, brands, categories }: { product
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
                   <Label>نوع تغییر</Label>
-                  <RadioGroup value={changeType} onValueChange={(value) => { setChangeType(value as BulkPriceChangeType); resetPreview() }} className="grid grid-cols-2 gap-3">
+                  <RadioGroup value={changeType} onValueChange={(value) => { setChangeType(value as BulkPriceChangeType); resetPreview() }} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Label className="flex cursor-pointer items-center gap-2 rounded-xl border p-3 hover:bg-muted/50"><RadioGroupItem value="increase" /> افزایش قیمت</Label>
                     <Label className="flex cursor-pointer items-center gap-2 rounded-xl border p-3 hover:bg-muted/50"><RadioGroupItem value="decrease" /> کاهش قیمت</Label>
                   </RadioGroup>

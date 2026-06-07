@@ -9,7 +9,7 @@ interface EmptyProductStateProps {
 
 export function EmptyProductState({ onClearFilters }: EmptyProductStateProps) {
   return (
-    <div className="bg-card border border-border rounded-2xl p-12 text-center">
+    <div className="bg-card border border-border rounded-2xl p-6 text-center sm:p-12">
       <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
         <SearchX className="w-10 h-10 text-muted-foreground" />
       </div>

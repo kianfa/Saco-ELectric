@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowLeft, ShoppingCart, Star } from "lucide-react"
-import { formatPrice } from "@/lib/data"
+import { Heart, Star, ShoppingCart } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { formatEnglishPrice } from "@/lib/data"
 import { ProductImage } from "@/components/common/product-image"
 
 interface RelatedProduct {
@@ -18,7 +19,6 @@ interface RelatedProduct {
   imageAlt?: string | null
   brand: string
   slug: string
-  hasActiveVariants?: boolean
 }
 
 interface RelatedProductsProps {
@@ -27,50 +27,94 @@ interface RelatedProductsProps {
 
 export function RelatedProducts({ products }: RelatedProductsProps) {
   return (
-    <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold text-primary">پیشنهادهای مرتبط</p>
-          <h2 className="mt-1 text-xl font-black text-foreground">محصولات مرتبط</h2>
-        </div>
-        <Link href="/products" className="flex items-center gap-1 text-sm font-bold text-primary transition-colors hover:text-primary/75">
-          <span>مشاهده همه</span>
-          <ArrowLeft className="h-4 w-4" />
+    <section className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl md:text-2xl font-bold text-foreground">
+          محصولات مرتبط
+        </h2>
+        <Link
+          href="/products"
+          className="text-primary hover:text-primary/80 text-sm font-medium transition-colors"
+        >
+          مشاهده همه
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 min-[769px]:grid-cols-4 min-[769px]:gap-4">
         {products.map((product) => (
-          <Link key={product.id} href={`/products/${product.slug}`} className="group flex flex-col rounded-2xl border border-border bg-white p-3 transition-all hover:border-primary/35 hover:shadow-md sm:p-4">
-            <div className="relative mb-3">
-              {product.discount ? <span className="absolute right-2 top-2 z-10 rounded-full bg-accent px-2.5 py-1 text-[11px] font-black text-accent-foreground">{product.discount}٪</span> : null}
-              <ProductImage src={product.image} alt={product.imageAlt || product.name} size="card" className="w-full rounded-xl shadow-none" />
+          <Link
+            key={product.id}
+            href={`/products/${product.slug}`}
+            className="group flex min-w-0 flex-col rounded-2xl border border-border bg-card p-2.5 transition-all duration-300 hover:border-primary hover:shadow-xl min-[769px]:p-4"
+          >
+            {/* Image Container */}
+            <div className="relative mb-2 min-[769px]:mb-4">
+              {/* Discount Badge */}
+              {product.discount && (
+                <span className="absolute top-2 right-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded-lg z-10">
+                  {product.discount}٪
+                </span>
+              )}
+
+              {/* Favorite Button */}
+              <button
+                onClick={(e) => e.preventDefault()}
+                className="absolute top-2 left-2 w-8 h-8 bg-card/80 backdrop-blur-sm rounded-full flex items-center justify-center border border-border hover:border-destructive hover:text-destructive transition-colors z-10"
+              >
+                <Heart className="w-4 h-4" />
+              </button>
+
+              {/* Product Image */}
+              <ProductImage
+                src={product.image}
+                alt={product.imageAlt || product.name}
+                size="card"
+                className="w-full"
+              />
             </div>
 
-            <div className="flex flex-1 flex-col">
-              <p className="text-[11px] font-bold text-primary">{product.brand}</p>
-              <h3 className="mt-1 line-clamp-2 text-sm font-black leading-6 text-foreground">{product.name}</h3>
-              <p className="mt-1 text-xs text-muted-foreground" dir="ltr">{product.model}</p>
+            {/* Product Info */}
+            <div className="flex-1 flex flex-col">
+              <h3 className="mb-1 line-clamp-2 min-h-10 text-xs font-semibold leading-5 text-foreground min-[769px]:min-h-0 min-[769px]:text-sm">
+                {product.name}
+              </h3>
+              <p className="text-xs text-muted-foreground mb-2" dir="ltr">
+                {product.model}
+              </p>
 
-              <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
-                <Star className="h-3.5 w-3.5 fill-accent text-accent" />
-                <span className="font-bold text-foreground">{product.rating}</span>
-                <span>({product.reviewCount})</span>
+              {/* Rating */}
+              <div className="flex items-center gap-1 mb-3">
+                <Star className="w-4 h-4 fill-accent text-accent" />
+                <span className="text-sm font-medium">{product.rating}</span>
+                <span className="text-xs text-muted-foreground">
+                  ({product.reviewCount})
+                </span>
               </div>
 
-              <div className="mt-auto pt-4">
-                {product.hasActiveVariants ? <p className="text-[11px] font-bold text-primary">شروع قیمت از</p> : null}
-                <div className="mt-1 flex flex-wrap items-baseline gap-1">
-                  <span className="text-base font-black text-foreground">{formatPrice(product.price)}</span>
-                  <span className="text-[11px] text-muted-foreground">تومان</span>
+              {/* Price */}
+              <div className="mt-auto">
+                <div className="flex items-baseline gap-2">
+                  <span className="truncate text-sm font-bold text-foreground min-[769px]:text-base">
+                    {formatEnglishPrice(product.price)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">تومان</span>
                 </div>
-                {product.oldPrice ? <p className="mt-1 text-xs text-muted-foreground line-through">{formatPrice(product.oldPrice)}</p> : null}
+                {product.oldPrice && (
+                  <span className="text-xs text-muted-foreground line-through">
+                    {formatEnglishPrice(product.oldPrice)}
+                  </span>
+                )}
               </div>
 
-              <span className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 text-xs font-bold text-primary-foreground transition-colors group-hover:bg-primary/90">
-                <ShoppingCart className="h-3.5 w-3.5" />
-                <span>{product.hasActiveVariants ? "انتخاب گزینه‌ها" : "مشاهده محصول"}</span>
-              </span>
+              {/* Add to Cart Button */}
+              <Button
+                onClick={(e) => e.preventDefault()}
+                className="mt-3 w-full gap-1 rounded-xl bg-primary px-2 text-xs hover:bg-primary/90 min-[769px]:gap-2 min-[769px]:px-4 min-[769px]:text-sm"
+                size="sm"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                <span className="truncate">افزودن به سبد</span>
+              </Button>
             </div>
           </Link>
         ))}
